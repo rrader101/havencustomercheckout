@@ -92,7 +92,7 @@ export const ShippingDetails = ({ data, onUpdate, onNext }: ShippingDetailsProps
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <FaTruck className="w-5 h-5 text-foreground" />
-          <h2 className="text-xl font-semibold" style={{ fontWeight: 900, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Shipping Details</h2>
+                            <h2 className="text-xl font-semibold" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Shipping Details</h2>
         </div>
         <p className="text-muted-foreground">Let's get your copies to you</p>
       </div>

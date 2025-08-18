@@ -27,6 +27,7 @@ export interface FormData {
     expiryDate?: string;
     cvv?: string;
   };
+  currency: 'USD' | 'CAD';
 }
 
 const PaymentForm = () => {
@@ -48,13 +49,23 @@ const PaymentForm = () => {
     payment: {
       method: 'card',
     },
+    currency: 'USD',
   });
 
-  const updateFormData = (section: keyof FormData, data: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: { ...prev[section], ...data }
-    }));
+  const updateFormData = <K extends keyof FormData>(section: K, data: Partial<FormData[K]>) => {
+    setFormData(prev => {
+      const currentSection = prev[section];
+      if (typeof currentSection === 'object' && currentSection !== null) {
+        return {
+          ...prev,
+          [section]: { ...currentSection, ...data }
+        };
+      }
+      return {
+        ...prev,
+        [section]: data
+      };
+    });
   };
 
   const calculateTotal = () => {
@@ -111,6 +122,8 @@ const PaymentForm = () => {
             <Logo size="lg" className="mx-auto" />
           </div>
           <p className="text-muted-foreground">Last steps — simple and secure</p>
+          
+
         </div>
 
         {/* Progress Indicator */}
@@ -145,6 +158,7 @@ const PaymentForm = () => {
                 userEmail={formData.shipping.email}
                 shippingData={formData.shipping}
                 addOns={formData.addOns}
+                currency={formData.currency}
               />
             )}
           </div>
@@ -154,7 +168,7 @@ const PaymentForm = () => {
             <Card className="p-6 border-0 sticky top-8">
               <div className="flex items-center gap-3 mb-4">
                 <ClipboardList className="w-5 h-5 text-foreground" />
-                <h3 className="text-lg font-semibold text-foreground" style={{ fontWeight: 900, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Order Summary</h3>
+                <h3 className="text-lg font-semibold text-foreground" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Order Summary</h3>
               </div>
               
               {/* Invoice Number */}
@@ -210,7 +224,9 @@ const PaymentForm = () => {
                     {formData.payment?.method !== 'check' && !formData.addOns.monthlyPlan && !formData.addOns.digitalExposure && (
                       <div className="flex justify-between items-center py-2 border-b border-border/50">
                         <span className="text-sm">Processing Fee</span>
-                        <span className="font-medium">${(calculateTotal() * 0.024).toFixed(2)}</span>
+                        <span className="font-medium">
+                          ${(calculateTotal() * (formData.currency === 'CAD' ? 0.024 : 0.029)).toFixed(2)}
+                        </span>
                       </div>
                     )}
                     
@@ -219,7 +235,7 @@ const PaymentForm = () => {
                       <span className="text-primary">
                         ${(formData.payment?.method === 'check' || formData.addOns.monthlyPlan || formData.addOns.digitalExposure)
                           ? calculateTotal().toFixed(2) 
-                          : (calculateTotal() * 1.024).toFixed(2)
+                          : (calculateTotal() * (1 + (formData.currency === 'CAD' ? 0.024 : 0.029))).toFixed(2)
                         }
                       </span>
                     </div>

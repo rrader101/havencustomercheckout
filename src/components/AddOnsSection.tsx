@@ -39,7 +39,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack }: AddOnsSectionP
   return (
             <Card className="p-6 border-0 bg-card animate-fade-in">
               <div className="mb-10">
-          <h2 className="text-xl font-semibold mb-2" style={{ fontWeight: 900, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Enhance Your Experience</h2>
+                            <h2 className="text-xl font-semibold mb-2" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Enhance Your Experience</h2>
           <p className="text-muted-foreground">Select premium add-ons to maximize your investment</p>
         </div>
 
@@ -236,7 +236,12 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack }: AddOnsSectionP
       )}
 
       <div className="flex justify-between mt-6">
-        <Button variant="outline" onClick={onBack} className="gap-2">
+        <Button 
+          variant="outline" 
+          onClick={onBack} 
+          className="gap-2 text-foreground border-0 hover:text-white transition-colors custom-back-button" 
+          style={{ backgroundColor: 'hsl(0deg 0% 96.86%)' }}
+        >
           <ArrowLeft className="w-4 h-4" />
           Back
         </Button>

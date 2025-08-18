@@ -35,9 +35,10 @@ interface PaymentSectionProps {
     monthlyPlan: boolean;
     digitalExposure: boolean;
   };
+  currency: 'USD' | 'CAD';
 }
 
-export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shippingData, addOns }: PaymentSectionProps) => {
+export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shippingData, addOns, currency }: PaymentSectionProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isAutoPopulating, setIsAutoPopulating] = useState(false);
   const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
@@ -440,7 +441,7 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
       {total > 0 && data.method !== 'check' && addOns && !addOns.monthlyPlan && !addOns.digitalExposure && (
         <div className="mt-4 p-3 bg-muted/50 rounded-lg">
           <p className="text-sm text-muted-foreground">
-            A 2.4% processing fee (${(total * 0.024).toFixed(2)}) will be applied to all digital payment methods.
+            A {currency === 'CAD' ? '2.4%' : '2.9%'} processing fee (${(total * (currency === 'CAD' ? 0.024 : 0.029)).toFixed(2)}) will be applied to all digital payment methods.
           </p>
         </div>
       )}
@@ -455,10 +456,15 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
 
       {/* Action Buttons */}
       <div className="flex justify-between mt-6">
-          <Button variant="outline" onClick={onBack} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
+                  <Button 
+          variant="outline" 
+          onClick={onBack} 
+          className="gap-2 text-foreground border-0 hover:text-white transition-colors custom-back-button" 
+          style={{ backgroundColor: 'hsl(0deg 0% 96.86%)' }}
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back
+        </Button>
           
           <Button 
             onClick={handleSubmit} 
@@ -469,7 +475,7 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
                 ? `Complete $${total.toFixed(2)}`
                 : (addOns && (addOns.monthlyPlan || addOns.digitalExposure))
                   ? `Pay $${total.toFixed(2)}`
-                  : `Pay $${(total * 1.024).toFixed(2)}`
+                  : `Pay $${(total * (1 + (currency === 'CAD' ? 0.024 : 0.029))).toFixed(2)}`
               : 'Complete Order'
             }
           </Button>

@@ -596,3 +596,8 @@ All colors MUST be HSL.
   background-color: #f7f7f7 !important;
   border: 1px solid rgba(0, 0, 0, 0.1) !important;
 }
+
+/* Custom back button hover override */
+.custom-back-button:hover {
+  background-color: black !important;
+}

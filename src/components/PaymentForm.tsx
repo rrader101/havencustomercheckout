@@ -136,9 +136,17 @@ const PaymentForm = () => {
         {/* Progress Indicator */}
         <FormProgress currentStep={currentStep} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+        <div className={`transition-all duration-700 ease-in-out ${
+          currentStep === 'shipping' 
+            ? 'grid grid-cols-1 max-w-4xl mx-auto' 
+            : 'grid grid-cols-1 lg:grid-cols-3 gap-8'
+        } mt-8`}>
           {/* Main Form Area */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className={`transition-all duration-700 ease-in-out ${
+            currentStep === 'shipping' 
+              ? 'w-full' 
+              : 'lg:col-span-2'
+          } space-y-6`}>
             {currentStep === 'shipping' && (
               <ShippingDetails
                 data={formData.shipping}
@@ -170,99 +178,103 @@ const PaymentForm = () => {
             )}
           </div>
 
-          {/* Order Summary - Always Visible */}
-          <div className="lg:col-span-1">
-            <Card className="p-6 border-0 sticky top-8">
-              <div className="flex items-center gap-3 mb-4">
-                <ClipboardList className="w-5 h-5 text-foreground" />
-                <h3 className="text-lg font-semibold text-foreground" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Order Summary</h3>
-              </div>
-              
-              {/* Invoice Number */}
-              <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
-                <span className="text-sm">Invoice #</span>
-                <span className="font-medium">INV-2024-001</span>
-              </div>
-              
-              {/* Payment Due Date */}
-              <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
-                <span className="text-sm">Payment Due</span>
-                <span className="font-medium">Aug 25, 2025</span>
-              </div>
-              
-              {/* Payment Status */}
-              <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
-                <span className="text-sm">Status</span>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${paymentStatus.bgColor} ${paymentStatus.textColor}`}>
-                  {paymentStatus.status}
-                </span>
-              </div>
-              
-              <div className="space-y-3">
-                {/* Base Order Item or Monthly Plan */}
-                {formData.addOns.monthlyPlan ? (
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm">Monthly Plan</span>
-                    <span className="font-medium">$195</span>
-                  </div>
-                ) : (
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm">Single Full Page</span>
-                    <span className="font-medium">$495</span>
-                  </div>
-                )}
+          {/* Order Summary - Only visible after shipping stage */}
+          {currentStep !== 'shipping' && (
+            <div className={`lg:col-span-1 animate-slide-in-right transition-all duration-700 ease-in-out ${
+              currentStep === 'addons' ? 'opacity-100 translate-x-0' : 'opacity-100'
+            }`}>
+              <Card className="p-6 border-0 sticky top-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <ClipboardList className="w-5 h-5 text-foreground" />
+                  <h3 className="text-lg font-semibold text-foreground" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Order Summary</h3>
+                </div>
                 
-                {/* Enhanced Digital Exposure is an add-on */}
-                {formData.addOns.digitalExposure && (
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm">Enhanced Digital Exposure</span>
-                    <span className="font-medium">$95</span>
-                  </div>
-                )}
+                {/* Invoice Number */}
+                <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                  <span className="text-sm">Invoice #</span>
+                  <span className="font-medium">INV-2024-001</span>
+                </div>
                 
-                {calculateTotal() === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>Select add-ons to see pricing</p>
-                  </div>
-                )}
+                {/* Payment Due Date */}
+                <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                  <span className="text-sm">Payment Due</span>
+                  <span className="font-medium">Aug 25, 2025</span>
+                </div>
                 
-                {calculateTotal() > 0 && (
-                  <>
-                    {formData.payment?.method !== 'check' && !formData.addOns.monthlyPlan && !formData.addOns.digitalExposure && (
-                      <div className="flex justify-between items-center py-2 border-b border-border/50">
-                        <span className="text-sm">Processing Fee</span>
-                        <span className="font-medium">
-                          ${(calculateTotal() * (formData.currency === 'CAD' ? 0.024 : 0.029)).toFixed(2)}
+                {/* Payment Status */}
+                <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                  <span className="text-sm">Status</span>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${paymentStatus.bgColor} ${paymentStatus.textColor}`}>
+                    {paymentStatus.status}
+                  </span>
+                </div>
+                
+                <div className="space-y-3">
+                  {/* Base Order Item or Monthly Plan */}
+                  {formData.addOns.monthlyPlan ? (
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-sm">Monthly Plan</span>
+                      <span className="font-medium">$195</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-sm">Single Full Page</span>
+                      <span className="font-medium">$495</span>
+                    </div>
+                  )}
+                  
+                  {/* Enhanced Digital Exposure is an add-on */}
+                  {formData.addOns.digitalExposure && (
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-sm">Enhanced Digital Exposure</span>
+                      <span className="font-medium">$95</span>
+                    </div>
+                  )}
+                  
+                  {calculateTotal() === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>Select add-ons to see pricing</p>
+                    </div>
+                  )}
+                  
+                  {calculateTotal() > 0 && (
+                    <>
+                      {formData.payment?.method !== 'check' && !formData.addOns.monthlyPlan && !formData.addOns.digitalExposure && (
+                        <div className="flex justify-between items-center py-2 border-b border-border/50">
+                          <span className="text-sm">Processing Fee</span>
+                          <span className="font-medium">
+                            ${(calculateTotal() * (formData.currency === 'CAD' ? 0.024 : 0.029)).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between items-center pt-3 text-lg font-bold">
+                        <span>Total</span>
+                        <span className="text-primary">
+                          ${(formData.payment?.method === 'check' || formData.addOns.monthlyPlan || formData.addOns.digitalExposure)
+                            ? calculateTotal().toFixed(2) 
+                            : (calculateTotal() * (1 + (formData.currency === 'CAD' ? 0.024 : 0.029))).toFixed(2)
+                          }
                         </span>
                       </div>
-                    )}
-                    
-                    <div className="flex justify-between items-center pt-3 text-lg font-bold">
-                      <span>Total</span>
-                      <span className="text-primary">
-                        ${(formData.payment?.method === 'check' || formData.addOns.monthlyPlan || formData.addOns.digitalExposure)
-                          ? calculateTotal().toFixed(2) 
-                          : (calculateTotal() * (1 + (formData.currency === 'CAD' ? 0.024 : 0.029))).toFixed(2)
-                        }
-                      </span>
-                    </div>
-                    
-                    {/* Monthly Plan Notice */}
-                    {formData.addOns.monthlyPlan && (
-                      <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
-                        <p className="text-xs text-muted-foreground">
-                          Monthly billing — ${calculateTotal().toFixed(2)}/month. 8 print issues/year; digital content refreshed monthly.
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          First charge today; next charge on {getNextChargeDate()}. Receipts will be emailed to you. 12-month commitment; billed monthly; renews annually.
-                        </p>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </Card>
-          </div>
+                      
+                      {/* Monthly Plan Notice */}
+                      {formData.addOns.monthlyPlan && (
+                        <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
+                          <p className="text-xs text-muted-foreground">
+                            Monthly billing — ${calculateTotal().toFixed(2)}/month. 8 print issues/year; digital content refreshed monthly.
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            First charge today; next charge on {getNextChargeDate()}. Receipts will be emailed to you. 12-month commitment; billed monthly; renews annually.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
     </div>

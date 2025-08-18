@@ -215,7 +215,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack }: AddOnsSectionP
         <div className="mt-6 p-4 bg-gradient-accent rounded-lg border border-primary/20 animate-slide-in">
           <div className="flex items-center gap-2 text-primary mb-2">
             <Star className="w-4 h-4" />
-            <span className="font-medium">Excellent choice</span>
+            <span className="font-medium">Major Savings</span>
           </div>
           <p className="text-sm text-muted-foreground">
             A full-page every month plus digital reach, all at less than 3¢ per reader.
@@ -227,7 +227,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack }: AddOnsSectionP
         <div className="mt-6 p-4 bg-gradient-accent rounded-lg border border-primary/20 animate-slide-in">
           <div className="flex items-center gap-2 text-primary mb-2">
             <Star className="w-4 h-4" />
-            <span className="font-medium">Nice choice</span>
+            <span className="font-medium">Good Move</span>
           </div>
           <p className="text-sm text-muted-foreground">
             More reach, verified impressions, and reporting you can share with sellers.

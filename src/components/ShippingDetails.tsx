@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { FaTruck } from 'react-icons/fa';
 import { useCountryDetection } from '../hooks/use-country-detection';
 
@@ -207,8 +207,8 @@ export const ShippingDetails = ({ data, onUpdate, onNext }: ShippingDetailsProps
 
       <div className="flex justify-end mt-6">
         <Button onClick={handleSubmit} className="gap-2">
-          Continue
-          <ArrowRight className="w-4 h-4" />
+          Confirm
+          <Check className="w-4 h-4" />
         </Button>
       </div>
     </Card>

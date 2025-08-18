@@ -110,6 +110,13 @@ const PaymentForm = () => {
 
   const paymentStatus = getPaymentStatus();
 
+  const getNextChargeDate = () => {
+    const now = new Date();
+    const next = new Date(now);
+    next.setMonth(now.getMonth() + 1);
+    return next.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
   return (
             <div className="min-h-screen p-4 md:p-8 relative" style={{ 
           borderTop: '3px solid black',
@@ -244,7 +251,10 @@ const PaymentForm = () => {
                     {formData.addOns.monthlyPlan && (
                       <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
                         <p className="text-xs text-muted-foreground">
-                          <strong>Monthly billing</strong> - ${calculateTotal().toFixed(2)}/month
+                          Monthly billing — ${calculateTotal().toFixed(2)}/month. 8 print issues/year; digital content refreshed monthly.
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          First charge today; next charge on {getNextChargeDate()}. Receipts will be emailed to you. 12-month commitment; billed monthly; renews annually.
                         </p>
                       </div>
                     )}

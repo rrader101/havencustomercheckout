@@ -435,24 +435,21 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
         </div>
       </div>
 
-
-
-      {/* Processing Fee Notice */}
-      {total > 0 && data.method !== 'check' && addOns && !addOns.monthlyPlan && !addOns.digitalExposure && (
-        <div className="mt-4 p-3 bg-muted/50 rounded-lg">
+      {/* Processing Fee Information */}
+      {data.method !== 'check' && (!addOns || (!addOns.monthlyPlan && !addOns.digitalExposure)) && (
+        <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
           <p className="text-sm text-muted-foreground">
-            A {currency === 'CAD' ? '2.4%' : '2.9%'} processing fee (${(total * (currency === 'CAD' ? 0.024 : 0.029)).toFixed(2)}) will be applied to all digital payment methods.
+            {currency === 'CAD' 
+              ? '2.4% processing fee applies to digital payments. Check payments have no fee.'
+              : '2.9% processing fee applies to digital payments. Check payments have no fee.'
+            }
           </p>
         </div>
       )}
-      
-      {total === 0 && (
-        <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-          <p className="text-sm text-muted-foreground">
-            No add-ons selected. You can complete your order without additional services.
-          </p>
-        </div>
-      )}
+
+
+
+
 
       {/* Action Buttons */}
       <div className="flex justify-between mt-6">

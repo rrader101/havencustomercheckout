@@ -26,10 +26,16 @@ export interface FormData {
   addOns: Record<string, boolean>;
   invoices: Record<string, boolean>;
   payment: {
-    method: 'card' | 'google-pay' | 'apple-pay' | 'check';
+    method: 'card' | 'google-pay' | 'apple-pay' | 'link' | 'check';
     cardNumber?: string;
     expiryDate?: string;
     cvv?: string;
+    cardholderName?: string;
+    country?: string;
+    zipCode?: string;
+    userEmail?: string;
+    paymentMethodId?: string;
+    linkEmail?: string;
   };
   currency: 'USD' | 'CAD';
 }

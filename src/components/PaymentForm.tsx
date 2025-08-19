@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, Loader2 } from 'lucide-react';
 import { ShippingDetails } from './ShippingDetails';
 import { AddOnsSection } from './AddOnsSection';
 import { PaymentSection } from './PaymentSection';
 import { FormProgress } from './FormProgress';
 import Logo from './Logo';
+import { fetchDealsData, DealsResponse, DealAddOn, Deal } from '@/services/api';
+import NotFound from '@/pages/NotFound';
 
 export interface FormData {
   shipping: {
@@ -17,10 +20,7 @@ export interface FormData {
     country: string;
     zipCode: string;
   };
-  addOns: {
-    monthlyPlan: boolean;
-    digitalExposure: boolean;
-  };
+  addOns: Record<string, boolean>;
   payment: {
     method: 'card' | 'google-pay' | 'apple-pay' | 'check';
     cardNumber?: string;
@@ -31,7 +31,24 @@ export interface FormData {
 }
 
 const PaymentForm = () => {
+  const { dealId } = useParams<{ dealId: string }>();
   const [currentStep, setCurrentStep] = useState<'shipping' | 'addons' | 'payment'>('shipping');
+  const [dealsData, setDealsData] = useState<Deal | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showNotFound, setShowNotFound] = useState(false);
+
+  // Normalize country names to match dropdown options
+  const normalizeCountry = (country: string): string => {
+    const normalized = country.toLowerCase().trim();
+    if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
+      return 'USA';
+    }
+    if (['canada', 'ca'].includes(normalized)) {
+      return 'Canada';
+    }
+    return country; // Return original if no match
+  };
   const [formData, setFormData] = useState<FormData>({
     shipping: {
       name: '',
@@ -42,15 +59,57 @@ const PaymentForm = () => {
       country: '',
       zipCode: '',
     },
-    addOns: {
-      monthlyPlan: false,
-      digitalExposure: false,
-    },
+    addOns: {},
     payment: {
       method: 'card',
     },
     currency: 'USD',
   });
+
+  // Fetch deals data on component mount
+  useEffect(() => {
+    const loadDealsData = async () => {
+      try {
+        setLoading(true);
+        const currentDealId = dealId || '006VL00000LCZE1YAP'; // Use URL param or fallback
+        const response = await fetchDealsData(currentDealId);
+        const dealData = response.deal;
+        setDealsData(dealData);
+        
+        // Initialize addOns state based on API response
+        const initialAddOns: Record<string, boolean> = {};
+        dealData.add_ons.forEach(addon => {
+          initialAddOns[addon.id.toString()] = false;
+        });
+        
+        // Pre-fill form data from API response
+        setFormData(prev => ({
+          ...prev,
+          shipping: {
+            ...prev.shipping,
+            name: dealData.name || '',
+            email: dealData.contact_email || '',
+            streetAddress: dealData.mailing_address_street || '',
+            city: dealData.mailing_address_city || '',
+            state: dealData.mailing_address_state || '',
+            country: normalizeCountry(dealData.mailing_address_country || ''),
+            zipCode: dealData.mailing_address_zipcode || ''
+          },
+          addOns: initialAddOns,
+          currency: dealData.currency as 'USD' | 'CAD'
+        }));
+      } catch (err) {
+        console.error('API Error:', err);
+        // Show NotFound component inline instead of redirecting
+        setShowNotFound(true);
+        setError(err instanceof Error ? err.message : 'Failed to load deals data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDealsData();
+  }, [dealId]);
 
   const updateFormData = <K extends keyof FormData>(section: K, data: Partial<FormData[K]>) => {
     setFormData(prev => {
@@ -69,17 +128,22 @@ const PaymentForm = () => {
   };
 
   const calculateTotal = () => {
-    let total = 0;
+    if (!dealsData) return 0;
     
-    // Monthly Plan replaces the Single Full Page
-    if (formData.addOns.monthlyPlan) {
-      total = 195; // Monthly plan base price
-    } else {
-      total = 495; // Single Full Page base price
-    }
+    let total = dealsData.amount;
     
-    // Enhanced Digital Exposure is an add-on to either plan
-    if (formData.addOns.digitalExposure) total += 95;
+    // Add selected add-ons
+    dealsData.add_ons.forEach(addon => {
+      if (formData.addOns[addon.id.toString()]) {
+        if (addon.pricing_behavior === 'Replace') {
+          // For replace behavior, use the addon price instead of base price
+          total = parseFloat(addon.amount);
+        } else {
+          // For add behavior, add to the total
+          total += parseFloat(addon.amount);
+        }
+      }
+    });
     
     return total;
   };
@@ -109,6 +173,31 @@ const PaymentForm = () => {
   };
 
   const paymentStatus = getPaymentStatus();
+
+  // Show loading spinner while API call is in progress
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ 
+        borderTop: '3px solid black',
+        backgroundColor: 'hsl(0 0% 96.86%)'
+      }}>
+        <div className="text-center">
+          <div className="mb-4">
+            <Logo size="lg" className="mx-auto" />
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-lg text-muted-foreground">Loading your checkout...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show NotFound component if API error occurred
+  if (showNotFound) {
+    return <NotFound />;
+  }
 
   return (
             <div className="min-h-screen p-4 md:p-8 relative" style={{ 
@@ -146,6 +235,8 @@ const PaymentForm = () => {
                 onUpdate={(data) => updateFormData('addOns', data)}
                 onNext={() => setCurrentStep('payment')}
                 onBack={() => setCurrentStep('shipping')}
+                availableAddOns={dealsData?.add_ons || []}
+                loading={loading}
               />
             )}
             
@@ -174,44 +265,41 @@ const PaymentForm = () => {
               {/* Invoice Number */}
               <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
                 <span className="text-sm">Invoice #</span>
-                <span className="font-medium">INV-2024-001</span>
+                <span className="font-medium">{dealsData?.invoices[0]?.invoice_num || 'N/A'}</span>
               </div>
               
               {/* Payment Due Date */}
               <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
                 <span className="text-sm">Payment Due</span>
-                <span className="font-medium">Aug 25, 2025</span>
+                <span className="font-medium">{dealsData?.invoices[0]?.due_date ? new Date(dealsData.invoices[0].due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
               </div>
               
               {/* Payment Status */}
               <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
                 <span className="text-sm">Status</span>
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${paymentStatus.bgColor} ${paymentStatus.textColor}`}>
-                  {paymentStatus.status}
+                  {dealsData?.invoices[0]?.status || paymentStatus.status}
                 </span>
               </div>
               
               <div className="space-y-3">
-                {/* Base Order Item or Monthly Plan */}
-                {formData.addOns.monthlyPlan ? (
+                {/* Base Deal */}
+                {dealsData && (
                   <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm">Monthly Plan</span>
-                    <span className="font-medium">$195</span>
-                  </div>
-                ) : (
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm">Single Full Page</span>
-                    <span className="font-medium">$495</span>
+                    <span className="text-sm">{dealsData.deal_products[0]?.name || 'Base Deal'}</span>
+                    <span className="font-medium">${dealsData.amount}</span>
                   </div>
                 )}
                 
-                {/* Enhanced Digital Exposure is an add-on */}
-                {formData.addOns.digitalExposure && (
-                  <div className="flex justify-between items-center py-2 border-b border-border/50">
-                    <span className="text-sm">Enhanced Digital Exposure</span>
-                    <span className="font-medium">$95</span>
-                  </div>
-                )}
+                {/* Selected Add-ons */}
+                {dealsData?.add_ons.map(addon => (
+                  formData.addOns[addon.id.toString()] && (
+                    <div key={addon.id} className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-sm">{addon.title}</span>
+                      <span className="font-medium">${addon.amount}</span>
+                    </div>
+                  )
+                ))}
                 
                 {calculateTotal() === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
@@ -221,7 +309,7 @@ const PaymentForm = () => {
                 
                 {calculateTotal() > 0 && (
                   <>
-                    {formData.payment?.method !== 'check' && !formData.addOns.monthlyPlan && !formData.addOns.digitalExposure && (
+                    {formData.payment?.method !== 'check' && Object.values(formData.addOns).every(selected => !selected) && (
                       <div className="flex justify-between items-center py-2 border-b border-border/50">
                         <span className="text-sm">Processing Fee</span>
                         <span className="font-medium">
@@ -233,21 +321,12 @@ const PaymentForm = () => {
                     <div className="flex justify-between items-center pt-3 text-lg font-bold">
                       <span>Total</span>
                       <span className="text-primary">
-                        ${(formData.payment?.method === 'check' || formData.addOns.monthlyPlan || formData.addOns.digitalExposure)
+                        ${(formData.payment?.method === 'check' || Object.values(formData.addOns).some(selected => selected))
                           ? calculateTotal().toFixed(2) 
                           : (calculateTotal() * (1 + (formData.currency === 'CAD' ? 0.024 : 0.029))).toFixed(2)
                         }
                       </span>
                     </div>
-                    
-                    {/* Monthly Plan Notice */}
-                    {formData.addOns.monthlyPlan && (
-                      <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
-                        <p className="text-xs text-muted-foreground">
-                          <strong>Monthly billing</strong> - ${calculateTotal().toFixed(2)}/month
-                        </p>
-                      </div>
-                    )}
                   </>
                 )}
               </div>

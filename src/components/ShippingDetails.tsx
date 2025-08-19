@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowRight } from 'lucide-react';
 import { FaTruck } from 'react-icons/fa';
-import { useCountryDetection } from '../hooks/use-country-detection';
+import AddressAutocomplete from './AddressAutocomplete';
 
 interface ShippingData {
   name: string;
@@ -26,38 +26,21 @@ interface ShippingDetailsProps {
 
 export const ShippingDetails = ({ data, onUpdate, onNext }: ShippingDetailsProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { detectedCountry, isLoading } = useCountryDetection();
-
-  // Auto-select detected country when component mounts
-  useEffect(() => {
-    if (detectedCountry && !data.country) {
-      onUpdate({ country: detectedCountry });
-    }
-  }, [detectedCountry, data.country, onUpdate]);
 
   // Comprehensive country list (same as PaymentSection)
-  const countries = [
-    'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria',
-    'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan',
-    'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon',
-    'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Costa Rica',
-    'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'East Timor', 'Ecuador',
-    'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France',
-    'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau',
-    'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland',
-    'Israel', 'Italy', 'Ivory Coast', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait',
-    'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
-    'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico',
-    'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru',
-    'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman',
-    'Pakistan', 'Palau', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar',
-    'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia',
-    'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa',
-    'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan',
-    'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu',
-    'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela',
-    'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
-  ];
+  const countries = ['USA', 'Canada'];
+
+  // Normalize country names to match dropdown options
+  const normalizeCountry = (country: string): string => {
+    const normalized = country.toLowerCase().trim();
+    if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
+      return 'USA';
+    }
+    if (['canada', 'ca'].includes(normalized)) {
+      return 'Canada';
+    }
+    return country; // Return original if no match
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -126,16 +109,24 @@ export const ShippingDetails = ({ data, onUpdate, onNext }: ShippingDetailsProps
         </div>
 
         <div>
-          <Label htmlFor="streetAddress">Street Address</Label>
-          <Input
-            id="streetAddress"
-            value={data.streetAddress}
-            onChange={(e) => handleInputChange('streetAddress', e.target.value)}
-            placeholder="Enter your street address"
-            className={errors.streetAddress ? 'border-destructive' : ''}
-          />
-          {errors.streetAddress && <p className="text-sm text-destructive mt-1">{errors.streetAddress}</p>}
-        </div>
+            <AddressAutocomplete
+              value={data.streetAddress}
+              onChange={(value) => handleInputChange('streetAddress', value)}
+              onAddressSelect={(addressComponents) => {
+                // Auto-fill the address fields when user selects from Google Places
+                onUpdate({
+                  streetAddress: addressComponents.streetAddress,
+                  city: addressComponents.city,
+                  state: addressComponents.state,
+                  country: normalizeCountry(addressComponents.country),
+                  zipCode: addressComponents.zipCode
+                });
+              }}
+              placeholder="123 Main Street"
+              label="Street Address"
+              error={errors.streetAddress}
+            />
+          </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -174,7 +165,7 @@ export const ShippingDetails = ({ data, onUpdate, onNext }: ShippingDetailsProps
                 className={errors.country ? 'border-destructive' : ''}
                 style={{ backgroundColor: '#f7f7f7', border: '1px solid rgba(0, 0, 0, 0.1)' }}
               >
-                <SelectValue placeholder={isLoading ? 'Detecting country...' : 'Select country'} />
+                <SelectValue placeholder="Select country" />
               </SelectTrigger>
               <SelectContent className="bg-[#f7f7f7]">
                 {countries.map((country) => (

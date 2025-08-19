@@ -7,7 +7,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, CreditCard, Shield, Receipt, Link, Zap, Mail } from 'lucide-react';
 import { useAppleDevice } from '../hooks/use-apple-device';
-import { useCountryDetection } from '../hooks/use-country-detection';
 
 interface PaymentData {
   method: 'card' | 'google-pay' | 'apple-pay' | 'check';
@@ -31,10 +30,7 @@ interface PaymentSectionProps {
     country?: string;
     zipCode?: string;
   };
-  addOns?: {
-    monthlyPlan: boolean;
-    digitalExposure: boolean;
-  };
+  addOns?: Record<string, boolean>;
   currency: 'USD' | 'CAD';
 }
 
@@ -43,31 +39,21 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
   const [isAutoPopulating, setIsAutoPopulating] = useState(false);
   const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
   const { isApplePaySupported } = useAppleDevice();
-  const { detectedCountry, isLoading } = useCountryDetection();
 
-  // Comprehensive country list
-  const countries = [
-    'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria',
-    'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan',
-    'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon',
-    'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Costa Rica',
-    'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'East Timor', 'Ecuador',
-    'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France',
-    'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau',
-    'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland',
-    'Israel', 'Italy', 'Ivory Coast', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait',
-    'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
-    'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico',
-    'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru',
-    'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman',
-    'Pakistan', 'Palau', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar',
-    'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia',
-    'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa',
-    'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan',
-    'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu',
-    'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela',
-    'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
-  ];
+  // Comprehensive country list (same as ShippingDetails)
+  const countries = ['USA', 'Canada'];
+
+  // Normalize country names to match dropdown options
+  const normalizeCountry = (country: string): string => {
+    const normalized = country.toLowerCase().trim();
+    if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
+      return 'USA';
+    }
+    if (['canada', 'ca'].includes(normalized)) {
+      return 'Canada';
+    }
+    return country; // Return original if no match
+  };
 
   // Auto-populate shipping data when component mounts
   useEffect(() => {
@@ -84,7 +70,7 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
         updates.cardholderName = shippingData.name || '';
       }
       if (!data.country) {
-        updates.country = shippingData.country || '';
+        updates.country = shippingData.country ? normalizeCountry(shippingData.country) : '';
       }
       if (!data.zipCode) {
         updates.zipCode = shippingData.zipCode || '';
@@ -103,12 +89,7 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
     }
   }, [shippingData, onUpdate, data.method, data.cardholderName, data.country, data.zipCode]);
 
-  // Auto-select detected country if no country is set
-  useEffect(() => {
-    if (detectedCountry && !data.country && !shippingData?.country) {
-      onUpdate({ country: detectedCountry });
-    }
-  }, [detectedCountry, data.country, shippingData?.country, onUpdate]);
+
 
 
 
@@ -339,7 +320,7 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
                                       className={`mt-0 custom-country-select ${errors.country ? 'border-red-500' : ''}`}
                                       style={{ backgroundColor: '#f7f7f7', border: '1px solid rgba(0, 0, 0, 0.1)' }}
                                     >
-                                      <SelectValue placeholder={isLoading ? 'Detecting country...' : 'Select country'} />
+                                      <SelectValue placeholder="Select country" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-[#f7f7f7]">
                                       {countries.map((country) => (
@@ -436,7 +417,7 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
       </div>
 
       {/* Processing Fee Information */}
-      {data.method !== 'check' && (!addOns || (!addOns.monthlyPlan && !addOns.digitalExposure)) && (
+      {data.method !== 'check' && (!addOns || !Object.values(addOns).some(selected => selected)) && (
         <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
           <p className="text-sm text-muted-foreground">
             {currency === 'CAD' 
@@ -470,7 +451,7 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
             {total > 0 
               ? data.method === 'check'
                 ? `Complete $${total.toFixed(2)}`
-                : (addOns && (addOns.monthlyPlan || addOns.digitalExposure))
+                : (addOns && Object.values(addOns).some(selected => selected))
                   ? `Pay $${total.toFixed(2)}`
                   : `Pay $${(total * (1 + (currency === 'CAD' ? 0.024 : 0.029))).toFixed(2)}`
               : 'Complete Order'

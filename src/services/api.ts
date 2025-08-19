@@ -80,18 +80,83 @@ if (!API_DOMAIN) {
   throw new Error('VITE_API_DOMAIN environment variable is not set');
 }
 
-export const fetchDealsData = async (dealId: string): Promise<DealsResponse> => {
+// Simple in-memory cache
+const cache = new Map<string, { data: DealsResponse; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Request timeout utility
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 10000): Promise<Response> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
   try {
-    const response = await fetch(`https://${API_DOMAIN}/api/deals/${dealId}`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch deals data: ${response.status} ${response.statusText}`);
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+};
+
+// Retry utility
+const retryFetch = async (url: string, options: RequestInit = {}, maxRetries = 3): Promise<Response> => {
+  let lastError: Error;
+  
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      const response = await fetchWithTimeout(url, options);
+      if (response.ok) {
+        return response;
+      }
+      // Don't retry on client errors (4xx)
+      if (response.status >= 400 && response.status < 500) {
+        throw new Error(`Client error: ${response.status} ${response.statusText}`);
+      }
+      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    } catch (error) {
+      lastError = error as Error;
+      if (i < maxRetries) {
+        // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+      }
     }
-    
+  }
+  
+  throw lastError!;
+};
+
+export const fetchDealsData = async (dealId: string): Promise<DealsResponse> => {
+  // Check cache first
+  const cacheKey = `deals_${dealId}`;
+  const cached = cache.get(cacheKey);
+  
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  
+  try {
+    const response = await retryFetch(`https://${API_DOMAIN}/api/deals/${dealId}`);
     const data = await response.json();
+    
+    // Cache the result
+    cache.set(cacheKey, { data, timestamp: Date.now() });
+    
     return data;
   } catch (error) {
     console.error('Error fetching deals data:', error);
     throw error;
+  }
+};
+
+// Clear cache utility (useful for testing or manual cache invalidation)
+export const clearCache = (dealId?: string): void => {
+  if (dealId) {
+    cache.delete(`deals_${dealId}`);
+  } else {
+    cache.clear();
   }
 };

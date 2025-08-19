@@ -32,13 +32,24 @@ interface PaymentSectionProps {
   };
   addOns?: Record<string, boolean>;
   currency: 'USD' | 'CAD';
+  dealData?: {
+    type: string;
+    mailing_address_country: string;
+  };
 }
 
-export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shippingData, addOns, currency }: PaymentSectionProps) => {
+export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userEmail, shippingData, addOns, currency, dealData }: PaymentSectionProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isAutoPopulating, setIsAutoPopulating] = useState(false);
   const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
   const { isApplePaySupported } = useAppleDevice();
+
+  // Helper function to determine processing fee rate based on country
+  const getProcessingFeeRate = (country: string) => {
+    const normalizedCountry = country.toLowerCase().trim();
+    const usaVariants = ['usa', 'us', 'united states', 'united states of america'];
+    return usaVariants.includes(normalizedCountry) ? 0.029 : 0.024;
+  };
 
   // Comprehensive country list (same as ShippingDetails)
   const countries = ['USA', 'Canada'];
@@ -416,14 +427,15 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
         </div>
       </div>
 
-      {/* Processing Fee Information */}
-      {data.method !== 'check' && (!addOns || !Object.values(addOns).some(selected => selected)) && (
+      {/* Processing Fee Information - Only for one-time deals */}
+      {dealData?.type === 'One Time' && data.method !== 'check' && (!addOns || !Object.values(addOns).some(selected => selected)) && (
         <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
           <p className="text-sm text-muted-foreground">
-            {currency === 'CAD' 
-              ? '2.4% processing fee applies to digital payments. Check payments have no fee.'
-              : '2.9% processing fee applies to digital payments. Check payments have no fee.'
-            }
+            {(() => {
+              const country = data.country || shippingData?.country || '';
+              const feeRate = getProcessingFeeRate(country);
+              return `${(feeRate * 100).toFixed(1)}% processing fee applies to digital payments. Check payments have no fee.`;
+            })()}
           </p>
         </div>
       )}
@@ -453,7 +465,13 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
                 ? `Complete $${total.toFixed(2)}`
                 : (addOns && Object.values(addOns).some(selected => selected))
                   ? `Pay $${total.toFixed(2)}`
-                  : `Pay $${(total * (1 + (currency === 'CAD' ? 0.024 : 0.029))).toFixed(2)}`
+                  : dealData?.type === 'One Time'
+                    ? (() => {
+                        const country = data.country || shippingData?.country || '';
+                        const feeRate = getProcessingFeeRate(country);
+                        return `Pay $${(total * (1 + feeRate)).toFixed(2)}`;
+                      })()
+                    : `Pay $${total.toFixed(2)}` // No processing fee for subscriptions
               : 'Complete Order'
             }
           </Button>
@@ -462,4 +480,4 @@ export const PaymentSection = ({ data, onUpdate, onBack, total, userEmail, shipp
 
        </Card>
      );
-   };
+});

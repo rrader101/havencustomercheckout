@@ -427,8 +427,8 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
         </div>
       </div>
 
-      {/* Processing Fee Information - Only for one-time deals */}
-      {dealData?.type === 'One Time' && data.method !== 'check' && (!addOns || !Object.values(addOns).some(selected => selected)) && (
+      {/* Processing Fee Information - Only for one-time deals with selected invoices */}
+      {dealData?.type === 'One Time' && data.method !== 'check' && total > 0 && (!addOns || !Object.values(addOns).some(selected => selected)) && (
         <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
           <p className="text-sm text-muted-foreground">
             {(() => {
@@ -465,13 +465,13 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
                 ? `Complete $${total.toFixed(2)}`
                 : (addOns && Object.values(addOns).some(selected => selected))
                   ? `Pay $${total.toFixed(2)}`
-                  : dealData?.type === 'One Time'
-                    ? (() => {
-                        const country = data.country || shippingData?.country || '';
-                        const feeRate = getProcessingFeeRate(country);
-                        return `Pay $${(total * (1 + feeRate)).toFixed(2)}`;
-                      })()
-                    : `Pay $${total.toFixed(2)}` // No processing fee for subscriptions
+                  : dealData?.type === 'One Time' && total > 0
+                  ? (() => {
+                      const country = data.country || shippingData?.country || '';
+                      const feeRate = getProcessingFeeRate(country);
+                      return `Pay $${(total * (1 + feeRate)).toFixed(2)}`;
+                    })()
+                  : `Pay $${total.toFixed(2)}` // No processing fee for subscriptions or when total is 0
               : 'Complete Order'
             }
           </Button>

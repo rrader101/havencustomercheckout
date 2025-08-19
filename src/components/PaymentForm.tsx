@@ -154,10 +154,7 @@ const PaymentForm = () => {
     
     // Handle different deal types - base amount calculation
     if (dealsData.type === 'One Time') {
-      // Start with deal amount
-      transactionAmount = dealsData.amount || 0;
-      
-      // If invoices are selected, use invoice sum instead
+      // For One Time deals, only use invoice amounts if invoices are selected
       const selectedInvoiceIds = Object.keys(formData.invoices).filter(id => formData.invoices[id]);
       if (selectedInvoiceIds.length > 0 && dealsData.invoices) {
         const selectedInvoices = dealsData.invoices.filter(invoice => 
@@ -167,6 +164,7 @@ const PaymentForm = () => {
           transactionAmount = selectedInvoices.reduce((sum, invoice) => sum + parseFloat(invoice.amount), 0);
         }
       }
+      // If no invoices selected, transactionAmount remains 0
     } else if (dealsData.type === 'Subscription') {
       // For subscription deals, use monthly_subscription_price
       transactionAmount = dealsData.monthly_subscription_price || 0;

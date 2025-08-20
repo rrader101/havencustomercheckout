@@ -478,7 +478,7 @@ const StripePaymentContent = ({
           {isApplePaySupported ? (
             <Button 
               variant="outline" 
-              className="w-full h-12 bg-black text-white hover:bg-gray-800 hover:text-white border border-gray-300 rounded-lg"
+              className="w-full h-12 bg-black border-black text-white hover:bg-gray-800 hover:text-white rounded-lg"
               onClick={handleApplePay}
               disabled={!canMakePayment?.applePay || isProcessing}
             >
@@ -494,7 +494,7 @@ const StripePaymentContent = ({
           ) : (
             <Button 
               variant="outline" 
-              className="w-full h-12 bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900 border border-gray-300 rounded-lg"
+              className="w-full h-12 bg-black border-black text-white hover:bg-gray-800 hover:text-white rounded-lg"
               onClick={handleGooglePay}
               disabled={!canMakePayment?.googlePay || isProcessing}
             >
@@ -512,7 +512,7 @@ const StripePaymentContent = ({
           {/* Stripe Link Button */}
            <Button 
              variant="outline" 
-             className="w-full h-12 bg-[#f7f7f7] text-gray-900 hover:bg-gray-200 hover:text-gray-900 border border-gray-300 rounded-lg"
+             className="w-full h-12 bg-black border-black text-white hover:bg-gray-800 hover:text-white rounded-lg"
              onClick={handleLinkPay}
              disabled={!canMakePayment?.link || isProcessing}
            >
@@ -732,7 +732,7 @@ const StripePaymentContent = ({
               }
             }} 
            disabled={isProcessing || (data.method !== 'check' && (!stripe || !elements))}
-           className="gap-2 bg-primary hover:bg-primary-hover transition-colors"
+           className="gap-2 bg-black border-black text-white hover:bg-gray-800 hover:text-white transition-colors"
          >
           {isProcessing ? 'Processing...' : (
             total > 0 

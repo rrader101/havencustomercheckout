@@ -85,7 +85,7 @@ const cache = new Map<string, { data: DealsResponse; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 // Request timeout utility
-const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 10000): Promise<Response> => {
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 5000): Promise<Response> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
   

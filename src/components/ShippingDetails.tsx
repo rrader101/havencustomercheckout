@@ -202,7 +202,7 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext }: ShippingD
       </div>
 
       <div className="flex justify-end mt-6">
-        <Button onClick={handleSubmit} className="gap-2">
+        <Button onClick={handleSubmit} className="gap-2 bg-black border-black text-white hover:bg-gray-800 hover:text-white">
           Continue
           <ArrowRight className="w-4 h-4" />
         </Button>

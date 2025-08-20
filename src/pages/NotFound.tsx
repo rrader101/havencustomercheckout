@@ -22,10 +22,8 @@ const NotFound = () => {
         <div className="mb-6">
           <Logo size="lg" className="mx-auto" />
         </div>
-        <p className="text-xl text-muted-foreground mb-6">Oops! Page not found</p>
-
         <div className="space-y-4">
-          <Button  variant="default" asChild className="w-full">
+          <Button  variant="default" asChild className="w-full bg-black border-black text-white hover:bg-gray-800 hover:text-white">
             <a
               href="https://havenlifestyles.com/"
               target="_blank"
@@ -34,7 +32,7 @@ const NotFound = () => {
               Haven | Homepage
             </a>
           </Button>
-          <Button variant="default" asChild className="w-full">
+          <Button variant="default" asChild className="w-full bg-black border-black text-white hover:bg-gray-800 hover:text-white">
             <a
               href="https://havenlifestyles.com/category/haven-of-the-day/"
               target="_blank"
@@ -43,7 +41,7 @@ const NotFound = () => {
               Haven of the Day
             </a>
           </Button>
-          <Button variant="default" asChild className="w-full">
+          <Button variant="default" asChild className="w-full bg-black border-black text-white hover:bg-gray-800 hover:text-white">
             <a
               href="https://issuu.com/havenlifestyles/"
               target="_blank"

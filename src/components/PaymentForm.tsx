@@ -343,7 +343,7 @@ const PaymentForm = () => {
               {dealsData?.type !== 'One Time' && (
                 <div className="mb-6">
                   {/* Deal Header */}
-                  <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-3 rounded-t-lg shadow-lg">
+                  <div className="bg-gradient-to-r from-black to-gray-800 text-white px-4 py-3 rounded-t-lg shadow-lg">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                       <h4 className="text-sm font-semibold uppercase tracking-wide">
@@ -364,12 +364,12 @@ const PaymentForm = () => {
                     {dealsData.type === 'Subscription' ? (
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
                         <span className="text-gray-500">Monthly Payment</span>
-                        <span className="font-semibold text-lg text-blue-600">${dealsData.monthly_subscription_price?.toFixed(2) || '0.00'}</span>
+                        <span className="font-semibold text-lg text-black">${dealsData.monthly_subscription_price?.toFixed(2) || '0.00'}</span>
                       </div>
                     ) : (
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
                         <span className="text-gray-500">Amount</span>
-                        <span className="font-semibold text-lg text-blue-600">${dealsData.amount?.toFixed(2) || '0.00'}</span>
+                        <span className="font-semibold text-lg text-black">${dealsData.amount?.toFixed(2) || '0.00'}</span>
                       </div>
                     )}
                     

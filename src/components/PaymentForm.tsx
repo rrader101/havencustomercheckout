@@ -52,7 +52,7 @@ const PaymentForm = () => {
   const normalizeCountry = (country: string): string => {
     const normalized = country.toLowerCase().trim();
     if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
-      return 'USA';
+    return 'US';
     }
     if (['canada', 'ca'].includes(normalized)) {
       return 'Canada';

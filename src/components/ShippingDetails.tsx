@@ -27,13 +27,13 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext }: ShippingD
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Comprehensive country list (same as PaymentSection)
-  const countries = ['USA', 'Canada'];
+  const countries = ['US', 'Canada'];
 
   // Normalize country names to match dropdown options
   const normalizeCountry = (country: string): string => {
     const normalized = country.toLowerCase().trim();
     if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
-      return 'USA';
+    return 'US';
     }
     if (['canada', 'ca'].includes(normalized)) {
       return 'Canada';

@@ -142,13 +142,13 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
   };
 
   // Comprehensive country list (same as ShippingDetails)
-  const countries = ['USA', 'Canada'];
+  const countries = ['US', 'Canada'];
 
   // Normalize country names to match dropdown options
   const normalizeCountry = (country: string): string => {
     const normalized = country.toLowerCase().trim();
     if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
-      return 'USA';
+    return 'US';
     }
     if (['canada', 'ca'].includes(normalized)) {
       return 'Canada';
@@ -576,9 +576,20 @@ const StripePaymentContent = ({
                         },
                       },
                     }}
+                    onChange={(event) => {
+                      if (event.error) {
+                        setErrors({ ...errors, card: event.error.message });
+                      } else {
+                        setErrors({ ...errors, card: '' });
+                      }
+                    }}
                   />
                 </div>
-                {errors.payment && <p className="text-xs text-red-500 mt-1">{errors.payment}</p>}
+                {(errors.card || errors.payment) && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.card || errors.payment}
+                  </p>
+                )}
               </div>
 
               {/* Cardholder Name */}
@@ -731,8 +742,8 @@ const StripePaymentContent = ({
                 handleSubmit();
               }
             }} 
-           disabled={isProcessing || (data.method !== 'check' && (!stripe || !elements))}
-           className="gap-2 bg-black border-black text-white hover:bg-gray-800 hover:text-white transition-colors"
+           disabled={isProcessing || (data.method !== 'check' && (!stripe || !elements)) || total === 0}
+           className="gap-2 bg-black border-black text-white hover:bg-gray-800 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
          >
           {isProcessing ? 'Processing...' : (
             total > 0 

@@ -4,8 +4,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, Truck } from 'lucide-react';
+import { ArrowRight, Truck, Loader2 } from 'lucide-react';
 import AddressAutocomplete from './AddressAutocomplete';
+import { saveAddress } from '@/services/api';
 
 interface ShippingData {
   name: string;
@@ -21,10 +22,12 @@ interface ShippingDetailsProps {
   data: ShippingData;
   onUpdate: (data: Partial<ShippingData>) => void;
   onNext: () => void;
+  dealId?: string;
 }
 
-export const ShippingDetails = React.memo(({ data, onUpdate, onNext }: ShippingDetailsProps) => {
+export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: ShippingDetailsProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   // Comprehensive country list (same as PaymentSection)
   const countries = ['US', 'Canada'];
@@ -56,9 +59,30 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext }: ShippingD
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateForm()) {
-      onNext();
+      // Call address API before proceeding
+      if (dealId) {
+        try {
+          setIsLoading(true);
+          await saveAddress({
+            uuid: dealId,
+            shipping_street_address: data.streetAddress,
+            shipping_city: data.city,
+            shipping_state: data.state,
+            shipping_zipcode: data.zipCode,
+            shipping_country: data.country
+          });
+          onNext();
+        } catch (error) {
+          console.error('Failed to save address:', error);
+          // You might want to show an error message to the user here
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        onNext();
+      }
     }
   };
 
@@ -202,9 +226,18 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext }: ShippingD
       </div>
 
       <div className="flex justify-end mt-6">
-        <Button onClick={handleSubmit} className="gap-2 bg-black border-black text-white hover:bg-gray-800 hover:text-white">
-          Continue
-          <ArrowRight className="w-4 h-4" />
+        <Button onClick={handleSubmit} className="gap-2 bg-black border-black text-white hover:bg-gray-800 hover:text-white" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              Continue
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
         </Button>
       </div>
     </Card>

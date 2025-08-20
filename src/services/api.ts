@@ -95,6 +95,21 @@ export interface PaymentResponse {
   message?: string;
 }
 
+export interface AddressData {
+  uuid: string;
+  shipping_street_address: string | null;
+  shipping_city: string | null;
+  shipping_state: string | null;
+  shipping_zipcode: string | null;
+  shipping_country: string | null;
+}
+
+export interface AddressResponse {
+  success: boolean;
+  error?: string;
+  message?: string;
+}
+
 const API_DOMAIN = import.meta.env.VITE_API_DOMAIN;
 
 if (!API_DOMAIN) {
@@ -136,6 +151,29 @@ export const processPayment = async (paymentData: PaymentData): Promise<PaymentR
     return result;
   } catch (error) {
     console.error('Payment API error:', error);
+    throw error;
+  }
+};
+
+export const saveAddress = async (addressData: AddressData): Promise<AddressResponse> => {
+  try {
+    const response = await fetch(`https://${API_DOMAIN}/api/payments/address`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(addressData),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Address save failed');
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Address API error:', error);
     throw error;
   }
 };

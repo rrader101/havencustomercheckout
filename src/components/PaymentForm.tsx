@@ -84,7 +84,7 @@ const PaymentForm = () => {
     const loadDealsData = async () => {
       try {
         setLoading(true);
-        const currentDealId = dealId || '006VL00000LCZE1YAP'; // Use URL param or fallback
+        const currentDealId = dealId;
         const response = await fetchDealsData(currentDealId);
         const dealData = response.deal;
         setDealsData(dealData);
@@ -304,6 +304,7 @@ const PaymentForm = () => {
                   data={formData.shipping}
                   onUpdate={(data) => updateFormData('shipping', data)}
                   onNext={() => setCurrentStep('addons')}
+                  dealId={dealId}
                 />
               )}
               
@@ -380,34 +381,34 @@ const PaymentForm = () => {
                   {/* Deal Content */}
                   <div className="bg-white border border-gray-200 rounded-b-lg p-4 space-y-3">
                     {/* Product Name */}
-                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                      <span className="text-gray-500">Product</span>
-                      <p className="font-semibold text-lg text-gray-700">{dealsData.deal_products[0].name }</p>
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-muted-foreground text-sm">Product</span>
+                      <p className="font-medium text-foreground">{dealsData.deal_products[0].name }</p>
                     </div>
                     
                     {/* Price Display - Different for each deal type */}
                     {dealsData.type === 'Subscription' ? (
-                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span className="text-gray-500">Monthly Payment</span>
-                        <span className="font-semibold text-lg text-black">${dealsData.monthly_subscription_price?.toFixed(2) || '0.00'}</span>
+                      <div className="flex justify-between items-center py-2 border-b border-border/50">
+                        <span className="text-muted-foreground text-sm">Monthly Payment</span>
+                        <span className="font-medium text-foreground">${dealsData.monthly_subscription_price?.toFixed(2) || '0.00'}</span>
                       </div>
                     ) : (
-                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span className="text-gray-500">Amount</span>
-                        <span className="font-semibold text-lg text-black">${dealsData.amount?.toFixed(2) || '0.00'}</span>
+                      <div className="flex justify-between items-center py-2 border-b border-border/50">
+                        <span className="text-muted-foreground text-sm">Amount</span>
+                        <span className="font-medium text-foreground">${dealsData.amount?.toFixed(2) || '0.00'}</span>
                       </div>
                     )}
                     
                     {/* Additional Details based on deal type */}
                     {dealsData.type === 'Subscription' && (
                       <>
-                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-gray-500">Contract Length:</span>
-                          <p className="font-medium text-gray-800">{dealsData.contract_length || 'N/A'}</p>
+                        <div className="flex justify-between items-center py-2 border-b border-border/50">
+                          <span className="text-muted-foreground text-sm">Contract Length</span>
+                          <p className="font-medium text-foreground">{dealsData.contract_length || 'N/A'}</p>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                          <span className="text-gray-500">Subscription Term:</span>
-                          <p className="font-medium text-gray-800">{dealsData.subscription_term || 'N/A'}</p>
+                        <div className="flex justify-between items-center py-2 border-b border-border/50">
+                          <span className="text-muted-foreground text-sm">Subscription Term</span>
+                          <p className="font-medium text-foreground">{dealsData.subscription_term || 'N/A'}</p>
                         </div>
                       </>
                     )}
@@ -415,21 +416,21 @@ const PaymentForm = () => {
                     {(dealsData.type === 'BOGO' || dealsData.type === 'Contract') && (
                        <>
                          {dealsData.contract_length && (
-                           <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                             <span className="text-gray-500">Contract Length:</span>
-                             <p className="font-medium text-gray-800">{dealsData.contract_length}</p>
+                           <div className="flex justify-between items-center py-2 border-b border-border/50">
+                             <span className="text-muted-foreground text-sm">Contract Length</span>
+                             <p className="font-medium text-foreground">{dealsData.contract_length}</p>
                            </div>
                          )}
                          {dealsData.stage_name && (
-                           <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                             <span className="text-gray-500">Stage:</span>
-                             <p className="font-medium text-gray-800">{dealsData.stage_name}</p>
+                           <div className="flex justify-between items-center py-2 border-b border-border/50">
+                             <span className="text-muted-foreground text-sm">Stage</span>
+                             <p className="font-medium text-foreground">{dealsData.stage_name}</p>
                            </div>
                          )}
                          {dealsData.issue && (
-                           <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                             <span className="text-gray-500">Issue:</span>
-                             <p className="font-medium text-gray-800">{dealsData.issue}</p>
+                           <div className="flex justify-between items-center py-2 border-b border-border/50">
+                             <span className="text-muted-foreground text-sm">Issue</span>
+                             <p className="font-medium text-foreground">{dealsData.issue}</p>
                            </div>
                          )}
                        </>
@@ -437,9 +438,9 @@ const PaymentForm = () => {
                      
                      {/* Agreement Status for BOGO, Contract, and Subscription */}
                      {(dealsData.type === 'BOGO' || dealsData.type === 'Contract' || dealsData.type === 'Subscription') && dealsData.agreement_status && (
-                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                         <span className="text-gray-500">Agreement Status:</span>
-                         <p className="font-medium text-gray-800">{dealsData.agreement_status}</p>
+                       <div className="flex justify-between items-center py-2 border-b border-border/50">
+                         <span className="text-muted-foreground text-sm">Agreement Status</span>
+                         <p className="font-medium text-foreground">{dealsData.agreement_status}</p>
                        </div>
                      )}
                   </div>
@@ -458,8 +459,8 @@ const PaymentForm = () => {
                 {dealsData?.add_ons.map(addon => (
                   formData.addOns[addon.id.toString()] && (
                     <div key={addon.id} className="flex justify-between items-center py-2 border-b border-border/50">
-                      <span className="text-sm">{addon.title}</span>
-                      <span className="font-medium">${addon.amount}</span>
+                      <span className="text-muted-foreground text-sm">{addon.title}</span>
+                      <span className="font-medium text-foreground">${addon.amount}</span>
                     </div>
                   )
                 ))}
@@ -482,9 +483,9 @@ const PaymentForm = () => {
                       </div>
                     )}
                     
-                    <div className="flex justify-between items-center pt-3 text-lg font-bold">
-                      <span>Total</span>
-                      <span className="text-primary">
+                    <div className="flex justify-between items-center pt-3 font-semibold text-base">
+                      <span className="text-foreground">Total</span>
+                      <span className="text-foreground">
                         ${(() => {
                           // For subscriptions, no processing fee
                           if (dealsData?.type !== 'One Time') {

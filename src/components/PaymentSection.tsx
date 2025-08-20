@@ -24,8 +24,6 @@ interface PaymentFormData {
   expiryDate?: string;
   cvv?: string;
   cardholderName?: string;
-  country?: string;
-  zipCode?: string;
   userEmail?: string;
   paymentMethodId?: string;
   linkEmail?: string;
@@ -157,12 +155,6 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
       if (!data.cardholderName) {
         updates.cardholderName = shippingData.name || '';
       }
-      if (!data.country) {
-        updates.country = shippingData.country ? normalizeCountry(shippingData.country) : '';
-      }
-      if (!data.zipCode) {
-        updates.zipCode = shippingData.zipCode || '';
-      }
       
       // Only update if there are fields to populate
       if (Object.keys(updates).length > 0) {
@@ -191,8 +183,6 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     if (!data.expiryDate?.trim()) newErrors.expiryDate = 'Expiry date is required';
     if (!data.cvv?.trim()) newErrors.cvv = 'CVV is required';
     if (!data.cardholderName?.trim()) newErrors.cardholderName = 'Cardholder name is required';
-    if (!data.country?.trim()) newErrors.country = 'Country is required';
-    if (!data.zipCode?.trim()) newErrors.zipCode = 'ZIP code is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -285,7 +275,7 @@ const StripePaymentContent = ({
   onUpdate: (data: Partial<PaymentFormData>) => void;
   total: number;
   userEmail?: string;
-  shippingData?: { name?: string; country?: string; zipCode?: string; };
+  shippingData?: { name?: string; email?: string; country?: string; zipCode?: string; };
   dealData?: { type: string; mailing_address_country: string; };
   onPaymentSuccess: (paymentMethodId: string, method: string) => void;
   errors: Record<string, string>;
@@ -339,10 +329,6 @@ const StripePaymentContent = ({
         billing_details: {
           name: data.cardholderName,
           email: userEmail,
-          address: {
-            country: data.country,
-            postal_code: data.zipCode,
-          },
         },
       });
 
@@ -367,47 +353,50 @@ const StripePaymentContent = ({
     <>
       {/* Single Payment Request Button that handles Apple Pay, Google Pay, and Link */}
       {paymentRequest && canMakePayment && (
-        <div className="mb-6">
-          <div className="w-full h-12 rounded-lg overflow-hidden">
-            <PaymentRequestButtonElement 
-              key={`payment-request-${total}`}
-              options={{
-                paymentRequest: paymentRequest,
-                style: {
-                  paymentRequestButton: {
-                    type: 'default',
-                    theme: 'dark',
-                    height: '48px',
+        <>
+          <div className="mb-6">
+            <div className="w-full h-12 rounded-lg overflow-hidden">
+              <PaymentRequestButtonElement 
+                key={`payment-request-${total}`}
+                options={{
+                  paymentRequest: paymentRequest,
+                  style: {
+                    paymentRequestButton: {
+                      type: 'default',
+                      theme: 'dark',
+                      height: '48px',
+                    },
                   },
-                },
-              }}
-            />
+                }}
+              />
+            </div>
           </div>
-        </div>
+          
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Divider */}
-      <div className="relative mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-      </div>
+      
 
       {/* Credit Card Form */}
       <div className="space-y-4 animate-fade-in">
         <div className="space-y-4 animate-fade-in">
-          {/* Email Field - Pre-filled from previous stage */}
+          {/* Email Field - Non-editable, from first step */}
            <div className="pt-4">
              <Label htmlFor="email">Email</Label>
              <Input
                id="email"
                type="email"
-               value={data.userEmail || userEmail || ''}
+               value={shippingData?.email || userEmail || ''}
                placeholder="email@example.com"
-               onChange={(e) => handleInputChange('userEmail', e.target.value)}
-               className={`bg-background mt-0 ${errors.userEmail ? 'border-red-500' : ''}`}
+               disabled
+               className="bg-muted mt-0 cursor-not-allowed"
              />
-             {errors.userEmail && <p className="text-xs text-red-500 mt-1">{errors.userEmail}</p>}
            </div>
 
 
@@ -457,60 +446,19 @@ const StripePaymentContent = ({
                 )}
               </div>
 
-              {/* Cardholder Name */}
+              {/* Cardholder Name - Non-editable, from first step */}
               <div>
                 <Label htmlFor="cardholderName">Cardholder name</Label>
                 <Input
                   id="cardholderName"
                   placeholder="Full name on card"
-                  value={data.cardholderName || ''}
-                  onChange={(e) => handleInputChange('cardholderName', e.target.value)}
-                  className={`mt-0 ${errors.cardholderName ? 'border-red-500' : ''}`}
+                  value={shippingData?.name || ''}
+                  disabled
+                  className="mt-0 bg-muted cursor-not-allowed"
                 />
-                {errors.cardholderName && <p className="text-xs text-red-500">{errors.cardholderName}</p>}
               </div>
 
-              {/* Country and ZIP Row */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="country">Country</Label>
-                  <Select
-                    value={data.country || ''}
-                    onValueChange={(value) => handleInputChange('country', value)}
-                  >
-                    <SelectTrigger 
-                      className={`mt-0 custom-country-select ${errors.country ? 'border-red-500' : ''}`}
-                      style={{ backgroundColor: '#f7f7f7', border: '1px solid rgba(0, 0, 0, 0.1)' }}
-                    >
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#f7f7f7]">
-                      {countries.map((country) => (
-                        <SelectItem 
-                          key={country} 
-                          value={country}
-                          className="hover:bg-gray-200 focus:bg-gray-200 data-[highlighted]:bg-gray-200"
-                        >
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.country && <p className="text-xs text-red-500">{errors.country}</p>}
-                </div>
-                
-                <div>
-                  <Label htmlFor="zipCode">ZIP</Label>
-                  <Input
-                    id="zipCode"
-                    placeholder="12345"
-                    value={data.zipCode || ''}
-                    onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                    className={`mt-0 ${errors.zipCode ? 'border-red-500' : ''}`}
-                  />
-                  {errors.zipCode && <p className="text-xs text-red-500">{errors.zipCode}</p>}
-                </div>
-              </div>
+
             </>
           )}
 
@@ -574,18 +522,7 @@ const StripePaymentContent = ({
         </div>
       </div>
 
-      {/* Processing Fee Information - Only for one-time deals with selected invoices */}
-      {dealData?.type === 'One Time' && data.method !== 'check' && total > 0 && (!addOns || !Object.values(addOns).some(selected => selected)) && (
-        <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
-          <p className="text-sm text-muted-foreground">
-            {(() => {
-              const country = data.country || shippingData?.country || '';
-              const feeRate = getProcessingFeeRate(country);
-              return `${(feeRate * 100).toFixed(1)}% processing fee applies to digital payments. Check payments have no fee.`;
-            })()}
-          </p>
-        </div>
-      )}
+
 
       {/* Action Buttons */}
       <div className="flex justify-between mt-6">

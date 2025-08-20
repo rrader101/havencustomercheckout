@@ -341,7 +341,6 @@ const StripePaymentContent = ({
   const elements = useElements();
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
   const [canMakePayment, setCanMakePayment] = useState<{applePay?: boolean; googlePay?: boolean; link?: boolean} | null>(null);
-  const [linkEmail, setLinkEmail] = useState(userEmail || '');
   const { isApplePaySupported } = useAppleDevice();
 
   // Initialize Payment Request for Apple Pay, Google Pay, and Link
@@ -382,59 +381,7 @@ const StripePaymentContent = ({
     checkCanMakePayment();
   }, [paymentRequest]);
 
-  const handleApplePay = async () => {
-    if (!paymentRequest || !canMakePayment?.applePay) return;
-    
-    paymentRequest.on('paymentmethod', async (event) => {
-      try {
-        setIsProcessing(true);
-        await onPaymentSuccess(event.paymentMethod.id, 'apple-pay');
-        event.complete('success');
-      } catch (error) {
-        event.complete('fail');
-        console.error('Apple Pay Payment Error:', error);
-      } finally {
-        setIsProcessing(false);
-      }
-    });
-    paymentRequest.show();
-  };
-
-  const handleGooglePay = async () => {
-    if (!paymentRequest || !canMakePayment?.googlePay) return;
-    
-    paymentRequest.on('paymentmethod', async (event) => {
-      try {
-        setIsProcessing(true);
-        await onPaymentSuccess(event.paymentMethod.id, 'google-pay');
-        event.complete('success');
-      } catch (error) {
-        event.complete('fail');
-        console.error('Google Pay Payment Error:', error);
-      } finally {
-        setIsProcessing(false);
-      }
-    });
-    paymentRequest.show();
-  };
-
-  const handleLinkPay = async () => {
-    if (!paymentRequest || !canMakePayment?.link) return;
-    
-    paymentRequest.on('paymentmethod', async (event) => {
-      try {
-        setIsProcessing(true);
-        await onPaymentSuccess(event.paymentMethod.id, 'link');
-        event.complete('success');
-      } catch (error) {
-        event.complete('fail');
-        console.error('Link Payment Error:', error);
-      } finally {
-        setIsProcessing(false);
-      }
-    });
-    paymentRequest.show();
-  };
+  // Payment handlers are now managed by PaymentRequestButtonElement automatically
 
 
 
@@ -470,62 +417,61 @@ const StripePaymentContent = ({
 
   return (
     <>
-      {/* Top Priority Payment Buttons - Stripe Style */}
-      <div className="mb-6">
-        {/* Apple Pay/Google Pay and Link Buttons in Two Columns */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Apple Pay or Google Pay Button - Show one or the other */}
-          {isApplePaySupported ? (
-            <Button 
-              variant="outline" 
-              className="w-full h-12 bg-black border-black text-white hover:bg-gray-800 hover:text-white rounded-lg"
-              onClick={handleApplePay}
-              disabled={!canMakePayment?.applePay || isProcessing}
-            >
-              <div className="flex items-center justify-center">
-                {/* Official Apple Pay Logo */}
-                <img 
-                  src="/Apple_Pay_logo_white.png" 
-                  alt="Pay with Apple Pay" 
-                  className="h-6 w-auto"
-                />
-              </div>
-            </Button>
-          ) : (
-            <Button 
-              variant="outline" 
-              className="w-full h-12 bg-black border-black text-white hover:bg-gray-800 hover:text-white rounded-lg"
-              onClick={handleGooglePay}
-              disabled={!canMakePayment?.googlePay || isProcessing}
-            >
-              <div className="flex items-center justify-center">
-                {/* Official Google Pay Logo */}
-                <img 
-                  src="/Google_Pay_logo_whitePay_fixed.png" 
-                  alt="Pay with Google Pay" 
-                  className="h-6 w-auto"
-                />
-              </div>
-            </Button>
-          )}
+      {/* Top Priority Payment Buttons - Stripe PaymentRequestButtonElement */}
+      <div className="mb-6 space-y-3">
+        {/* Apple Pay Button */}
+        {paymentRequest && canMakePayment?.applePay && (
+          <div className="w-full h-12 rounded-lg overflow-hidden">
+            <PaymentRequestButtonElement 
+              options={{
+                paymentRequest,
+                style: {
+                  paymentRequestButton: {
+                    type: 'default',
+                    theme: 'dark',
+                    height: '48px',
+                  },
+                },
+              }}
+            />
+          </div>
+        )}
 
-          {/* Stripe Link Button */}
-           <Button 
-             variant="outline" 
-             className="w-full h-12 bg-black border-black text-white hover:bg-gray-800 hover:text-white rounded-lg"
-             onClick={handleLinkPay}
-             disabled={!canMakePayment?.link || isProcessing}
-           >
-             <div className="flex items-center justify-center">
-               {/* Official Link Logo */}
-               <img 
-                 src="/Link_logo_transparent.png" 
-                 alt="Pay with Link" 
-                 className="h-5 w-auto"
-               />
-             </div>
-           </Button>
-        </div>
+        {/* Google Pay Button */}
+        {paymentRequest && canMakePayment?.googlePay && (
+          <div className="w-full h-12 rounded-lg overflow-hidden">
+            <PaymentRequestButtonElement 
+              options={{
+                paymentRequest,
+                style: {
+                  paymentRequestButton: {
+                    type: 'default',
+                    theme: 'dark',
+                    height: '48px',
+                  },
+                },
+              }}
+            />
+          </div>
+        )}
+
+        {/* Link Button */}
+        {paymentRequest && canMakePayment?.link && (
+          <div className="w-full h-12 rounded-lg overflow-hidden">
+            <PaymentRequestButtonElement 
+              options={{
+                paymentRequest,
+                style: {
+                  paymentRequestButton: {
+                    type: 'default',
+                    theme: 'dark',
+                    height: '48px',
+                  },
+                },
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Divider */}

@@ -7,10 +7,12 @@ import Logo from './Logo';
 import { fetchDealsData, DealsResponse, DealAddOn, Deal } from '@/services/api';
 import NotFound from '@/pages/NotFound';
 
-// Lazy load heavy components
+// Import PaymentSection directly for immediate availability
+import { PaymentSection } from './PaymentSection';
+
+// Lazy load other heavy components
 const ShippingDetails = lazy(() => import('./ShippingDetails').then(module => ({ default: module.ShippingDetails })));
 const AddOnsSection = lazy(() => import('./AddOnsSection').then(module => ({ default: module.AddOnsSection })));
-const PaymentSection = lazy(() => import('./PaymentSection').then(module => ({ default: module.PaymentSection })));
 const InvoiceSelection = lazy(() => import('./InvoiceSelection').then(module => ({ default: module.InvoiceSelection })));
 
 export interface FormData {
@@ -315,26 +317,27 @@ const PaymentForm = () => {
                   loading={loading}
                 />
               )}
-              
-              {currentStep === 'payment' && (
-                <PaymentSection
-                  data={formData.payment}
-                  onUpdate={(data) => updateFormData('payment', data)}
-                  onBack={() => setCurrentStep('addons')}
-                  total={calculateTotalWithProcessingFee}
-                  userEmail={formData.shipping.email}
-                  shippingData={formData.shipping}
-                  addOns={formData.addOns}
-                  invoices={formData.invoices}
-                  currency={formData.currency}
-                  dealId={dealId || '006VL00000LCZE1YAP'}
-                  dealData={dealsData ? {
-                    type: dealsData.type,
-                    mailing_address_country: dealsData.mailing_address_country
-                  } : undefined}
-                />
-              )}
             </Suspense>
+            
+            {/* PaymentSection rendered directly for immediate availability */}
+            {currentStep === 'payment' && (
+              <PaymentSection
+                data={formData.payment}
+                onUpdate={(data) => updateFormData('payment', data)}
+                onBack={() => setCurrentStep('addons')}
+                total={calculateTotalWithProcessingFee}
+                userEmail={formData.shipping.email}
+                shippingData={formData.shipping}
+                addOns={formData.addOns}
+                invoices={formData.invoices}
+                currency={formData.currency}
+                dealId={dealId || '006VL00000LCZE1YAP'}
+                dealData={dealsData ? {
+                  type: dealsData.type,
+                  mailing_address_country: dealsData.mailing_address_country
+                } : undefined}
+              />
+            )}
           </div>
 
           {/* Order Summary - Always Visible */}

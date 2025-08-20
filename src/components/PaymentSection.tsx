@@ -56,29 +56,11 @@ interface PaymentSectionProps {
   };
 }
 
-// Stripe Payment Form Component
-const StripePaymentForm = ({ data, onUpdate, total, userEmail, shippingData, dealData, onPaymentSuccess }: {
-  data: PaymentFormData;
-  onUpdate: (data: Partial<PaymentFormData>) => void;
-  total: number;
-  userEmail?: string;
-  shippingData?: { name?: string; country?: string; zipCode?: string; };
-  dealData?: { type: string; mailing_address_country: string; };
-  onPaymentSuccess: (paymentMethodId: string, method: string) => void;
-}) => {
-  const stripe = useStripe();
-  const elements = useElements();
 
-
-
-  // This component is no longer needed as functionality moved to StripePaymentContent
-  return null;
-};
 
 export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userEmail, shippingData, addOns, invoices, currency, dealId, dealData }: PaymentSectionProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isAutoPopulating, setIsAutoPopulating] = useState(false);
-  const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   // Removed useAppleDevice hook - relying solely on Stripe's canMakePayment method
@@ -193,7 +175,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     if (!data.method) {
       onUpdate({ method: 'card' });
     }
-  }, [shippingData, onUpdate, data.method, data.cardholderName, data.country, data.zipCode]);
+  }, [shippingData, onUpdate, userEmail]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
 
@@ -236,28 +218,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     }
   };
 
-  const handleAutoPopulate = async () => {
-    if (!userEmail) return;
-    
-    setIsAutoPopulating(true);
-    
-    // Simulate API call to Link service
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Mock data - in real implementation, this would come from Link API
-    const mockPaymentData = {
-      cardNumber: '4242 4242 4242 4242',
-      expiryDate: '12/28',
-      cvv: '123'
-    };
-    
-    onUpdate(mockPaymentData);
-    setHasAutoPopulated(true);
-    setIsAutoPopulating(false);
-    
-    // Show success message
-    console.log('Payment information auto-populated successfully!');
-  };
+
 
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
@@ -300,9 +261,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
         addOns={addOns}
         currency={currency}
         onBack={onBack}
-        handleAutoPopulate={handleAutoPopulate}
-        isAutoPopulating={isAutoPopulating}
-        hasAutoPopulated={hasAutoPopulated}
+
         handleInputChange={handleInputChange}
         validateForm={validateForm}
         handleSubmit={handleSubmit}
@@ -318,8 +277,8 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
 // Stripe Payment Content Component (inside Elements provider)
 const StripePaymentContent = ({ 
   data, onUpdate, total, userEmail, shippingData, dealData, onPaymentSuccess, 
-  errors, setErrors, isProcessing, setIsProcessing, isLoading, addOns, currency, onBack, handleAutoPopulate,
-  isAutoPopulating, hasAutoPopulated, handleInputChange, validateForm, handleSubmit,
+  errors, setErrors, isProcessing, setIsProcessing, isLoading, addOns, currency, onBack,
+  handleInputChange, validateForm, handleSubmit,
   formatCardNumber, formatExpiryDate, getProcessingFeeRate, countries
 }: {
   data: PaymentFormData;
@@ -337,9 +296,6 @@ const StripePaymentContent = ({
   addOns?: Record<string, boolean>;
   currency: 'USD' | 'CAD';
   onBack: () => void;
-  handleAutoPopulate: () => void;
-  isAutoPopulating: boolean;
-  hasAutoPopulated: boolean;
   handleInputChange: (field: keyof PaymentFormData, value: string) => void;
   validateForm: () => boolean;
   handleSubmit: () => void;

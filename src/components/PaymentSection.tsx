@@ -12,6 +12,7 @@ import {
   Elements,
   CardElement,
   PaymentRequestButtonElement,
+  ExpressCheckoutElement,
   useStripe,
   useElements
 } from '@stripe/react-stripe-js';
@@ -339,58 +340,23 @@ const StripePaymentContent = ({
 }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
-  const [canMakePayment, setCanMakePayment] = useState<{applePay?: boolean; googlePay?: boolean; link?: boolean} | null>(null);
-  // Removed useAppleDevice hook - relying solely on Stripe's canMakePayment method
 
-  // Initialize single Payment Request that handles all payment methods
-  useEffect(() => {
-    if (!stripe) return;
+  // Handle Express Checkout confirmation
+  const handleExpressCheckout = async (event: any) => {
+    try {
+      // Determine payment method type based on the payment method
+      let method = 'card';
+      if (event.expressPaymentType === 'apple_pay') method = 'apple-pay';
+      else if (event.expressPaymentType === 'google_pay') method = 'google-pay';
+      else if (event.expressPaymentType === 'link') method = 'link';
 
-    const pr = stripe.paymentRequest({
-      country: 'US',
-      currency: 'usd',
-      total: {
-        label: 'Total',
-        amount: Math.round(total * 100),
-      },
-      requestPayerName: true,
-      requestPayerEmail: true,
-    });
-
-    // Check what payment methods are available
-    pr.canMakePayment().then(result => {
-      if (result) {
-        setPaymentRequest(pr);
-        setCanMakePayment(result);
-      }
-    });
-
-    // Handle payment method selection
-    pr.on('paymentmethod', async (event) => {
-      try {
-        // Determine payment method type
-        let method = 'card';
-        if (event.walletName === 'applePay') method = 'apple-pay';
-        else if (event.walletName === 'googlePay') method = 'google-pay';
-        else if (event.walletName === 'link') method = 'link';
-
-        await onPaymentSuccess(event.paymentMethod.id, method);
-        event.complete('success');
-      } catch (error) {
-        console.error('Payment failed:', error);
-        event.complete('fail');
-      }
-    });
-
-    // Cleanup function to prevent multiple instances
-    return () => {
-      setPaymentRequest(null);
-      setCanMakePayment(null);
-    };
-  }, [stripe, total, onPaymentSuccess]);
-
-
+      await onPaymentSuccess(event.paymentMethod.id, method);
+      event.complete('success');
+    } catch (error) {
+      console.error('Payment failed:', error);
+      event.complete('fail');
+    }
+  };
 
   const handleCardPayment = async () => {
     if (!stripe || !elements) return;
@@ -424,26 +390,24 @@ const StripePaymentContent = ({
 
   return (
     <>
-      {/* Single Payment Request Button that handles Apple Pay, Google Pay, and Link */}
-      {paymentRequest && canMakePayment && (
-        <div className="mb-6">
-          <div className="w-full h-12 rounded-lg overflow-hidden">
-            <PaymentRequestButtonElement 
-              key={`payment-request-${total}`}
-              options={{
-                paymentRequest: paymentRequest,
-                style: {
-                  paymentRequestButton: {
-                    type: 'default',
-                    theme: 'dark',
-                    height: '48px',
-                  },
-                },
-              }}
-            />
-          </div>
+      {/* Express Checkout Element that handles Apple Pay, Google Pay, and Link */}
+      <div className="mb-6">
+        <div className="w-full h-12 rounded-lg overflow-hidden">
+          <ExpressCheckoutElement 
+            onConfirm={handleExpressCheckout}
+            options={{
+              buttonType: {
+                applePay: 'plain',
+                googlePay: 'plain',
+              },
+              layout: {
+                maxColumns: 3,
+                maxRows: 1,
+              },
+            }}
+          />
         </div>
-      )}
+      </div>
 
       {/* Divider */}
       <div className="relative mb-6">

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, CreditCard, Shield, Receipt, Link, Zap, Mail } from 'lucide-react';
-import { useAppleDevice } from '../hooks/use-apple-device';
+// Removed useAppleDevice import - relying solely on Stripe's canMakePayment
 import { loadStripe, PaymentRequest } from '@stripe/stripe-js';
 import {
   Elements,
@@ -75,7 +75,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
   const [isAutoPopulating, setIsAutoPopulating] = useState(false);
   const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { isApplePaySupported } = useAppleDevice();
+  // Removed useAppleDevice hook - relying solely on Stripe's canMakePayment method
 
   // Handle Stripe payment success
   const handlePaymentSuccess = async (paymentMethodId: string, method: string) => {
@@ -341,7 +341,7 @@ const StripePaymentContent = ({
   const elements = useElements();
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
   const [canMakePayment, setCanMakePayment] = useState<{applePay?: boolean; googlePay?: boolean; link?: boolean} | null>(null);
-  const { isApplePaySupported } = useAppleDevice();
+  // Removed useAppleDevice hook - relying solely on Stripe's canMakePayment method
 
   // Initialize Payment Request for Apple Pay, Google Pay, and Link
   useEffect(() => {

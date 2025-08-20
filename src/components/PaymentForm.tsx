@@ -203,6 +203,26 @@ const PaymentForm = () => {
     return transactionAmount;
   }, [dealsData, formData.invoices, formData.addOns]);
 
+  // Calculate total with processing fee for payment processing
+  const calculateTotalWithProcessingFee = useMemo(() => {
+    if (calculateTotal <= 0) return 0;
+    
+    // For subscriptions, no processing fee
+    if (dealsData?.type !== 'One Time') {
+      return parseFloat(calculateTotal.toFixed(2));
+    }
+    
+    // For one-time deals with check payment or add-ons selected, no processing fee
+    if (formData.payment?.method === 'check' || Object.values(formData.addOns).some(selected => selected)) {
+      return parseFloat(calculateTotal.toFixed(2));
+    }
+    
+    // For one-time deals with digital payment and no add-ons, add processing fee
+    const processingFeeRate = getProcessingFeeRate(formData.shipping.country || '');
+    const totalWithFee = calculateTotal * (1 + processingFeeRate);
+    return parseFloat(totalWithFee.toFixed(2));
+  }, [calculateTotal, dealsData?.type, formData.payment?.method, formData.addOns, formData.shipping.country, getProcessingFeeRate]);
+
   // Payment status logic
   const getPaymentStatus = () => {
     const dueDate = new Date('2025-08-25'); // Updated due date: August 25, 2025
@@ -301,11 +321,13 @@ const PaymentForm = () => {
                   data={formData.payment}
                   onUpdate={(data) => updateFormData('payment', data)}
                   onBack={() => setCurrentStep('addons')}
-                  total={calculateTotal}
+                  total={calculateTotalWithProcessingFee}
                   userEmail={formData.shipping.email}
                   shippingData={formData.shipping}
                   addOns={formData.addOns}
+                  invoices={formData.invoices}
                   currency={formData.currency}
+                  dealId={dealId || '006VL00000LCZE1YAP'}
                   dealData={dealsData ? {
                     type: dealsData.type,
                     mailing_address_country: dealsData.mailing_address_country
@@ -452,7 +474,7 @@ const PaymentForm = () => {
                       <div className="flex justify-between items-center py-2 border-b border-border/50">
                         <span className="text-sm">Processing Fee</span>
                         <span className="font-medium">
-                          ${(calculateTotal * getProcessingFeeRate(formData.shipping.country || '')).toFixed(2)}
+                          ${parseFloat((calculateTotal * getProcessingFeeRate(formData.shipping.country || '')).toFixed(2)).toFixed(2)}
                         </span>
                       </div>
                     )}
@@ -463,15 +485,16 @@ const PaymentForm = () => {
                         ${(() => {
                           // For subscriptions, no processing fee
                           if (dealsData?.type !== 'One Time') {
-                            return calculateTotal.toFixed(2);
+                            return parseFloat(calculateTotal.toFixed(2)).toFixed(2);
                           }
                           // For one-time deals with check payment or add-ons selected, no processing fee
                           if (formData.payment?.method === 'check' || Object.values(formData.addOns).some(selected => selected)) {
-                            return calculateTotal.toFixed(2);
+                            return parseFloat(calculateTotal.toFixed(2)).toFixed(2);
                           }
                           // For one-time deals with digital payment and no add-ons, add processing fee
                           const processingFeeRate = getProcessingFeeRate(formData.shipping.country || '');
-                          return (calculateTotal * (1 + processingFeeRate)).toFixed(2);
+                          const totalWithFee = calculateTotal * (1 + processingFeeRate);
+                          return parseFloat(totalWithFee.toFixed(2)).toFixed(2);
                         })()}
                       </span>
                     </div>

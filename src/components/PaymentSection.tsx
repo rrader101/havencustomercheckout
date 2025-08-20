@@ -40,11 +40,17 @@ interface PaymentSectionProps {
   userEmail?: string;
   shippingData?: {
     name?: string;
+    email?: string;
+    streetAddress?: string;
+    city?: string;
+    state?: string;
     country?: string;
     zipCode?: string;
   };
   addOns?: Record<string, boolean>;
+  invoices?: Record<string, boolean>;
   currency: 'USD' | 'CAD';
+  dealId: string;
   dealData?: {
     type: string;
     mailing_address_country: string;
@@ -70,13 +76,13 @@ const StripePaymentForm = ({ data, onUpdate, total, userEmail, shippingData, dea
   return null;
 };
 
-export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userEmail, shippingData, addOns, currency, dealData }: PaymentSectionProps) => {
+export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userEmail, shippingData, addOns, invoices, currency, dealId, dealData }: PaymentSectionProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isAutoPopulating, setIsAutoPopulating] = useState(false);
   const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   // Removed useAppleDevice hook - relying solely on Stripe's canMakePayment method
-
+  
   // Handle Stripe payment success
   const handlePaymentSuccess = async (paymentMethodId: string, method: string) => {
     setIsProcessing(true);
@@ -101,23 +107,22 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
 
   // Handle checkout API call
   const handleCheckoutAPI = async (paymentMethodId: string, method: string) => {
+    // Convert add_ons and invoices from Record<string, boolean> to arrays of selected IDs
+    const selectedAddOns = addOns ? Object.keys(addOns).filter(key => addOns[key]) : [];
+    const selectedInvoices = invoices ? Object.keys(invoices).filter(key => invoices[key]) : [];
+
     const checkoutData = {
-      payment_method_id: paymentMethodId,
-      payment_method: method,
-      amount: total,
-      currency: currency.toLowerCase(),
-      customer_email: userEmail,
-      billing_details: {
-        name: data.cardholderName,
-        email: userEmail,
-        address: {
-          country: data.country,
-          postal_code: data.zipCode,
-        },
-      },
-      shipping_details: shippingData,
-      deal_data: dealData,
-      add_ons: addOns,
+      uuid: dealId,
+      payment_token: paymentMethodId,
+      shipping_name: shippingData?.name || null,
+      shipping_email: shippingData?.email || null,
+      shipping_street_address: shippingData?.streetAddress || null,
+      shipping_city: shippingData?.city || null,
+      shipping_state: shippingData?.state || null,
+      shipping_zipcode: shippingData?.zipCode || null,
+      shipping_country: shippingData?.country || null,
+      add_ons: selectedAddOns,
+      invoice_ids: selectedInvoices,
     };
 
     const response = await fetch('/api/checkout', {
@@ -367,7 +372,7 @@ const StripePaymentContent = ({
       currency: 'usd',
       total: {
         label: 'Total',
-        amount: total * 100,
+        amount: Math.floor(total * 100),
       },
       requestPayerName: true,
       requestPayerEmail: true,
@@ -411,7 +416,7 @@ const StripePaymentContent = ({
       paymentRequest.update({
         total: {
           label: 'Total',
-          amount: total * 100,
+          amount: Math.floor(total * 100),
         },
       });
     }
@@ -710,16 +715,17 @@ const StripePaymentContent = ({
           {isProcessing ? 'Processing...' : (
             total > 0 
               ? data.method === 'check'
-                ? `Complete $${total.toFixed(2)}`
+                ? `Complete $${parseFloat(total.toFixed(2)).toFixed(2)}`
                 : (addOns && Object.values(addOns).some(selected => selected))
-                  ? `Pay $${total.toFixed(2)}`
+                  ? `Pay $${parseFloat(total.toFixed(2)).toFixed(2)}`
                   : dealData?.type === 'One Time' && total > 0
                   ? (() => {
                       const country = data.country || shippingData?.country || '';
                       const feeRate = getProcessingFeeRate(country);
-                      return `Pay $${(total * (1 + feeRate)).toFixed(2)}`;
+                      const totalWithFee = total * (1 + feeRate);
+                      return `Pay $${parseFloat(totalWithFee.toFixed(2)).toFixed(2)}`;
                     })()
-                  : `Pay $${total.toFixed(2)}` // No processing fee for subscriptions or when total is 0
+                  : `Pay $${parseFloat(total.toFixed(2)).toFixed(2)}` // No processing fee for subscriptions or when total is 0
               : 'Complete Order'
           )}
         </Button>

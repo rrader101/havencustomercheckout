@@ -360,29 +360,30 @@ const StripePaymentContent = ({
       requestPayerEmail: true,
     };
 
-    // Create Apple Pay request
+    // Create and check Apple Pay request
     const applePR = stripe.paymentRequest(baseConfig);
-    
-    // Create Google Pay request
-    const googlePR = stripe.paymentRequest(baseConfig);
-    
-    // Create Link request
-    const linkPR = stripe.paymentRequest(baseConfig);
-
-    // Check what payment methods are available
     applePR.canMakePayment().then(result => {
-      if (result) {
-        setCanMakePayment(prev => ({ ...prev, applePay: result.applePay, googlePay: result.googlePay, link: result.link }));
-        
-        if (result.applePay) {
-          setApplePayRequest(applePR);
-        }
-        if (result.googlePay) {
-          setGooglePayRequest(googlePR);
-        }
-        if (result.link) {
-          setLinkPayRequest(linkPR);
-        }
+      if (result && result.applePay) {
+        setApplePayRequest(applePR);
+        setCanMakePayment(prev => ({ ...prev, applePay: true }));
+      }
+    });
+    
+    // Create and check Google Pay request
+    const googlePR = stripe.paymentRequest(baseConfig);
+    googlePR.canMakePayment().then(result => {
+      if (result && result.googlePay) {
+        setGooglePayRequest(googlePR);
+        setCanMakePayment(prev => ({ ...prev, googlePay: true }));
+      }
+    });
+    
+    // Create and check Link request
+    const linkPR = stripe.paymentRequest(baseConfig);
+    linkPR.canMakePayment().then(result => {
+      if (result && result.link) {
+        setLinkPayRequest(linkPR);
+        setCanMakePayment(prev => ({ ...prev, link: true }));
       }
     });
 

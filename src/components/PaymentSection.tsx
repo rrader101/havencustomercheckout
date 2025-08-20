@@ -339,17 +339,15 @@ const StripePaymentContent = ({
 }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const [applePayRequest, setApplePayRequest] = useState<PaymentRequest | null>(null);
-  const [googlePayRequest, setGooglePayRequest] = useState<PaymentRequest | null>(null);
-  const [linkPayRequest, setLinkPayRequest] = useState<PaymentRequest | null>(null);
+  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
   const [canMakePayment, setCanMakePayment] = useState<{applePay?: boolean; googlePay?: boolean; link?: boolean} | null>(null);
   // Removed useAppleDevice hook - relying solely on Stripe's canMakePayment method
 
-  // Initialize separate Payment Requests for Apple Pay, Google Pay, and Link
+  // Initialize single Payment Request that handles all payment methods
   useEffect(() => {
     if (!stripe) return;
 
-    const baseConfig = {
+    const pr = stripe.paymentRequest({
       country: 'US',
       currency: 'usd',
       total: {
@@ -358,45 +356,39 @@ const StripePaymentContent = ({
       },
       requestPayerName: true,
       requestPayerEmail: true,
-    };
+    });
 
-    // Create and check Apple Pay request
-    const applePR = stripe.paymentRequest(baseConfig);
-    applePR.canMakePayment().then(result => {
-      if (result && result.applePay) {
-        setApplePayRequest(applePR);
-        setCanMakePayment(prev => ({ ...prev, applePay: true }));
+    // Check what payment methods are available
+    pr.canMakePayment().then(result => {
+      if (result) {
+        setPaymentRequest(pr);
+        setCanMakePayment(result);
       }
     });
-    
-    // Create and check Google Pay request
-    const googlePR = stripe.paymentRequest(baseConfig);
-    googlePR.canMakePayment().then(result => {
-      if (result && result.googlePay) {
-        setGooglePayRequest(googlePR);
-        setCanMakePayment(prev => ({ ...prev, googlePay: true }));
-      }
-    });
-    
-    // Create and check Link request
-    const linkPR = stripe.paymentRequest(baseConfig);
-    linkPR.canMakePayment().then(result => {
-      if (result && result.link) {
-        setLinkPayRequest(linkPR);
-        setCanMakePayment(prev => ({ ...prev, link: true }));
+
+    // Handle payment method selection
+    pr.on('paymentmethod', async (event) => {
+      try {
+        // Determine payment method type
+        let method = 'card';
+        if (event.walletName === 'applePay') method = 'apple-pay';
+        else if (event.walletName === 'googlePay') method = 'google-pay';
+        else if (event.walletName === 'link') method = 'link';
+
+        await onPaymentSuccess(event.paymentMethod.id, method);
+        event.complete('success');
+      } catch (error) {
+        console.error('Payment failed:', error);
+        event.complete('fail');
       }
     });
 
     // Cleanup function to prevent multiple instances
     return () => {
-      setApplePayRequest(null);
-      setGooglePayRequest(null);
-      setLinkPayRequest(null);
+      setPaymentRequest(null);
       setCanMakePayment(null);
     };
-  }, [stripe, total]);
-
-  // Payment handlers are now managed by PaymentRequestButtonElement automatically
+  }, [stripe, total, onPaymentSuccess]);
 
 
 
@@ -432,15 +424,14 @@ const StripePaymentContent = ({
 
   return (
     <>
-      {/* Separate Payment Request Buttons for Apple Pay, Google Pay, and Link */}
-      <div className="mb-6 space-y-3">
-        {/* Apple Pay Button */}
-        {applePayRequest && canMakePayment?.applePay && (
+      {/* Single Payment Request Button that handles Apple Pay, Google Pay, and Link */}
+      {paymentRequest && canMakePayment && (
+        <div className="mb-6">
           <div className="w-full h-12 rounded-lg overflow-hidden">
             <PaymentRequestButtonElement 
-              key={`apple-pay-${total}`}
+              key={`payment-request-${total}`}
               options={{
-                paymentRequest: applePayRequest,
+                paymentRequest: paymentRequest,
                 style: {
                   paymentRequestButton: {
                     type: 'default',
@@ -451,46 +442,8 @@ const StripePaymentContent = ({
               }}
             />
           </div>
-        )}
-        
-        {/* Google Pay Button */}
-        {googlePayRequest && canMakePayment?.googlePay && (
-          <div className="w-full h-12 rounded-lg overflow-hidden">
-            <PaymentRequestButtonElement 
-              key={`google-pay-${total}`}
-              options={{
-                paymentRequest: googlePayRequest,
-                style: {
-                  paymentRequestButton: {
-                    type: 'default',
-                    theme: 'dark',
-                    height: '48px',
-                  },
-                },
-              }}
-            />
-          </div>
-        )}
-        
-        {/* Link Button */}
-        {linkPayRequest && canMakePayment?.link && (
-          <div className="w-full h-12 rounded-lg overflow-hidden">
-            <PaymentRequestButtonElement 
-              key={`link-pay-${total}`}
-              options={{
-                paymentRequest: linkPayRequest,
-                style: {
-                  paymentRequestButton: {
-                    type: 'default',
-                    theme: 'dark',
-                    height: '48px',
-                  },
-                },
-              }}
-            />
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Divider */}
       <div className="relative mb-6">

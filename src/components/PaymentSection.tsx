@@ -80,6 +80,8 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
   // Handle Stripe payment success
   const handlePaymentSuccess = async (paymentMethodId: string, method: string) => {
     setIsProcessing(true);
+    // Clear any previous API errors
+    setErrors({ ...errors, api: '' });
     try {
       // Update payment data with the payment method ID
       onUpdate({ 
@@ -91,7 +93,8 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
       await handleCheckoutAPI(paymentMethodId, method);
     } catch (error) {
       console.error('Payment processing failed:', error);
-      setErrors({ payment: 'Payment processing failed. Please try again.' });
+      const errorMessage = error instanceof Error ? error.message : 'Payment processing failed. Please try again.';
+      setErrors({ ...errors, api: errorMessage });
     }
     setIsProcessing(false);
   };
@@ -126,7 +129,9 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     });
 
     if (!response.ok) {
-      throw new Error('Checkout failed');
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.message || errorData.error || `Checkout failed (${response.status})`;
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
@@ -212,6 +217,12 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
   };
 
   const handleSubmit = () => {
+    // Prevent submission if total is 0 or missing
+    if (total <= 0) {
+      setErrors({ ...errors, api: 'Cannot complete order with zero total amount. Please select items or contact support.' });
+      return;
+    }
+    
     if (validateForm()) {
       // Handle payment submission
       console.log('Processing payment...', { data, total });
@@ -345,14 +356,18 @@ const StripePaymentContent = ({
 
   // Initialize single Payment Request that handles all payment methods
   useEffect(() => {
-    if (!stripe) return;
+    if (!stripe || total <= 0) {
+      setPaymentRequest(null);
+      setCanMakePayment(null);
+      return;
+    }
 
     const pr = stripe.paymentRequest({
       country: 'US',
       currency: 'usd',
       total: {
         label: 'Total',
-        amount: Math.round(total * 100),
+        amount: total * 100,
       },
       requestPayerName: true,
       requestPayerEmail: true,
@@ -390,6 +405,18 @@ const StripePaymentContent = ({
     };
   }, [stripe, total, onPaymentSuccess]);
 
+  // Update payment request total when total changes
+  useEffect(() => {
+    if (paymentRequest && total > 0) {
+      paymentRequest.update({
+        total: {
+          label: 'Total',
+          amount: total * 100,
+        },
+      });
+    }
+  }, [paymentRequest, total]);
+
 
 
   const handleCardPayment = async () => {
@@ -397,6 +424,10 @@ const StripePaymentContent = ({
 
     const cardElement = elements.getElement(CardElement);
     if (!cardElement) return;
+
+    setIsProcessing(true);
+    // Clear any previous payment errors
+    setErrors({ ...errors, payment: '' });
 
     try {
       const { error, paymentMethod } = await stripe.createPaymentMethod({
@@ -413,12 +444,19 @@ const StripePaymentContent = ({
       });
 
       if (error) {
-        setErrors({ payment: error.message || 'Payment failed' });
-      } else {
-        await onPaymentSuccess(paymentMethod.id, 'card');
+        console.error('Payment method creation failed:', error);
+        setErrors({ ...errors, payment: error.message || 'Payment failed' });
+        setIsProcessing(false);
+        return;
       }
+
+      // Call the payment success handler
+      await onPaymentSuccess(paymentMethod.id, 'card');
     } catch (error) {
-      setErrors({ payment: 'Payment processing error' });
+      console.error('Payment processing failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Payment processing failed. Please try again.';
+      setErrors({ ...errors, payment: errorMessage });
+      setIsProcessing(false);
     }
   };
 
@@ -502,9 +540,16 @@ const StripePaymentContent = ({
                     }}
                   />
                 </div>
-                {(errors.card || errors.payment) && (
+                {/* Card Element Errors - Below Card Element */}
+                {errors.card && (
                   <p className="text-xs text-red-500 mt-1">
-                    {errors.card || errors.payment}
+                    {errors.card}
+                  </p>
+                )}
+                {/* Payment Method Creation Errors - Below Card Element */}
+                {errors.payment && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.payment}
                   </p>
                 )}
               </div>
@@ -679,6 +724,13 @@ const StripePaymentContent = ({
           )}
         </Button>
       </div>
+      
+      {/* API Error Display - Below Payment Button */}
+      {errors.api && (
+        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-600">{errors.api}</p>
+        </div>
+      )}
     </>
   );
 };

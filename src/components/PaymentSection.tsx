@@ -361,25 +361,11 @@ const StripePaymentContent = ({
     pr.canMakePayment().then(result => {
       if (result) {
         setPaymentRequest(pr);
+        setCanMakePayment(result);
       }
     });
 
   }, [stripe, total]);
-
-  // Check payment method availability
-  useEffect(() => {
-    const checkCanMakePayment = async () => {
-      if (paymentRequest) {
-        try {
-          const result = await paymentRequest.canMakePayment();
-          setCanMakePayment(result);
-        } catch (error) {
-          console.error('Error checking canMakePayment:', error);
-        }
-      }
-    };
-    checkCanMakePayment();
-  }, [paymentRequest]);
 
   // Payment handlers are now managed by PaymentRequestButtonElement automatically
 

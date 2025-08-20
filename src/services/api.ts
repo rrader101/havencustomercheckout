@@ -74,6 +74,27 @@ export interface DealsResponse {
   deal: Deal;
 }
 
+export interface PaymentData {
+  uuid: string;
+  payment_token: string;
+  shipping_name: string | null;
+  shipping_email: string | null;
+  shipping_street_address: string | null;
+  shipping_city: string | null;
+  shipping_state: string | null;
+  shipping_zipcode: string | null;
+  shipping_country: string | null;
+  add_ons: string[];
+  invoice_ids: string[];
+}
+
+export interface PaymentResponse {
+  success: boolean;
+  error?: string;
+  data?: Record<string, unknown>;
+  message?: string;
+}
+
 const API_DOMAIN = import.meta.env.VITE_API_DOMAIN;
 
 if (!API_DOMAIN) {
@@ -158,5 +179,28 @@ export const clearCache = (dealId?: string): void => {
     cache.delete(`deals_${dealId}`);
   } else {
     cache.clear();
+  }
+};
+
+export const processPayment = async (paymentData: PaymentData): Promise<PaymentResponse> => {
+  try {
+    const response = await fetch(`https://${API_DOMAIN}/api/payments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(paymentData),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Payment failed');
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Payment API error:', error);
+    throw error;
   }
 };

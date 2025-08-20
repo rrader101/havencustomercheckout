@@ -5,21 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, CreditCard, Shield, Receipt, Link, Zap, Mail } from 'lucide-react';
-// Removed useAppleDevice import - relying solely on Stripe's canMakePayment
-import { loadStripe, PaymentRequest } from '@stripe/stripe-js';
+import { ArrowLeft, CreditCard, Shield, Receipt, Link, Zap, Mail, Loader2 } from 'lucide-react';
+import { PaymentRequest } from '@stripe/stripe-js';
 import {
-  Elements,
   CardElement,
   PaymentRequestButtonElement,
   useStripe,
   useElements
 } from '@stripe/react-stripe-js';
+import { processPayment, PaymentData as ApiPaymentData } from '@/services/api';
 
 // Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-interface PaymentData {
+
+interface PaymentFormData {
   method: 'card' | 'google-pay' | 'apple-pay' | 'link' | 'check';
   cardNumber?: string;
   expiryDate?: string;
@@ -33,8 +32,8 @@ interface PaymentData {
 }
 
 interface PaymentSectionProps {
-  data: PaymentData;
-  onUpdate: (data: Partial<PaymentData>) => void;
+  data: PaymentFormData;
+  onUpdate: (data: Partial<PaymentFormData>) => void;
   onBack: () => void;
   total: number;
   userEmail?: string;
@@ -59,8 +58,8 @@ interface PaymentSectionProps {
 
 // Stripe Payment Form Component
 const StripePaymentForm = ({ data, onUpdate, total, userEmail, shippingData, dealData, onPaymentSuccess }: {
-  data: PaymentData;
-  onUpdate: (data: Partial<PaymentData>) => void;
+  data: PaymentFormData;
+  onUpdate: (data: Partial<PaymentFormData>) => void;
   total: number;
   userEmail?: string;
   shippingData?: { name?: string; country?: string; zipCode?: string; };
@@ -81,6 +80,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
   const [isAutoPopulating, setIsAutoPopulating] = useState(false);
   const [hasAutoPopulated, setHasAutoPopulated] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   // Removed useAppleDevice hook - relying solely on Stripe's canMakePayment method
   
   // Handle Stripe payment success
@@ -92,7 +92,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
       // Update payment data with the payment method ID
       onUpdate({ 
         paymentMethodId, 
-        method: method as PaymentData['method']
+        method: method as PaymentFormData['method']
       });
       
       // Call the checkout API
@@ -107,41 +107,36 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
 
   // Handle checkout API call
   const handleCheckoutAPI = async (paymentMethodId: string, method: string) => {
-    // Convert add_ons and invoices from Record<string, boolean> to arrays of selected IDs
-    const selectedAddOns = addOns ? Object.keys(addOns).filter(key => addOns[key]) : [];
-    const selectedInvoices = invoices ? Object.keys(invoices).filter(key => invoices[key]) : [];
+    setIsLoading(true);
+    try {
+      // Convert add_ons and invoices from Record<string, boolean> to arrays of selected IDs
+      const selectedAddOns = addOns ? Object.keys(addOns).filter(key => addOns[key]) : [];
+      const selectedInvoices = invoices ? Object.keys(invoices).filter(key => invoices[key]) : [];
 
-    const checkoutData = {
-      uuid: dealId,
-      payment_token: paymentMethodId,
-      shipping_name: shippingData?.name || null,
-      shipping_email: shippingData?.email || null,
-      shipping_street_address: shippingData?.streetAddress || null,
-      shipping_city: shippingData?.city || null,
-      shipping_state: shippingData?.state || null,
-      shipping_zipcode: shippingData?.zipCode || null,
-      shipping_country: shippingData?.country || null,
-      add_ons: selectedAddOns,
-      invoice_ids: selectedInvoices,
-    };
+      const paymentData: ApiPaymentData = {
+        uuid: dealId,
+        payment_token: paymentMethodId,
+        shipping_name: shippingData?.name || null,
+        shipping_email: shippingData?.email || null,
+        shipping_street_address: shippingData?.streetAddress || null,
+        shipping_city: shippingData?.city || null,
+        shipping_state: shippingData?.state || null,
+        shipping_zipcode: shippingData?.zipCode || null,
+        shipping_country: shippingData?.country || null,
+        add_ons: selectedAddOns,
+        invoice_ids: selectedInvoices,
+      };
 
-    const response = await fetch('/api/checkout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(checkoutData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.message || errorData.error || `Checkout failed (${response.status})`;
-      throw new Error(errorMessage);
+      const result = await processPayment(paymentData);
+      console.log('Checkout successful:', result);
+      // Handle successful checkout (redirect, show success message, etc.)
+    } catch (error) {
+      console.error('Payment failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Payment processing failed. Please try again.';
+      setErrors({ ...errors, api: errorMessage });
+    } finally {
+      setIsLoading(false);
     }
-
-    const result = await response.json();
-    console.log('Checkout successful:', result);
-    // Handle successful checkout (redirect, show success message, etc.)
   };
 
   // Helper function to determine processing fee rate based on country
@@ -172,7 +167,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     
     if (shippingData) {
       // Only auto-populate if the fields are empty (don't override user input)
-      const updates: Partial<PaymentData> = {};
+      const updates: Partial<PaymentFormData> = {};
       
       if (!data.userEmail) {
         updates.userEmail = userEmail || '';
@@ -234,7 +229,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     }
   };
 
-  const handleInputChange = (field: keyof PaymentData, value: string) => {
+  const handleInputChange = (field: keyof PaymentFormData, value: string) => {
     onUpdate({ [field]: value });
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -288,48 +283,47 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
   };
 
   return (
-    <Elements stripe={stripePromise}>
-      <Card className="p-6 border-0 bg-card animate-fade-in">
-        <StripePaymentContent 
-          data={data}
-          onUpdate={onUpdate}
-          total={total}
-          userEmail={userEmail}
-          shippingData={shippingData}
-          dealData={dealData}
-          onPaymentSuccess={handlePaymentSuccess}
-          errors={errors}
-          setErrors={setErrors}
-          isProcessing={isProcessing}
-          setIsProcessing={setIsProcessing}
-          addOns={addOns}
-          currency={currency}
-          onBack={onBack}
-          handleAutoPopulate={handleAutoPopulate}
-          isAutoPopulating={isAutoPopulating}
-          hasAutoPopulated={hasAutoPopulated}
-          handleInputChange={handleInputChange}
-          validateForm={validateForm}
-          handleSubmit={handleSubmit}
-          formatCardNumber={formatCardNumber}
-          formatExpiryDate={formatExpiryDate}
-          getProcessingFeeRate={getProcessingFeeRate}
-          countries={countries}
-        />
-      </Card>
-    </Elements>
+    <Card className="p-6 border-0 bg-card animate-fade-in">
+      <StripePaymentContent 
+        data={data}
+        onUpdate={onUpdate}
+        total={total}
+        userEmail={userEmail}
+        shippingData={shippingData}
+        dealData={dealData}
+        onPaymentSuccess={handlePaymentSuccess}
+        errors={errors}
+        setErrors={setErrors}
+        isProcessing={isProcessing}
+        setIsProcessing={setIsProcessing}
+        isLoading={isLoading}
+        addOns={addOns}
+        currency={currency}
+        onBack={onBack}
+        handleAutoPopulate={handleAutoPopulate}
+        isAutoPopulating={isAutoPopulating}
+        hasAutoPopulated={hasAutoPopulated}
+        handleInputChange={handleInputChange}
+        validateForm={validateForm}
+        handleSubmit={handleSubmit}
+        formatCardNumber={formatCardNumber}
+        formatExpiryDate={formatExpiryDate}
+        getProcessingFeeRate={getProcessingFeeRate}
+        countries={countries}
+      />
+    </Card>
   );
 });
 
 // Stripe Payment Content Component (inside Elements provider)
 const StripePaymentContent = ({ 
   data, onUpdate, total, userEmail, shippingData, dealData, onPaymentSuccess, 
-  errors, setErrors, isProcessing, setIsProcessing, addOns, currency, onBack, handleAutoPopulate,
+  errors, setErrors, isProcessing, setIsProcessing, isLoading, addOns, currency, onBack, handleAutoPopulate,
   isAutoPopulating, hasAutoPopulated, handleInputChange, validateForm, handleSubmit,
   formatCardNumber, formatExpiryDate, getProcessingFeeRate, countries
 }: {
-  data: PaymentData;
-  onUpdate: (data: Partial<PaymentData>) => void;
+  data: PaymentFormData;
+  onUpdate: (data: Partial<PaymentFormData>) => void;
   total: number;
   userEmail?: string;
   shippingData?: { name?: string; country?: string; zipCode?: string; };
@@ -339,13 +333,14 @@ const StripePaymentContent = ({
   setErrors: (errors: Record<string, string>) => void;
   isProcessing: boolean;
   setIsProcessing: (processing: boolean) => void;
+  isLoading: boolean;
   addOns?: Record<string, boolean>;
   currency: 'USD' | 'CAD';
   onBack: () => void;
   handleAutoPopulate: () => void;
   isAutoPopulating: boolean;
   hasAutoPopulated: boolean;
-  handleInputChange: (field: keyof PaymentData, value: string) => void;
+  handleInputChange: (field: keyof PaymentFormData, value: string) => void;
   validateForm: () => boolean;
   handleSubmit: () => void;
   formatCardNumber: (value: string) => string;
@@ -709,10 +704,15 @@ const StripePaymentContent = ({
                 handleSubmit();
               }
             }} 
-           disabled={isProcessing || (data.method !== 'check' && (!stripe || !elements)) || total === 0}
+           disabled={isProcessing || isLoading || (data.method !== 'check' && (!stripe || !elements)) || total === 0}
            className="gap-2 bg-black border-black text-white hover:bg-gray-800 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
          >
-          {isProcessing ? 'Processing...' : (
+          {(isProcessing || isLoading) ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Processing
+            </>
+          ) : (
             total > 0 
               ? data.method === 'check'
                 ? `Complete $${parseFloat(total.toFixed(2)).toFixed(2)}`

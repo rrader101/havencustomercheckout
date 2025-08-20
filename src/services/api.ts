@@ -160,7 +160,7 @@ export const fetchDealsData = async (dealId: string): Promise<DealsResponse> => 
   }
   
   try {
-    const response = await retryFetch(`https://${API_DOMAIN}/api/deals/${dealId}`);
+    const response = await fetch(`https://${API_DOMAIN}/api/deals/${dealId}`);
     const data = await response.json();
     
     // Cache the result

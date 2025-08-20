@@ -6,13 +6,13 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, CreditCard, Shield, Receipt, Link, Zap, Mail, Loader2 } from 'lucide-react';
-import { PaymentRequest } from '@stripe/stripe-js';
 import {
   CardElement,
   PaymentRequestButtonElement,
   useStripe,
   useElements
 } from '@stripe/react-stripe-js';
+import { usePaymentRequest } from '@/contexts/PaymentRequestContext';
 import { processPayment, PaymentData as ApiPaymentData } from '@/services/api';
 
 // Initialize Stripe
@@ -350,72 +350,19 @@ const StripePaymentContent = ({
 }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
-  const [canMakePayment, setCanMakePayment] = useState<{applePay?: boolean; googlePay?: boolean; link?: boolean} | null>(null);
-  // Removed useAppleDevice hook - relying solely on Stripe's canMakePayment method
+  const { paymentRequest, canMakePayment, updatePaymentRequest, setPaymentMethodHandler } = usePaymentRequest();
 
-  // Initialize single Payment Request that handles all payment methods
+  // Set up payment method handler when component mounts
   useEffect(() => {
-    if (!stripe || total <= 0) {
-      setPaymentRequest(null);
-      setCanMakePayment(null);
-      return;
-    }
-
-    const pr = stripe.paymentRequest({
-      country: 'US',
-      currency: 'usd',
-      total: {
-        label: 'Total',
-        amount: Math.floor(total * 100),
-      },
-      requestPayerName: true,
-      requestPayerEmail: true,
-    });
-
-    // Check what payment methods are available
-    pr.canMakePayment().then(result => {
-      if (result) {
-        setPaymentRequest(pr);
-        setCanMakePayment(result);
-      }
-    });
-
-    // Handle payment method selection
-    pr.on('paymentmethod', async (event) => {
-      try {
-        // Determine payment method type
-        let method = 'card';
-        if (event.walletName === 'applePay') method = 'apple-pay';
-        else if (event.walletName === 'googlePay') method = 'google-pay';
-        else if (event.walletName === 'link') method = 'link';
-
-        await onPaymentSuccess(event.paymentMethod.id, method);
-        event.complete('success');
-      } catch (error) {
-        console.error('Payment failed:', error);
-        event.complete('fail');
-      }
-    });
-
-    // Cleanup function to prevent multiple instances
-    return () => {
-      setPaymentRequest(null);
-      setCanMakePayment(null);
-    };
-  }, [stripe, total, onPaymentSuccess]);
+    setPaymentMethodHandler(onPaymentSuccess);
+  }, [onPaymentSuccess, setPaymentMethodHandler]);
 
   // Update payment request total when total changes
   useEffect(() => {
-    if (paymentRequest && total > 0) {
-      paymentRequest.update({
-        total: {
-          label: 'Total',
-          amount: Math.floor(total * 100),
-        },
-      });
+    if (total > 0) {
+      updatePaymentRequest(total);
     }
-  }, [paymentRequest, total]);
+  }, [total, updatePaymentRequest]);
 
 
 
@@ -716,16 +663,7 @@ const StripePaymentContent = ({
             total > 0 
               ? data.method === 'check'
                 ? `Complete $${parseFloat(total.toFixed(2)).toFixed(2)}`
-                : (addOns && Object.values(addOns).some(selected => selected))
-                  ? `Pay $${parseFloat(total.toFixed(2)).toFixed(2)}`
-                  : dealData?.type === 'One Time' && total > 0
-                  ? (() => {
-                      const country = data.country || shippingData?.country || '';
-                      const feeRate = getProcessingFeeRate(country);
-                      const totalWithFee = total * (1 + feeRate);
-                      return `Pay $${parseFloat(totalWithFee.toFixed(2)).toFixed(2)}`;
-                    })()
-                  : `Pay $${parseFloat(total.toFixed(2)).toFixed(2)}` // No processing fee for subscriptions or when total is 0
+                : `Pay $${parseFloat(total.toFixed(2)).toFixed(2)}`
               : 'Complete Order'
           )}
         </Button>

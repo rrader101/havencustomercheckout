@@ -365,6 +365,11 @@ const StripePaymentContent = ({
       }
     });
 
+    // Cleanup function to prevent multiple instances
+    return () => {
+      setPaymentRequest(null);
+      setCanMakePayment(null);
+    };
   }, [stripe, total]);
 
   // Payment handlers are now managed by PaymentRequestButtonElement automatically
@@ -403,48 +408,12 @@ const StripePaymentContent = ({
 
   return (
     <>
-      {/* Top Priority Payment Buttons - Stripe PaymentRequestButtonElement */}
-      <div className="mb-6 space-y-3">
-        {/* Apple Pay Button */}
-        {paymentRequest && canMakePayment?.applePay && (
+      {/* Payment Request Button - Shows Apple Pay, Google Pay, or Link dynamically */}
+      <div className="mb-6">
+        {paymentRequest && canMakePayment && (
           <div className="w-full h-12 rounded-lg overflow-hidden">
             <PaymentRequestButtonElement 
-              options={{
-                paymentRequest,
-                style: {
-                  paymentRequestButton: {
-                    type: 'default',
-                    theme: 'dark',
-                    height: '48px',
-                  },
-                },
-              }}
-            />
-          </div>
-        )}
-
-        {/* Google Pay Button */}
-        {paymentRequest && canMakePayment?.googlePay && (
-          <div className="w-full h-12 rounded-lg overflow-hidden">
-            <PaymentRequestButtonElement 
-              options={{
-                paymentRequest,
-                style: {
-                  paymentRequestButton: {
-                    type: 'default',
-                    theme: 'dark',
-                    height: '48px',
-                  },
-                },
-              }}
-            />
-          </div>
-        )}
-
-        {/* Link Button */}
-        {paymentRequest && canMakePayment?.link && (
-          <div className="w-full h-12 rounded-lg overflow-hidden">
-            <PaymentRequestButtonElement 
+              key={`payment-request-${total}`}
               options={{
                 paymentRequest,
                 style: {

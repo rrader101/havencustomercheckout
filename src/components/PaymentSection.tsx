@@ -426,7 +426,6 @@ const StripePaymentContent = React.memo(({
           <div className="mb-6">
             <div className="w-full h-12 rounded-lg overflow-hidden">
               <PaymentRequestButtonElement 
-                key={`payment-request-${total}`}
                 options={{
                   paymentRequest: paymentRequest,
                   style: {
@@ -641,15 +640,15 @@ const StripePaymentContent = React.memo(({
   );
 }, (prevProps, nextProps) => {
   // Prevent Stripe elements from remounting when only form data changes
+  // Only re-render when essential props change, not when errors or other state changes
   return (
     prevProps.data.method === nextProps.data.method &&
     prevProps.total === nextProps.total &&
-    prevProps.isProcessing === nextProps.isProcessing &&
-    prevProps.isLoading === nextProps.isLoading &&
     prevProps.userEmail === nextProps.userEmail &&
     prevProps.shippingData === nextProps.shippingData &&
     prevProps.dealData === nextProps.dealData &&
     prevProps.addOns === nextProps.addOns &&
     prevProps.currency === nextProps.currency
+    // Intentionally NOT comparing isProcessing, isLoading, or errors to prevent remounting
   );
 });

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { PaymentRequest } from '@stripe/stripe-js';
 import { useStripe } from '@stripe/react-stripe-js';
 
@@ -27,7 +27,7 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
   const stripe = useStripe();
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
   const [canMakePayment, setCanMakePayment] = useState<{applePay?: boolean; googlePay?: boolean; link?: boolean} | null>(null);
-  const [paymentMethodHandler, setPaymentMethodHandler] = useState<((paymentMethodId: string, method: string) => void | Promise<void>) | null>(null);
+  const paymentMethodHandlerRef = useRef<((paymentMethodId: string, method: string) => void | Promise<void>) | null>(null);
 
   // Initialize payment request when Stripe is available
   useEffect(() => {
@@ -55,7 +55,7 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
     // Handle payment method selection
     pr.on('paymentmethod', async (event) => {
       try {
-        if (!paymentMethodHandler) {
+        if (!paymentMethodHandlerRef.current) {
           event.complete('fail');
           return;
         }
@@ -66,7 +66,7 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
         else if (event.walletName === 'googlePay') method = 'google-pay';
         else if (event.walletName === 'link') method = 'link';
 
-        const result = paymentMethodHandler(event.paymentMethod.id, method);
+        const result = paymentMethodHandlerRef.current(event.paymentMethod.id, method);
         if (result instanceof Promise) {
           await result;
         }
@@ -81,7 +81,7 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
       setPaymentRequest(null);
       setCanMakePayment(null);
     };
-  }, [stripe, paymentMethodHandler]);
+  }, [stripe]);
 
   const updatePaymentRequest = (total: number) => {
     if (paymentRequest && total > 0) {
@@ -94,9 +94,9 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
     }
   };
 
-  const setPaymentMethodHandlerWrapper = (handler: (paymentMethodId: string, method: string) => Promise<void>) => {
-    setPaymentMethodHandler(() => handler);
-  };
+  const setPaymentMethodHandlerWrapper = useCallback((handler: (paymentMethodId: string, method: string) => Promise<void>) => {
+    paymentMethodHandlerRef.current = handler;
+  }, []);
 
   const value = {
     paymentRequest,

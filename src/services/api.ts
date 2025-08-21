@@ -111,6 +111,27 @@ export interface AddressResponse {
   message?: string;
 }
 
+export interface ChequePaymentData {
+  uuid: string;
+  shipping_name: string | null;
+  shipping_email: string | null;
+  shipping_street_address: string | null;
+  shipping_city: string | null;
+  shipping_state: string | null;
+  shipping_zipcode: string | null;
+  shipping_country: string | null;
+  add_ons: string[];
+  invoice_ids: string[];
+}
+
+export interface ChequePaymentResponse {
+  success: boolean;
+  error?: string;
+  data?: Record<string, unknown>;
+  message?: string;
+  order_id?: string;
+}
+
 const API_DOMAIN = import.meta.env.VITE_API_DOMAIN;
 
 if (!API_DOMAIN) {
@@ -177,4 +198,22 @@ export const saveAddress = async (addressData: AddressData): Promise<AddressResp
     console.error('Address API error:', error);
     throw error;
   }
+};
+
+export const processChequePayment = async (chequeData: ChequePaymentData): Promise<ChequePaymentResponse> => {
+  const response = await fetch(`${API_DOMAIN}/cheque-payments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(chequeData),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result;
 };

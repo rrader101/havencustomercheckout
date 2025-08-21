@@ -13,7 +13,7 @@ import {
   useElements
 } from '@stripe/react-stripe-js';
 import { usePaymentRequest } from '@/contexts/PaymentRequestContext';
-import { processPayment, PaymentData as ApiPaymentData } from '@/services/api';
+import { processPayment, PaymentData as ApiPaymentData, processChequePayment, ChequePaymentData } from '@/services/api';
 import { SuccessPopup } from './SuccessPopup';
 import { useNavigate } from 'react-router-dom';
 
@@ -97,22 +97,44 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
       const selectedAddOns = addOns ? Object.keys(addOns).filter(key => addOns[key]) : [];
       const selectedInvoices = invoices ? Object.keys(invoices).filter(key => invoices[key]) : [];
 
-      const paymentData: ApiPaymentData = {
-        uuid: dealId,
-        payment_token: paymentMethodId,
-        shipping_name: shippingData?.name || null,
-        shipping_email: shippingData?.email || null,
-        shipping_street_address: shippingData?.streetAddress || null,
-        shipping_city: shippingData?.city || null,
-        shipping_state: shippingData?.state || null,
-        shipping_zipcode: shippingData?.zipCode || null,
-        shipping_country: shippingData?.country || null,
-        add_ons: selectedAddOns,
-        invoice_ids: selectedInvoices,
-      };
-
-      const result = await processPayment(paymentData);
-      console.log('Checkout successful:', result);
+      let result;
+      
+      if (method === 'check') {
+        // Handle check payment
+        const chequeData: ChequePaymentData = {
+          uuid: dealId,
+          shipping_name: shippingData?.name || null,
+          shipping_email: shippingData?.email || null,
+          shipping_street_address: shippingData?.streetAddress || null,
+          shipping_city: shippingData?.city || null,
+          shipping_state: shippingData?.state || null,
+          shipping_zipcode: shippingData?.zipCode || null,
+          shipping_country: shippingData?.country || null,
+          add_ons: selectedAddOns,
+          invoice_ids: selectedInvoices,
+        };
+        
+        result = await processChequePayment(chequeData);
+        console.log('Cheque payment successful:', result);
+      } else {
+        // Handle card payment
+        const paymentData: ApiPaymentData = {
+          uuid: dealId,
+          payment_token: paymentMethodId,
+          shipping_name: shippingData?.name || null,
+          shipping_email: shippingData?.email || null,
+          shipping_street_address: shippingData?.streetAddress || null,
+          shipping_city: shippingData?.city || null,
+          shipping_state: shippingData?.state || null,
+          shipping_zipcode: shippingData?.zipCode || null,
+          shipping_country: shippingData?.country || null,
+          add_ons: selectedAddOns,
+          invoice_ids: selectedInvoices,
+        };
+        
+        result = await processPayment(paymentData);
+        console.log('Card payment successful:', result);
+      }
       
       // Handle successful checkout - show popup and prepare for redirect
       if (result && result.order_id) {
@@ -156,6 +178,12 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     if (orderId) {
       navigate(`/order-confirmed/${orderId}`);
     }
+  };
+
+  // Handle check payment submission
+  const handleCheckPayment = async () => {
+    setErrors({});
+    await handleCheckoutAPI('', 'check');
   };
 
   // Auto-populate shipping data when component mounts
@@ -213,8 +241,12 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     }
     
     if (validateForm()) {
-      // Handle payment submission
-      console.log('Processing payment...', { data, total });
+      if (data.method === 'check') {
+        handleCheckPayment();
+      } else {
+        // Handle other payment methods
+        console.log('Processing payment...', { data, total });
+      }
     }
   };
 
@@ -268,7 +300,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
         addOns={addOns}
         currency={currency}
         onBack={onBack}
-
+        handleCheckPayment={handleCheckPayment}
         handleInputChange={handleInputChange}
         validateForm={validateForm}
         handleSubmit={handleSubmit}
@@ -285,13 +317,26 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
       />
     </Card>
   );
+}, (prevProps, nextProps) => {
+  // Custom comparison to prevent unnecessary re-renders that cause Stripe remounting
+  return (
+    prevProps.data === nextProps.data &&
+    prevProps.total === nextProps.total &&
+    prevProps.userEmail === nextProps.userEmail &&
+    prevProps.shippingData === nextProps.shippingData &&
+    prevProps.addOns === nextProps.addOns &&
+    prevProps.invoices === nextProps.invoices &&
+    prevProps.currency === nextProps.currency &&
+    prevProps.dealId === nextProps.dealId &&
+    prevProps.dealData === nextProps.dealData
+  );
 });
 
 // Stripe Payment Content Component (inside Elements provider)
-const StripePaymentContent = ({ 
+const StripePaymentContent = React.memo(({ 
   data, onUpdate, total, userEmail, shippingData, dealData, onPaymentSuccess, 
   errors, setErrors, isProcessing, setIsProcessing, isLoading, addOns, currency, onBack,
-  handleInputChange, validateForm, handleSubmit,
+  handleCheckPayment, handleInputChange, validateForm, handleSubmit,
   formatCardNumber, formatExpiryDate, getProcessingFeeRate, countries
 }: {
   data: PaymentFormData;
@@ -309,6 +354,7 @@ const StripePaymentContent = ({
   addOns?: Record<string, boolean>;
   currency: 'USD' | 'CAD';
   onBack: () => void;
+  handleCheckPayment: () => void;
   handleInputChange: (field: keyof PaymentFormData, value: string) => void;
   validateForm: () => boolean;
   handleSubmit: () => void;
@@ -593,4 +639,17 @@ const StripePaymentContent = ({
       )}
     </>
   );
-};
+}, (prevProps, nextProps) => {
+  // Prevent Stripe elements from remounting when only form data changes
+  return (
+    prevProps.data.method === nextProps.data.method &&
+    prevProps.total === nextProps.total &&
+    prevProps.isProcessing === nextProps.isProcessing &&
+    prevProps.isLoading === nextProps.isLoading &&
+    prevProps.userEmail === nextProps.userEmail &&
+    prevProps.shippingData === nextProps.shippingData &&
+    prevProps.dealData === nextProps.dealData &&
+    prevProps.addOns === nextProps.addOns &&
+    prevProps.currency === nextProps.currency
+  );
+});

@@ -14,6 +14,8 @@ import {
 } from '@stripe/react-stripe-js';
 import { usePaymentRequest } from '@/contexts/PaymentRequestContext';
 import { processPayment, PaymentData as ApiPaymentData } from '@/services/api';
+import { SuccessPopup } from './SuccessPopup';
+import { useNavigate } from 'react-router-dom';
 
 // Initialize Stripe
 
@@ -58,9 +60,11 @@ interface PaymentSectionProps {
 
 export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userEmail, shippingData, addOns, invoices, currency, dealId, dealData }: PaymentSectionProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
-
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [orderId, setOrderId] = useState<string>('');
+  const navigate = useNavigate();
   // Removed useAppleDevice hook - relying solely on Stripe's canMakePayment method
   
   // Handle Stripe payment success
@@ -109,7 +113,12 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
 
       const result = await processPayment(paymentData);
       console.log('Checkout successful:', result);
-      // Handle successful checkout (redirect, show success message, etc.)
+      
+      // Handle successful checkout - show popup and prepare for redirect
+      if (result && result.order_id) {
+        setOrderId(result.order_id);
+        setShowSuccessPopup(true);
+      }
     } catch (error) {
       console.error('Payment failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed. Please try again.';
@@ -139,6 +148,14 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
       return 'Canada';
     }
     return country; // Return original if no match
+  };
+
+  // Handle popup close and navigation
+  const handlePopupClose = () => {
+    setShowSuccessPopup(false);
+    if (orderId) {
+      navigate(`/order-confirmed/${orderId}`);
+    }
   };
 
   // Auto-populate shipping data when component mounts
@@ -259,6 +276,12 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
         formatExpiryDate={formatExpiryDate}
         getProcessingFeeRate={getProcessingFeeRate}
         countries={countries}
+      />
+      
+      <SuccessPopup
+        isVisible={showSuccessPopup}
+        orderId={orderId}
+        onClose={handlePopupClose}
       />
     </Card>
   );

@@ -93,6 +93,7 @@ export interface PaymentResponse {
   error?: string;
   data?: Record<string, unknown>;
   message?: string;
+  order_id?: string;
 }
 
 export interface AddressData {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,8 @@ interface ShippingDetailsProps {
 export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: ShippingDetailsProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [hasUserChanges, setHasUserChanges] = useState(false);
+  const [initialData, setInitialData] = useState<ShippingData | null>(null);
 
   // Comprehensive country list (same as PaymentSection)
   const countries = ['US', 'Canada'];
@@ -61,35 +63,47 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
 
   const handleSubmit = async () => {
     if (validateForm()) {
-      // Call address API before proceeding
-      if (dealId) {
-        try {
-          setIsLoading(true);
-          await saveAddress({
-            uuid: dealId,
-            shipping_street_address: data.streetAddress,
-            shipping_city: data.city,
-            shipping_state: data.state,
-            shipping_zipcode: data.zipCode,
-            shipping_country: data.country
-          });
-          onNext();
-        } catch (error) {
-          console.error('Failed to save address:', error);
-          // You might want to show an error message to the user here
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
+      // Call address API only if user has made changes
+    if (dealId && hasUserChanges) {
+      try {
+        setIsLoading(true);
+        await saveAddress({
+          uuid: dealId,
+          shipping_street_address: data.streetAddress,
+          shipping_city: data.city,
+          shipping_state: data.state,
+          shipping_zipcode: data.zipCode,
+          shipping_country: data.country
+        });
         onNext();
+      } catch (error) {
+        console.error('Failed to save address:', error);
+        // You might want to show an error message to the user here
+      } finally {
+        setIsLoading(false);
       }
+    } else {
+      onNext();
+    }
     }
   };
+
+  // Track initial data to detect user changes
+  useEffect(() => {
+    if (!initialData && data.name) {
+      setInitialData({ ...data });
+    }
+  }, [data, initialData]);
 
   const handleInputChange = (field: keyof ShippingData, value: string) => {
     onUpdate({ [field]: value });
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    
+    // Mark that user has made changes
+    if (initialData && !hasUserChanges) {
+      setHasUserChanges(true);
     }
   };
 
@@ -148,11 +162,14 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
                   zipCode: addressComponents.zipCode
                 };
                 
-                console.log('Updating form with:', updatedData);
+                console.log('Updated data to be sent:', updatedData);
                 onUpdate(updatedData);
+                
+                // Mark that user has made changes when selecting from autocomplete
+                if (initialData && !hasUserChanges) {
+                  setHasUserChanges(true);
+                }
               }}
-              placeholder="123 Main Street"
-              label="Street Address"
               error={errors.streetAddress}
             />
           </div>

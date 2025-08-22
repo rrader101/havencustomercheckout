@@ -16,6 +16,7 @@ import { usePaymentRequest } from '@/contexts/PaymentRequestContext';
 import { processPayment, PaymentData as ApiPaymentData, processChequePayment, ChequePaymentData } from '@/services/api';
 import { SuccessPopup } from './SuccessPopup';
 import { useNavigate } from 'react-router-dom';
+import AddressAutocomplete from './AddressAutocomplete';
 
 // Initialize Stripe
 
@@ -119,11 +120,11 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
           shipping_country: shippingData?.country || null,
           billing_name: data.cardholderName || null,
           billing_email: data.userEmail || null,
-          billing_street_address: data.billing_street_address || null,
-          billing_city: data.billing_city || null,
-          billing_state: data.billing_state || null,
-          billing_zipcode: data.billing_zipcode || null,
-          billing_country: data.billing_country || null,
+          billing_street_address: data.useDifferentBilling ? (data.billing_street_address || null) : (shippingData?.streetAddress || null),
+          billing_city: data.useDifferentBilling ? (data.billing_city || null) : (shippingData?.city || null),
+          billing_state: data.useDifferentBilling ? (data.billing_state || null) : (shippingData?.state || null),
+          billing_zipcode: data.useDifferentBilling ? (data.billing_zipcode || null) : (shippingData?.zipCode || null),
+          billing_country: data.useDifferentBilling ? (data.billing_country || null) : (shippingData?.country || null),
           add_ons: selectedAddOns,
           invoice_ids: selectedInvoices,
         };
@@ -144,11 +145,11 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
           shipping_country: shippingData?.country || null,
           billing_name: data.cardholderName || null,
           billing_email: data.userEmail || null,
-          billing_street_address: data.billing_street_address || null,
-          billing_city: data.billing_city || null,
-          billing_state: data.billing_state || null,
-          billing_zipcode: data.billing_zipcode || null,
-          billing_country: data.billing_country || null,
+          billing_street_address: data.useDifferentBilling ? (data.billing_street_address || null) : (shippingData?.streetAddress || null),
+          billing_city: data.useDifferentBilling ? (data.billing_city || null) : (shippingData?.city || null),
+          billing_state: data.useDifferentBilling ? (data.billing_state || null) : (shippingData?.state || null),
+          billing_zipcode: data.useDifferentBilling ? (data.billing_zipcode || null) : (shippingData?.zipCode || null),
+          billing_country: data.useDifferentBilling ? (data.billing_country || null) : (shippingData?.country || null),
           add_ons: selectedAddOns,
           invoice_ids: selectedInvoices,
           amount: total,
@@ -575,11 +576,20 @@ const StripePaymentContent = React.memo(({
                      {/* Billing Street Address */}
                 <div className="mb-4">
                   <Label htmlFor="billing_street_address">Billing street address</Label>
-                  <Input
-                    id="billing_street_address"
-                    placeholder="123 Main St"
+                  <AddressAutocomplete
                     value={data.billing_street_address || shippingData?.streetAddress || ''}
-                    onChange={(e) => onUpdate({ billing_street_address: e.target.value })}
+                    onChange={(value) => onUpdate({ billing_street_address: value })}
+                    onAddressSelect={(addressComponents) => {
+                      // Auto-fill the billing address fields when user selects from Google Places
+                      onUpdate({
+                        billing_street_address: addressComponents.streetAddress,
+                        billing_city: addressComponents.city,
+                        billing_state: addressComponents.state,
+                        billing_country: addressComponents.country,
+                        billing_zipcode: addressComponents.zipCode
+                      });
+                    }}
+                    placeholder="Start typing your billing address..."
                     className="mt-0"
                   />
                 </div>

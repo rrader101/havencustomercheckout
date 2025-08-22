@@ -77,11 +77,11 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
             const isDisabled = isPaid;
 
             return (
-              <div key={invoice.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-md hover:shadow-lg">
+              <div key={invoice.id} className="bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg">
                 {/* Main Invoice Row */}
                 <div 
                   className={`
-                    flex items-center justify-between p-4 cursor-pointer relative
+                    p-4 cursor-pointer relative
                     ${isDisabled 
                       ? 'bg-gray-50 cursor-not-allowed opacity-60' 
                       : isSelected 
@@ -105,7 +105,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                         )}
                       </div>
                     )}
-                    <div>
+                    <div className="flex-1">
                       <div className="text-sm font-bold text-gray-800 tracking-wide">#{invoice.invoice_num}</div>
                       <div className="text-xs text-gray-500">
                         Due: {formatDate(invoice.due_date)}
@@ -120,25 +120,22 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                         {invoice.status}
                       </span>
                     </div>
-                    <div>
+                    <div className="text-right">
                       <div className="text-md font-bold text-gray-800 tracking-tight">${parseFloat(invoice.amount).toFixed(2)}</div>
-                      
+                      {/* Enhanced Collapsible Toggle - moved below price */}
+                       {invoice.invoice_products.length > 0 && (
+                         <button
+                           onClick={(e) => toggleDetails(invoiceKey, e)}
+                           className="mt-1 p-1 hover:bg-white rounded-lg transition-colors duration-200 flex items-center justify-center border border-gray-300"
+                         >
+                           {expandedDetails[invoiceKey] ? (
+                             <ChevronUp className="w-4 h-4 text-black" />
+                           ) : (
+                             <ChevronDown className="w-4 h-4 text-black" />
+                           )}
+                         </button>
+                       )}
                     </div>
-                  </div>
-                  <div className="text-right flex items-center gap-3">
-                    {/* Enhanced Collapsible Toggle */}
-                    {invoice.invoice_products.length > 0 && (
-                      <button
-                        onClick={(e) => toggleDetails(invoiceKey, e)}
-                        className="p-2 hover:bg-whiterounded-lg"
-                      >
-                        {expandedDetails[invoiceKey] ? (
-                          <ChevronUp className="w-4 h-4 text-indigo-600" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-gray-500" />
-                        )}
-                      </button>
-                    )}
                   </div>
                 </div>
                 
@@ -200,7 +197,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
         if (isOneTime) {
           // Enhanced One Time invoice UI
           return (
-            <div key={invoice.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-lg hover:shadow-xl">
+            <div key={invoice.id} className="bg-white rounded-xl border border-gray-200 shadow-lg hover:shadow-xl">
               {/* Enhanced Header */}
               <div className="bg-primary text-primary-foreground px-6 py-4">
                 <div className="flex items-center justify-between">
@@ -270,7 +267,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                   <div className="mt-6">
                     <button
                       onClick={(e) => toggleDetails(invoiceKey, e)}
-                      className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg"
+                      className="flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-gray-800 transition-colors bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg"
                     >
                       {expandedDetails[invoiceKey] ? (
                         <ChevronUp className="w-4 h-4" />

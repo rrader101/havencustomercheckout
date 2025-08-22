@@ -20,6 +20,17 @@ import AddressAutocomplete from './AddressAutocomplete';
 
 // Initialize Stripe
 
+// Display mapping for country names
+const getCountryDisplayName = (countryCode: string): string => {
+  switch (countryCode) {
+    case 'US':
+      return 'United States';
+    case 'Canada':
+      return 'Canada';
+    default:
+      return countryCode;
+  }
+};
 
 interface PaymentFormData {
   method: 'card' | 'google-pay' | 'apple-pay' | 'link' | 'check';
@@ -184,6 +195,8 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
   // Comprehensive country list (same as ShippingDetails)
   const countries = ['US', 'Canada'];
 
+
+
   // Normalize country names to match dropdown options
   const normalizeCountry = (country: string): string => {
     const normalized = country.toLowerCase().trim();
@@ -330,6 +343,8 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
         formatExpiryDate={formatExpiryDate}
         getProcessingFeeRate={getProcessingFeeRate}
         countries={countries}
+        getCountryDisplayName={getCountryDisplayName}
+        normalizeCountry={normalizeCountry}
       />
       
       <SuccessPopup
@@ -359,7 +374,8 @@ const StripePaymentContent = React.memo(({
   data, onUpdate, total, userEmail, shippingData, dealData, onPaymentSuccess, 
   errors, setErrors, isProcessing, setIsProcessing, isLoading, addOns, currency, onBack,
   handleCheckPayment, handleInputChange, validateForm, handleSubmit,
-  formatCardNumber, formatExpiryDate, getProcessingFeeRate, countries
+        formatCardNumber, formatExpiryDate, getProcessingFeeRate, countries,
+        getCountryDisplayName, normalizeCountry
 }: {
   data: PaymentFormData;
   onUpdate: (data: Partial<PaymentFormData>) => void;
@@ -384,6 +400,8 @@ const StripePaymentContent = React.memo(({
   formatExpiryDate: (value: string) => string;
   getProcessingFeeRate: (country: string) => number;
   countries: string[];
+  getCountryDisplayName: (countryCode: string) => string;
+  normalizeCountry: (country: string) => string;
 }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -575,7 +593,6 @@ const StripePaymentContent = React.memo(({
                    <div className="space-y-4 mt-4">
                      {/* Billing Street Address */}
                 <div className="mb-4">
-                  <Label htmlFor="billing_street_address">Billing street address</Label>
                   <AddressAutocomplete
                     value={data.billing_street_address || shippingData?.streetAddress || ''}
                     onChange={(value) => onUpdate({ billing_street_address: value })}
@@ -622,14 +639,14 @@ const StripePaymentContent = React.memo(({
                 <div className="grid grid-cols-2 gap-4 mb-4">
                   <div>
                     <Label htmlFor="billing_country">Country</Label>
-                    <Select value={data.billing_country || shippingData?.country || ''} onValueChange={(value) => onUpdate({ billing_country: value })}>
+                    <Select value={normalizeCountry(data.billing_country || shippingData?.country || '')} onValueChange={(value) => onUpdate({ billing_country: value })}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select country" />
                       </SelectTrigger>
                       <SelectContent>
                         {countries.map((country) => (
                           <SelectItem key={country} value={country}>
-                            {country}
+                            {getCountryDisplayName(country)}
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -69,7 +69,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
         </div>
         
         {/* Invoice List */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           {availableInvoices.map((invoice) => {
             const invoiceKey = invoice.id.toString();
             const isPaid = isInvoicePaid(invoice.status);
@@ -91,50 +91,58 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                   `}
                   onClick={() => !isDisabled && toggleInvoice(invoiceKey)}
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-start gap-2">
                     {!isDisabled && (
                       <div className={`
-                        w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200
+                        w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 mt-1
                         ${isSelected 
                           ? 'bg-primary border-primary' 
                           : 'border-primary/20 hover:border-primary'
                         }
                       `}>
                         {isSelected && (
-                          <div className="w-2 h-2 bg-white rounded-full" />
+                          <div className="w-1.5 h-1.5 bg-white rounded-full" />
                         )}
                       </div>
                     )}
-                    <div className="flex-1">
-                      <div className="text-sm font-bold text-gray-800 tracking-wide">#{invoice.invoice_num}</div>
-                      <div className="text-xs text-gray-500">
-                        Due: {formatDate(invoice.due_date)}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-bold text-gray-900 tracking-wide">#{invoice.invoice_num}</div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-gray-900">${parseFloat(invoice.amount).toFixed(2)}</div>
+                          {/* Enhanced Collapsible Toggle - moved below price */}
+                          {invoice.invoice_products.length > 0 && (
+                            <div className="flex justify-end mt-1">
+                              <button
+                                onClick={(e) => toggleDetails(invoiceKey, e)}
+                                className="p-1 hover:bg-white rounded-lg transition-colors duration-200 flex items-center justify-center border border-gray-300"
+                              >
+                                {expandedDetails[invoiceKey] ? (
+                                  <ChevronUp className="w-4 h-4 text-black" />
+                                ) : (
+                                  <ChevronDown className="w-4 h-4 text-black" />
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <span className={`
-                        text-xs font-semibold
-                        ${isPaid 
-                          ? 'text-green-700' 
-                          : 'text-amber-700'
-                        }
-                      `}>
-                        {invoice.status}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-md font-bold text-gray-800 tracking-tight">${parseFloat(invoice.amount).toFixed(2)}</div>
-                      {/* Enhanced Collapsible Toggle - moved below price */}
-                       {invoice.invoice_products.length > 0 && (
-                         <button
-                           onClick={(e) => toggleDetails(invoiceKey, e)}
-                           className="mt-1 p-1 hover:bg-white rounded-lg transition-colors duration-200 flex items-center justify-center border border-gray-300"
-                         >
-                           {expandedDetails[invoiceKey] ? (
-                             <ChevronUp className="w-4 h-4 text-black" />
-                           ) : (
-                             <ChevronDown className="w-4 h-4 text-black" />
-                           )}
-                         </button>
-                       )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 text-xs text-gray-600">
+                            <span>Due: {formatDate(invoice.due_date)}</span>
+                          </div>
+                          <span className={`
+                            inline-flex items-center px-1 py-1 rounded-full text-xs font-small
+                            ${isPaid 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-amber-100 text-amber-800'
+                            }
+                          `}>
+                            {invoice.status}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -220,7 +228,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                 {/* Enhanced Invoice Row */}
                 <div 
                   className={`
-                    grid grid-cols-5 gap-4 items-center p-4 rounded-xl cursor-pointer border-2
+                    grid grid-cols-5 gap-3 items-center p-3 rounded-xl cursor-pointer border-2
                     ${isDisabled 
                       ? 'bg-gray-50 cursor-not-allowed opacity-60 border-gray-200' 
                       : isSelected 
@@ -230,26 +238,26 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                   `}
                   onClick={() => !isDisabled && toggleInvoice(invoiceKey)}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     {!isDisabled && (
                       <div className={`
-                        w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200
+                        w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200
                         ${isSelected 
                           ? 'bg-primary border-primary' 
                           : 'border-primary/20 hover:border-primary'
                         }
                       `}>
                         {isSelected && (
-                          <div className="w-2 h-2 bg-white rounded-full" />
+                          <div className="w-1.5 h-1.5 bg-white rounded-full" />
                         )}
                       </div>
                     )}
-                    <span className="font-bold text-gray-900">{invoice.invoice_num}</span>
+                    <span className="font-medium text-xs text-gray-700">{invoice.invoice_num}</span>
                   </div>
                   <div className="text-gray-500 font-medium">-</div>
                   <div>
                     <span className={`
-                      px-3 py-1.5 text-xs font-bold rounded-full shadow-sm
+                      px-1 py-0.5 text-xs font-medium rounded-full shadow-sm
                       ${isPaid 
                         ? 'bg-green-100 text-green-800 border border-green-200' 
                         : 'bg-amber-100 text-amber-800 border border-amber-200'
@@ -258,8 +266,8 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                       {isPaid ? 'Paid' : 'Awaiting Payment'}
                     </span>
                   </div>
-                  <div className="font-semibold text-gray-700">{formatDate(invoice.due_date)}</div>
-                  <div className="font-bold text-lg text-gray-900">${parseFloat(invoice.amount).toFixed(2)}</div>
+                  <div className="font-medium text-xs text-gray-600">{formatDate(invoice.due_date)}</div>
+                  <div className="font-semibold text-xs text-gray-900">${parseFloat(invoice.amount).toFixed(2)}</div>
                 </div>
 
                 {/* Enhanced Collapsible Invoice Details */}

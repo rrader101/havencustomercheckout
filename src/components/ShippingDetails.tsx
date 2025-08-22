@@ -34,6 +34,18 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
   // Comprehensive country list (same as PaymentSection)
   const countries = ['US', 'Canada'];
 
+  // Display mapping for country names
+  const getCountryDisplayName = (countryCode: string): string => {
+    switch (countryCode) {
+      case 'US':
+        return 'United States';
+      case 'Canada':
+        return 'Canada';
+      default:
+        return countryCode;
+    }
+  };
+
   // Normalize country names to match dropdown options
   const normalizeCountry = (country: string): string => {
     const normalized = country.toLowerCase().trim();
@@ -220,7 +232,7 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
                     value={country}
                     className="hover:bg-gray-200 focus:bg-gray-200 data-[highlighted]:bg-gray-200"
                   >
-                    {country}
+                    {getCountryDisplayName(country)}
                   </SelectItem>
                 ))}
               </SelectContent>

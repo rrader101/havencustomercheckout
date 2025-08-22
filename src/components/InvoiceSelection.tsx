@@ -133,7 +133,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                             <span>Due: {formatDate(invoice.due_date)}</span>
                           </div>
                           <span className={`
-                            inline-flex items-center px-1 py-1 rounded-full text-xs font-small
+                            inline-flex text-center px-1 py-1 rounded-full text-xs font-small
                             ${isPaid 
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-amber-100 text-amber-800'

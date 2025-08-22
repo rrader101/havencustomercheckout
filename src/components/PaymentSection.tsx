@@ -29,6 +29,12 @@ interface PaymentFormData {
   userEmail?: string;
   paymentMethodId?: string;
   linkEmail?: string;
+  billing_street_address?: string;
+  billing_city?: string;
+  billing_state?: string;
+  billing_country?: string;
+  billing_zipcode?: string;
+  useDifferentBilling?: boolean;
 }
 
 interface PaymentSectionProps {
@@ -71,7 +77,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
   const handlePaymentSuccess = async (paymentMethodId: string, method: string) => {
     setIsProcessing(true);
     // Clear any previous API errors
-    setErrors({ ...errors, api: '' });
+    setErrors(prev => ({ ...prev, api: '' }));
     try {
       // Update payment data with the payment method ID
       onUpdate({ 
@@ -84,7 +90,8 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     } catch (error) {
       console.error('Payment processing failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed. Please try again.';
-      setErrors({ ...errors, api: errorMessage });
+      // Set API error to payment error for consistent display
+      setErrors(prev => ({ ...prev, payment: errorMessage, api: '' }));
     }
     setIsProcessing(false);
   };
@@ -110,6 +117,13 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
           shipping_state: shippingData?.state || null,
           shipping_zipcode: shippingData?.zipCode || null,
           shipping_country: shippingData?.country || null,
+          billing_name: data.cardholderName || null,
+          billing_email: data.userEmail || null,
+          billing_street_address: data.billing_street_address || null,
+          billing_city: data.billing_city || null,
+          billing_state: data.billing_state || null,
+          billing_zipcode: data.billing_zipcode || null,
+          billing_country: data.billing_country || null,
           add_ons: selectedAddOns,
           invoice_ids: selectedInvoices,
         };
@@ -128,8 +142,16 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
           shipping_state: shippingData?.state || null,
           shipping_zipcode: shippingData?.zipCode || null,
           shipping_country: shippingData?.country || null,
+          billing_name: data.cardholderName || null,
+          billing_email: data.userEmail || null,
+          billing_street_address: data.billing_street_address || null,
+          billing_city: data.billing_city || null,
+          billing_state: data.billing_state || null,
+          billing_zipcode: data.billing_zipcode || null,
+          billing_country: data.billing_country || null,
           add_ons: selectedAddOns,
           invoice_ids: selectedInvoices,
+          amount: total,
         };
         
         result = await processPayment(paymentData);
@@ -144,7 +166,8 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     } catch (error) {
       console.error('Payment failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed. Please try again.';
-      setErrors({ ...errors, api: errorMessage });
+      // Set API error to payment error for consistent display
+      setErrors(prev => ({ ...prev, payment: errorMessage, api: '' }));
     } finally {
       setIsLoading(false);
     }
@@ -182,7 +205,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
 
   // Handle check payment submission
   const handleCheckPayment = async () => {
-    setErrors({});
+    setErrors({ payment: '', api: '', card: '' });
     await handleCheckoutAPI('', 'check');
   };
 
@@ -224,10 +247,8 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
     const newErrors: Record<string, string> = {};
     
     if (!data.userEmail?.trim()) newErrors.userEmail = 'Email is required';
-    if (!data.cardNumber?.trim()) newErrors.cardNumber = 'Card number is required';
-    if (!data.expiryDate?.trim()) newErrors.expiryDate = 'Expiry date is required';
-    if (!data.cvv?.trim()) newErrors.cvv = 'CVV is required';
     if (!data.cardholderName?.trim()) newErrors.cardholderName = 'Cardholder name is required';
+    // Note: Card validation is handled by Stripe CardElement, billing fields have no validation
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -236,7 +257,7 @@ export const PaymentSection = React.memo(({ data, onUpdate, onBack, total, userE
   const handleSubmit = () => {
     // Prevent submission if total is 0 or missing
     if (total <= 0) {
-      setErrors({ ...errors, api: 'Cannot complete order with zero total amount. Please select items or contact support.' });
+      setErrors(prev => ({ ...prev, payment: 'Cannot complete order with zero total amount. Please select items or contact support.' }));
       return;
     }
     
@@ -343,11 +364,11 @@ const StripePaymentContent = React.memo(({
   onUpdate: (data: Partial<PaymentFormData>) => void;
   total: number;
   userEmail?: string;
-  shippingData?: { name?: string; email?: string; country?: string; zipCode?: string; };
+  shippingData?: { name?: string; email?: string; streetAddress?: string; city?: string; state?: string; country?: string; zipCode?: string; };
   dealData?: { type: string; mailing_address_country: string; };
   onPaymentSuccess: (paymentMethodId: string, method: string) => void;
   errors: Record<string, string>;
-  setErrors: (errors: Record<string, string>) => void;
+  setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   isProcessing: boolean;
   setIsProcessing: (processing: boolean) => void;
   isLoading: boolean;
@@ -365,12 +386,19 @@ const StripePaymentContent = React.memo(({
 }) => {
   const stripe = useStripe();
   const elements = useElements();
-  const { paymentRequest, canMakePayment, updatePaymentRequest, setPaymentMethodHandler } = usePaymentRequest();
+  const { paymentRequest, canMakePayment, updatePaymentRequest, setPaymentMethodHandler, setErrorHandler } = usePaymentRequest();
 
   // Set up payment method handler when component mounts
   useEffect(() => {
     setPaymentMethodHandler(onPaymentSuccess);
   }, [onPaymentSuccess, setPaymentMethodHandler]);
+
+  // Set up error handler for payment request button
+  useEffect(() => {
+    setErrorHandler((error: string) => {
+      setErrors(prev => ({ ...prev, payment: error }));
+    });
+  }, [setErrorHandler]);
 
   // Update payment request total when total changes
   useEffect(() => {
@@ -388,8 +416,8 @@ const StripePaymentContent = React.memo(({
     if (!cardElement) return;
 
     setIsProcessing(true);
-    // Clear any previous payment errors
-    setErrors({ ...errors, payment: '' });
+    // Clear all previous errors (payment, api, and card)
+    setErrors({ payment: '', api: '', card: '' });
 
     try {
       const { error, paymentMethod } = await stripe.createPaymentMethod({
@@ -403,7 +431,7 @@ const StripePaymentContent = React.memo(({
 
       if (error) {
         console.error('Payment method creation failed:', error);
-        setErrors({ ...errors, payment: error.message || 'Payment failed' });
+        setErrors({ payment: error.message || 'Payment failed', api: '', card: '' });
         setIsProcessing(false);
         return;
       }
@@ -413,7 +441,7 @@ const StripePaymentContent = React.memo(({
     } catch (error) {
       console.error('Payment processing failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed. Please try again.';
-      setErrors({ ...errors, payment: errorMessage });
+      setErrors({ payment: errorMessage, api: '', card: '' });
       setIsProcessing(false);
     }
   };
@@ -454,16 +482,16 @@ const StripePaymentContent = React.memo(({
       {/* Credit Card Form */}
       <div className="space-y-4 animate-fade-in">
         <div className="space-y-4 animate-fade-in">
-          {/* Email Field - Non-editable, from first step */}
+          {/* Email Field - Now editable */}
            <div className="pt-4">
              <Label htmlFor="email">Email</Label>
              <Input
                id="email"
                type="email"
-               value={shippingData?.email || userEmail || ''}
+               value={data.userEmail || shippingData?.email || userEmail || ''}
                placeholder="email@example.com"
-               disabled
-               className="bg-muted mt-0 cursor-not-allowed"
+               onChange={(e) => onUpdate({ userEmail: e.target.value })}
+               className="mt-0"
              />
            </div>
 
@@ -493,39 +521,123 @@ const StripePaymentContent = React.memo(({
                     }}
                     onChange={(event) => {
                       if (event.error) {
-                        setErrors({ ...errors, card: event.error.message });
+                        setErrors({ ...errors, payment: event.error.message });
                       } else {
-                        setErrors({ ...errors, card: '' });
+                        setErrors({ ...errors, payment: '' });
                       }
                     }}
                   />
                 </div>
-                {/* Card Element Errors - Below Card Element */}
-                {errors.card && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {errors.card}
-                  </p>
-                )}
-                {/* Payment Method Creation Errors - Below Card Element */}
-                {errors.payment && (
-                  <p className="text-xs text-red-500 mt-1">
-                    {errors.payment}
-                  </p>
-                )}
+
               </div>
 
-              {/* Cardholder Name - Non-editable, from first step */}
+              {/* Cardholder Name - Now editable */}
               <div>
                 <Label htmlFor="cardholderName">Cardholder name</Label>
                 <Input
                   id="cardholderName"
                   placeholder="Full name on card"
-                  value={shippingData?.name || ''}
-                  disabled
-                  className="mt-0 bg-muted cursor-not-allowed"
+                  value={data.cardholderName || shippingData?.name || ''}
+                  onChange={(e) => onUpdate({ cardholderName: e.target.value })}
+                  className="mt-0"
                 />
               </div>
 
+              {/* Billing Address Toggle */}
+                 <div className="pt-4">
+                   <div className="flex items-center space-x-2">
+                     <input
+                       type="checkbox"
+                       id="useDifferentBilling"
+                       checked={data.useDifferentBilling || false}
+                       onChange={(e) => {
+                         const checked = e.target.checked;
+                         onUpdate({ 
+                           useDifferentBilling: checked,
+                           billing_street_address: checked ? '' : shippingData?.streetAddress || '',
+                           billing_city: checked ? '' : shippingData?.city || '',
+                           billing_state: checked ? '' : shippingData?.state || '',
+                           billing_country: checked ? '' : shippingData?.country || '',
+                           billing_zipcode: checked ? '' : shippingData?.zipCode || ''
+                         });
+                       }}
+                       className="rounded"
+                     />
+                     <Label htmlFor="useDifferentBilling" className="text-sm">
+                       Use different billing address
+                     </Label>
+                   </div>
+                 </div>
+
+                 {/* Billing Address Fields - Only show when checkbox is checked */}
+                 {data.useDifferentBilling && (
+                   <div className="space-y-4 mt-4">
+                     {/* Billing Street Address */}
+                <div className="mb-4">
+                  <Label htmlFor="billing_street_address">Billing street address</Label>
+                  <Input
+                    id="billing_street_address"
+                    placeholder="123 Main St"
+                    value={data.billing_street_address || shippingData?.streetAddress || ''}
+                    onChange={(e) => onUpdate({ billing_street_address: e.target.value })}
+                    className="mt-0"
+                  />
+                </div>
+
+                {/* Billing City and State */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <Label htmlFor="billing_city">City</Label>
+                    <Input
+                      id="billing_city"
+                      placeholder="City"
+                      value={data.billing_city || shippingData?.city || ''}
+                      onChange={(e) => onUpdate({ billing_city: e.target.value })}
+                      className="mt-0"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="billing_state">State</Label>
+                    <Input
+                      id="billing_state"
+                      placeholder="State"
+                      value={data.billing_state || shippingData?.state || ''}
+                      onChange={(e) => onUpdate({ billing_state: e.target.value })}
+                      className="mt-0"
+                    />
+                  </div>
+                </div>
+
+                {/* Billing Country and ZIP */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <Label htmlFor="billing_country">Country</Label>
+                    <Select value={data.billing_country || shippingData?.country || ''} onValueChange={(value) => onUpdate({ billing_country: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((country) => (
+                          <SelectItem key={country} value={country}>
+                            {country}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="billing_zipcode">ZIP Code</Label>
+                    <Input
+                      id="billing_zipcode"
+                      placeholder="12345"
+                      value={data.billing_zipcode || shippingData?.zipCode || ''}
+                      onChange={(e) => onUpdate({ billing_zipcode: e.target.value })}
+                      className="mt-0"
+                    />
+                  </div>
+                </div>
+                    </div>
+                  )}
 
             </>
           )}
@@ -630,17 +742,37 @@ const StripePaymentContent = React.memo(({
         </Button>
       </div>
       
-      {/* API Error Display - Below Payment Button */}
-      {errors.api && (
-        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-600">{errors.api}</p>
+      {/* Error Display - Below Payment Button */}
+      {(errors.payment || errors.api || errors.card) && (
+        <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-md shadow-sm">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Payment Error</h3>
+              <div className="mt-1 text-sm text-red-700">
+                {(() => {
+                  const errorObj = errors.payment || errors.api || errors.card;
+                  try {
+                    const parsed = JSON.parse(errorObj);
+                    return parsed.message || parsed.error || errorObj;
+                  } catch {
+                    return errorObj;
+                  }
+                })()}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </>
   );
 }, (prevProps, nextProps) => {
   // Prevent Stripe elements from remounting when only form data changes
-  // Only re-render when essential props change, not when errors or other state changes
+  // Only re-render when essential props change, but allow error display updates
   return (
     prevProps.data.method === nextProps.data.method &&
     prevProps.total === nextProps.total &&
@@ -648,7 +780,10 @@ const StripePaymentContent = React.memo(({
     prevProps.shippingData === nextProps.shippingData &&
     prevProps.dealData === nextProps.dealData &&
     prevProps.addOns === nextProps.addOns &&
-    prevProps.currency === nextProps.currency
-    // Intentionally NOT comparing isProcessing, isLoading, or errors to prevent remounting
+    prevProps.currency === nextProps.currency &&
+    prevProps.errors.payment === nextProps.errors.payment &&
+    prevProps.errors.api === nextProps.errors.api &&
+    prevProps.errors.card === nextProps.errors.card
+    // Intentionally NOT comparing isProcessing, isLoading to prevent remounting
   );
 });

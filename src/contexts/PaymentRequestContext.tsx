@@ -7,6 +7,7 @@ interface PaymentRequestContextType {
   canMakePayment: {applePay?: boolean; googlePay?: boolean; link?: boolean} | null;
   updatePaymentRequest: (total: number) => void;
   setPaymentMethodHandler: (handler: (paymentMethodId: string, method: string) => void | Promise<void>) => void;
+  setErrorHandler: (handler: (error: string) => void) => void;
 }
 
 const PaymentRequestContext = createContext<PaymentRequestContextType | undefined>(undefined);
@@ -28,6 +29,7 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
   const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null);
   const [canMakePayment, setCanMakePayment] = useState<{applePay?: boolean; googlePay?: boolean; link?: boolean} | null>(null);
   const paymentMethodHandlerRef = useRef<((paymentMethodId: string, method: string) => void | Promise<void>) | null>(null);
+  const errorHandlerRef = useRef<((error: string) => void) | null>(null);
 
   // Initialize payment request when Stripe is available
   useEffect(() => {
@@ -57,6 +59,9 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
       try {
         if (!paymentMethodHandlerRef.current) {
           event.complete('fail');
+          if (errorHandlerRef.current) {
+            errorHandlerRef.current('Payment method handler not available');
+          }
           return;
         }
 
@@ -73,6 +78,10 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
         event.complete('success');
       } catch (error) {
         console.error('Payment failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Payment processing failed. Please try again.';
+        if (errorHandlerRef.current) {
+          errorHandlerRef.current(errorMessage);
+        }
         event.complete('fail');
       }
     });
@@ -98,11 +107,16 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
     paymentMethodHandlerRef.current = handler;
   }, []);
 
+  const setErrorHandlerWrapper = useCallback((handler: (error: string) => void) => {
+    errorHandlerRef.current = handler;
+  }, []);
+
   const value = {
     paymentRequest,
     canMakePayment,
     updatePaymentRequest,
     setPaymentMethodHandler: setPaymentMethodHandlerWrapper,
+    setErrorHandler: setErrorHandlerWrapper,
   };
 
   return (

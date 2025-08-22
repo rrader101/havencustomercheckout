@@ -77,6 +77,7 @@ export interface DealsResponse {
 export interface PaymentData {
   uuid: string;
   payment_token: string;
+  amount: number;
   shipping_name: string | null;
   shipping_email: string | null;
   shipping_street_address: string | null;
@@ -84,6 +85,13 @@ export interface PaymentData {
   shipping_state: string | null;
   shipping_zipcode: string | null;
   shipping_country: string | null;
+  billing_name: string | null;
+  billing_email: string | null;
+  billing_street_address: string | null;
+  billing_city: string | null;
+  billing_state: string | null;
+  billing_zipcode: string | null;
+  billing_country: string | null;
   add_ons: string[];
   invoice_ids: string[];
 }
@@ -120,6 +128,13 @@ export interface ChequePaymentData {
   shipping_state: string | null;
   shipping_zipcode: string | null;
   shipping_country: string | null;
+  billing_name: string | null;
+  billing_email: string | null;
+  billing_street_address: string | null;
+  billing_city: string | null;
+  billing_state: string | null;
+  billing_zipcode: string | null;
+  billing_country: string | null;
   add_ons: string[];
   invoice_ids: string[];
 }
@@ -167,7 +182,13 @@ export const processPayment = async (paymentData: PaymentData): Promise<PaymentR
     const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.error || 'Payment failed');
+      // Create structured error object with message property
+      const errorObj = {
+        message: result.message || result.error || 'Payment failed',
+        error: result.error,
+        status: response.status
+      };
+      throw new Error(JSON.stringify(errorObj));
     }
 
     return result;
@@ -190,7 +211,13 @@ export const saveAddress = async (addressData: AddressData): Promise<AddressResp
     const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.error || 'Address save failed');
+      // Create structured error object with message property
+      const errorObj = {
+        message: result.message || result.error || 'Address save failed',
+        error: result.error,
+        status: response.status
+      };
+      throw new Error(JSON.stringify(errorObj));
     }
 
     return result;
@@ -211,7 +238,13 @@ export const processChequePayment = async (chequeData: ChequePaymentData): Promi
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    // Create structured error object with message property
+    const errorObj = {
+      message: errorData.message || errorData.error || `HTTP error! status: ${response.status}`,
+      error: errorData.error,
+      status: response.status
+    };
+    throw new Error(JSON.stringify(errorObj));
   }
 
   const result = await response.json();

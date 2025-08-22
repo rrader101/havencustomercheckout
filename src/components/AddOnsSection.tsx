@@ -79,12 +79,12 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold">{addon.title}</h3>
-                      <div className="text-sm text-primary font-medium">${addon.amount}</div>
+                      <div className="text-sm text-foreground font-medium">${addon.amount}</div>
                     </div>
                   </div>
                   
                   <div className="mb-3">
-                    <p className="text-muted-foreground text-sm">
+                    <p className="text-muted-foreground text-sm mb-3">
                       {addon.description}
                       {expandedDescriptions[addonKey] && addon.description.length > 100 && (
                         <span> Additional details about this add-on and its benefits.</span>
@@ -106,6 +106,31 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
                         </button></span>
                       )}
                     </p>
+                    
+                    {/* Addon-specific feature tags */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {index === 0 ? (
+                        // First addon tags
+                        <>                        
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Full-Page Feature</span>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">8 Issues (Annual)</span>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Monthly Refresh</span>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Print + Digital</span>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Consistent Exposure</span>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Brand Recognition</span>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Cost Savings</span>
+                        </>
+                      ) : (
+                        // Second addon tags
+                        <>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">5,000+ Targeted Views</span>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Local Reach</span>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Seller Reporting</span>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Multi-Platform Exposure</span>
+                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Engagement Insights</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -129,10 +154,12 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
         })}
       </div>
 
+
+
       {/* Value Proposition */}
       {Object.values(data).some(selected => selected) && (
         <div className="mt-6 p-4 bg-gradient-accent rounded-lg border border-primary/20 animate-slide-in">
-          <div className="flex items-center gap-2 text-primary mb-2">
+          <div className="flex items-center gap-2 text-foreground mb-2">
             <Star className="w-4 h-4" />
             <span className="font-medium">Excellent choice</span>
           </div>

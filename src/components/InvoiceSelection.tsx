@@ -94,14 +94,14 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                   <div className="flex items-center gap-4">
                     {!isDisabled && (
                       <div className={`
-                        w-6 h-6 rounded-lg border-2 flex items-center justify-center shadow-sm
+                        w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200
                         ${isSelected 
-                          ? 'bg-gradient-to-br from-green-500 to-emerald-600 border-green-500 shadow-green-200' 
-                          : 'border-gray-300 hover:border-green-400 hover:shadow-md'
+                          ? 'bg-primary border-primary' 
+                          : 'border-primary/20 hover:border-primary'
                         }
                       `}>
                         {isSelected && (
-                          <div className="w-2.5 h-2.5 bg-white rounded-full drop-shadow-sm" />
+                          <div className="w-2 h-2 bg-white rounded-full" />
                         )}
                       </div>
                     )}
@@ -202,7 +202,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
           return (
             <div key={invoice.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-lg hover:shadow-xl">
               {/* Enhanced Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4">
+              <div className="bg-primary text-primary-foreground px-6 py-4">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-base uppercase tracking-wide">INVOICES</h4>
                   <Receipt className="w-5 h-5 opacity-80" />
@@ -227,7 +227,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                     ${isDisabled 
                       ? 'bg-gray-50 cursor-not-allowed opacity-60 border-gray-200' 
                       : isSelected 
-                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-300 shadow-md text-white' 
+                        ? 'bg-primary border-primary shadow-md text-primary-foreground' 
                         : 'hover:bg-gray-50 border-gray-200 hover:border-gray-300'
                     }
                   `}
@@ -236,14 +236,14 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                   <div className="flex items-center gap-3">
                     {!isDisabled && (
                       <div className={`
-                        w-6 h-6 rounded-full border-2 flex items-center justify-center
+                        w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-200
                         ${isSelected 
-                          ? 'bg-green-500 border-green-500 shadow-lg' 
-                          : 'border-gray-300 hover:border-green-400'
+                          ? 'bg-primary border-primary' 
+                          : 'border-primary/20 hover:border-primary'
                         }
                       `}>
                         {isSelected && (
-                          <div className="w-2.5 h-2.5 bg-white rounded-full" />
+                          <div className="w-2 h-2 bg-white rounded-full" />
                         )}
                       </div>
                     )}

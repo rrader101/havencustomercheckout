@@ -13,6 +13,7 @@ import { PaymentSection } from './PaymentSection';
 // Lazy load other heavy components
 const ShippingDetails = lazy(() => import('./ShippingDetails').then(module => ({ default: module.ShippingDetails })));
 const AddOnsSection = lazy(() => import('./AddOnsSection').then(module => ({ default: module.AddOnsSection })));
+
 const InvoiceSelection = lazy(() => import('./InvoiceSelection').then(module => ({ default: module.InvoiceSelection })));
 
 export interface FormData {
@@ -33,13 +34,10 @@ export interface FormData {
     expiryDate?: string;
     cvv?: string;
     cardholderName?: string;
-    country?: string;
-    zipCode?: string;
     userEmail?: string;
     paymentMethodId?: string;
     linkEmail?: string;
   };
-  currency: 'USD' | 'CAD';
 }
 
 const PaymentForm = () => {
@@ -71,12 +69,12 @@ const PaymentForm = () => {
       country: '',
       zipCode: '',
     },
+
     addOns: {},
     invoices: {},
     payment: {
       method: 'card',
     },
-    currency: 'USD',
   });
 
   // Fetch deals data on component mount
@@ -318,6 +316,8 @@ const PaymentForm = () => {
                   loading={loading}
                 />
               )}
+              
+
             </Suspense>
             
             {/* PaymentSection rendered directly for immediate availability */}
@@ -331,7 +331,7 @@ const PaymentForm = () => {
                 shippingData={formData.shipping}
                 addOns={formData.addOns}
                 invoices={formData.invoices}
-                currency={formData.currency}
+                currency={dealsData?.currency as 'USD' | 'CAD' || 'USD'}
                 dealId={dealId || '006VL00000LCZE1YAP'}
                 dealData={dealsData ? {
                   type: dealsData.type,

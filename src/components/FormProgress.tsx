@@ -1,7 +1,7 @@
 import { Check } from 'lucide-react';
 
 interface FormProgressProps {
-  currentStep: 'shipping' | 'addons' | 'payment';
+  currentStep: 'shipping' | 'addons' | 'billing' | 'payment';
 }
 
 const steps = [

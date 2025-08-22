@@ -81,6 +81,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 
           let streetNumber = '';
           let route = '';
+          let subpremise = '';
 
           place.address_components.forEach((component) => {
             const types = component.types;
@@ -89,6 +90,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
               streetNumber = component.long_name;
             } else if (types.includes('route')) {
               route = component.long_name;
+            } else if (types.includes('subpremise')) {
+              subpremise = component.long_name;
             } else if (types.includes('locality')) {
               components.city = component.long_name;
             } else if (types.includes('administrative_area_level_1')) {
@@ -100,8 +103,12 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             }
           });
 
-          // Combine street number and route for street address
-          components.streetAddress = `${streetNumber} ${route}`.trim();
+          // Combine street number, route, and subpremise (unit number) for street address
+          const addressParts = [streetNumber, route];
+          if (subpremise) {
+            addressParts.push(`${subpremise}`);
+          }
+          components.streetAddress = addressParts.filter(part => part).join(' ').trim();
           
           // If no street address found, use formatted address first part
           if (!components.streetAddress && place.formatted_address) {

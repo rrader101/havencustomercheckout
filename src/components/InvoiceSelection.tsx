@@ -3,6 +3,12 @@ import { Card } from '@/components/ui/card';
 import { ChevronDown, ChevronUp, Receipt, Calendar, DollarSign } from 'lucide-react';
 import { Invoice, Deal } from '@/services/api';
 
+// PHP-like rounding function to handle cases like 0.024 -> 0.02
+const phpRound = (value: number, precision: number = 2): string => {
+  const factor = Math.pow(10, precision);
+  return (Math.floor(value * factor) / factor).toFixed(precision);
+};
+
 interface InvoiceSelectionProps {
   data: Record<string, boolean>;
   onUpdate: (data: Partial<Record<string, boolean>>) => void;
@@ -109,7 +115,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-bold text-gray-900 tracking-wide">#{invoice.invoice_num}</div>
                         <div className="text-right">
-                          <div className="text-lg font-bold text-gray-900">${parseFloat(invoice.amount).toFixed(2)}</div>
+                          <div className="text-lg font-bold text-gray-900">${phpRound(parseFloat(invoice.amount))}</div>
                           {/* Enhanced Collapsible Toggle - moved below price */}
                           {invoice.invoice_products.length > 0 && (
                             <div className="flex justify-end mt-1">
@@ -161,7 +167,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                         <div key={index} className="grid grid-cols-3 gap-3 text-xs bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
                           <div className="text-gray-800 font-semibold">{product.name}</div>
                           <div className="text-center text-gray-600 font-medium">{product.quantity}</div>
-                          <div className="text-right font-bold text-gray-900">${parseFloat(product.price).toFixed(2)}</div>
+                          <div className="text-right font-bold text-gray-900">${phpRound(parseFloat(product.price))}</div>
                         </div>
                       ))}
                     </div>
@@ -267,7 +273,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                     </span>
                   </div>
                   <div className="font-medium text-xs text-gray-600">{formatDate(invoice.due_date)}</div>
-                  <div className="font-semibold text-xs text-gray-900">${parseFloat(invoice.amount).toFixed(2)}</div>
+                  <div className="font-semibold text-xs text-gray-900">${phpRound(parseFloat(invoice.amount))}</div>
                 </div>
 
                 {/* Enhanced Collapsible Invoice Details */}
@@ -299,7 +305,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                           <div key={index} className="grid grid-cols-3 gap-4 text-sm py-3 border-b border-gray-200 last:border-b-0">
                             <div className="font-medium text-gray-800">{product.name}</div>
                             <div className="text-center text-gray-600 font-medium">{product.quantity}</div>
-                            <div className="text-right font-bold text-gray-900">${parseFloat(product.price).toFixed(2)}</div>
+                            <div className="text-right font-bold text-gray-900">${phpRound(parseFloat(product.price))}</div>
                           </div>
                         ))}
                       </div>
@@ -337,7 +343,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-gray-900">Invoice #{invoice.invoice_num}</h3>
-                      <div className="text-lg font-bold text-white">${parseFloat(invoice.amount).toFixed(2)}</div>
+                      <div className="text-lg font-bold text-white">${phpRound(parseFloat(invoice.amount))}</div>
                     </div>
                   </div>
                   
@@ -385,7 +391,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                                   <span className="font-semibold text-gray-800">{product.name}</span>
                                   <span className="text-gray-500 ml-2">(x{product.quantity})</span>
                                 </div>
-                                <span className="font-bold text-gray-900">${parseFloat(product.price).toFixed(2)}</span>
+                                <span className="font-bold text-gray-900">${phpRound(parseFloat(product.price))}</span>
                               </div>
                             ))}
                           </div>

@@ -155,7 +155,7 @@ if (!API_DOMAIN) {
 
 export const fetchDealsData = async (dealId: string): Promise<DealsResponse> => {
   try {
-    const response = await fetch(`https://${API_DOMAIN}/api/deals/${dealId}`);
+    const response = await fetch(`http://${API_DOMAIN}/api/deals/${dealId}`);
     
     if (!response.ok) {
       throw new Error(`Failed to fetch deal: ${response.status} ${response.statusText}`);
@@ -171,7 +171,7 @@ export const fetchDealsData = async (dealId: string): Promise<DealsResponse> => 
 
 export const processPayment = async (paymentData: PaymentData): Promise<PaymentResponse> => {
   try {
-    const response = await fetch(`https://${API_DOMAIN}/api/payments`, {
+    const response = await fetch(`http://${API_DOMAIN}/api/payments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -200,7 +200,7 @@ export const processPayment = async (paymentData: PaymentData): Promise<PaymentR
 
 export const saveAddress = async (addressData: AddressData): Promise<AddressResponse> => {
   try {
-    const response = await fetch(`https://${API_DOMAIN}/api/payments/address`, {
+    const response = await fetch(`http://${API_DOMAIN}/api/payments/address`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -228,7 +228,7 @@ export const saveAddress = async (addressData: AddressData): Promise<AddressResp
 };
 
 export const processChequePayment = async (chequeData: ChequePaymentData): Promise<ChequePaymentResponse> => {
-  const response = await fetch(`${API_DOMAIN}/cheque-payments`, {
+  const response = await fetch(`http://${API_DOMAIN}/cheque-payments`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

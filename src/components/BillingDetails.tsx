@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowRight, CreditCard, Loader2, ArrowLeft } from 'lucide-react';
 import AddressAutocomplete from './AddressAutocomplete';
 import { saveAddress } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface BillingData {
   name: string;
@@ -27,9 +28,9 @@ interface BillingDetailsProps {
 }
 
 export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, dealId }: BillingDetailsProps) => {
+  const { toast } = useToast();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasUserChanges, setHasUserChanges] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [initialData, setInitialData] = useState<BillingData | null>(null);
 
   // Comprehensive country list (same as PaymentSection)
@@ -86,16 +87,15 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
-      // Save billing address via API (using shipping fields as API only supports shipping)
-      await saveAddress({
+      const response = await saveAddress({
         uuid: dealId || '',
         shipping_street_address: data.streetAddress,
         shipping_city: data.city,
@@ -103,19 +103,21 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
         shipping_zipcode: data.zipCode,
         shipping_country: data.country
       });
-      
-      // Proceed to next step
+      console.log('API Response:', response);
       onNext();
     } catch (error) {
-      console.error('Error saving billing address:', error);
+      console.error('Error saving billing address::::::::::::::::', error);
       setErrors({ submit: 'Failed to save billing address. Please try again.' });
+      toast({
+        title: 'Error',
+        description: 'Failed to save billing address. Please try again.',
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleInputChange = useCallback((field: keyof BillingData, value: string) => {
-    setHasUserChanges(true);
     onUpdate({ [field]: value });
     
     // Clear error for this field when user starts typing
@@ -135,11 +137,8 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
     country: string;
     zipCode: string;
   }) => {
-    setHasUserChanges(true);
-    
-    // Normalize the country from Google Places API
-    const normalizedCountry = normalizeCountry(addressData.country);
-    
+  // Normalize the country from Google Places API
+    const normalizedCountry = normalizeCountry(addressData.country); 
     onUpdate({
       streetAddress: addressData.streetAddress,
       city: addressData.city,

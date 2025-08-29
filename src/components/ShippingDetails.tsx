@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowRight, Truck, Loader2 } from 'lucide-react';
 import AddressAutocomplete from './AddressAutocomplete';
 import { saveAddress } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface ShippingData {
   name: string;
@@ -27,6 +29,7 @@ interface ShippingDetailsProps {
 
 export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: ShippingDetailsProps) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [hasUserChanges, setHasUserChanges] = useState(false);
   const [initialData, setInitialData] = useState<ShippingData | null>(null);
@@ -90,6 +93,10 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
         onNext();
       } catch (error) {
         console.error('Failed to save address:', error);
+        toast({
+        title: '',
+        description: 'Failed to save billing address. Please try again.',
+        });
         // You might want to show an error message to the user here
       } finally {
         setIsLoading(false);

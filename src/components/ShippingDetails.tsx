@@ -94,8 +94,7 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
       } catch (error) {
         console.error('Failed to save address:', error);
         toast({
-        title: '',
-        description: 'Failed to save billing address. Please try again.',
+        description: 'Failed to save shipping address. Please try again.',
         });
         // You might want to show an error message to the user here
       } finally {
@@ -127,11 +126,11 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
   };
 
   return (
-          <Card className="p-6 border-0 bg-card animate-fade-in">
+      <Card className="sm:p-6 p-2 border-0 bg-card animate-fade-in">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <Truck className="w-5 h-5 text-foreground" />
-                            <h2 className="text-xl font-semibold" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Shipping Details</h2>
+          <h2 className="text-xl font-semibold" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Shipping Details</h2>
         </div>
         <p className="text-muted-foreground">Let's get your copies to you</p>
       </div>

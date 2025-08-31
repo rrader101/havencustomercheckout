@@ -247,8 +247,6 @@ const PaymentForm = () => {
     }
   };
 
-  const paymentStatus = getPaymentStatus();
-
   // Show loading spinner while API call is in progress
   if (loading) {
     return (
@@ -275,9 +273,9 @@ const PaymentForm = () => {
   }
 
   return (
-            <div className="min-h-screen p-4 md:p-8 relative" style={{ 
+          <div className="min-h-screen p-4 md:p-8 relative" style={{ 
           borderTop: '3px solid black',
-          backgroundColor: 'hsl(0 0% 96.86%)' // #f7f7f7 converted to HSL
+          backgroundColor: 'hsl(0 0% 96.86%)'
         }}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -343,7 +341,7 @@ const PaymentForm = () => {
 
           {/* Order Summary - Always Visible */}
           <div className="lg:col-span-1">
-            <Card className="p-6 border-0 sticky top-8">
+            <Card className="sm:p-6 p-2 border-0 sticky top-8">
               <div className="flex items-center gap-3 mb-4">
                 <ClipboardList className="w-5 h-5 text-foreground" />
                 <h3 className="text-lg font-semibold text-foreground" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Order Summary</h3>
@@ -440,7 +438,7 @@ const PaymentForm = () => {
                      {(dealsData.type === 'BOGO' || dealsData.type === 'Contract' || dealsData.type === 'Subscription') && dealsData.agreement_status && (
                        <div className="flex justify-between items-center py-2 border-b border-border/50">
                          <span className="text-muted-foreground text-sm">Agreement Status</span>
-                         <p className="font-medium text-foreground">{dealsData.agreement_status}</p>
+                         <p className="font-medium text-foreground text-right">{dealsData.agreement_status}</p>
                        </div>
                      )}
                   </div>

@@ -21,6 +21,7 @@ interface InvoiceSelectionProps {
 }
 
 export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, loading, onNext, onBack, isOrderSummary = false }: InvoiceSelectionProps) => {
+  // Updated UI styling for better visual consistency
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
 
   const toggleInvoice = (invoiceId: string) => {

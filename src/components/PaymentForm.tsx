@@ -365,80 +365,75 @@ const PaymentForm = () => {
               
               {/* Deal Summary - Show for non-'One Time' deals */}
               {dealsData?.type !== 'One Time' && (
-                <div className="mb-6">
-                  {/* Deal Header */}
-                  <div className="bg-gradient-to-r from-black to-gray-800 text-white px-4 py-3 rounded-t-lg shadow-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                      <h4 className="text-sm font-semibold uppercase tracking-wide">
-                        {dealsData.type}
-                      </h4>
-                    </div>
+                <div className="mb-6 bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Clean Header to match invoice styling */}
+                  <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                    <h4 className="text-sm font-medium text-gray-900">{dealsData.type}</h4>
                   </div>
-                  
-                  {/* Deal Content */}
-                  <div className="bg-white border border-gray-200 rounded-b-lg p-4 space-y-3">
+
+                  {/* Content matches neutral/invoice styling */}
+                  <div className="p-4 space-y-3">
                     {/* Product Name */}
-                    <div className="flex justify-between items-center py-2 border-b border-border/50">
-                      <span className="text-muted-foreground text-sm">Product</span>
-                      <p className="font-medium text-foreground">{dealsData.deal_products[0].name }</p>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span className="text-gray-500 text-sm">Product</span>
+                      <p className="text-gray-900 text-sm font-medium">{dealsData.deal_products[0].name }</p>
                     </div>
-                    
+
                     {/* Price Display - Different for each deal type */}
                     {dealsData.type === 'Subscription' ? (
-                      <div className="flex justify-between items-center py-2 border-b border-border/50">
-                        <span className="text-muted-foreground text-sm">Monthly Payment</span>
-                        <span className="font-medium text-foreground">${dealsData.monthly_subscription_price?.toFixed(2) || '0.00'}</span>
+                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                        <span className="text-gray-500 text-sm">Monthly Payment</span>
+                        <span className="text-gray-900 font-medium">${dealsData.monthly_subscription_price?.toFixed(2) || '0.00'}</span>
                       </div>
                     ) : (
-                      <div className="flex justify-between items-center py-2 border-b border-border/50">
-                        <span className="text-muted-foreground text-sm">Amount</span>
-                        <span className="font-medium text-foreground">${dealsData.amount?.toFixed(2) || '0.00'}</span>
+                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                        <span className="text-gray-500 text-sm">Amount</span>
+                        <span className="text-gray-900 font-medium">${dealsData.amount?.toFixed(2) || '0.00'}</span>
                       </div>
                     )}
-                    
+
                     {/* Additional Details based on deal type */}
                     {dealsData.type === 'Subscription' && (
                       <>
-                        <div className="flex justify-between items-center py-2 border-b border-border/50">
-                          <span className="text-muted-foreground text-sm">Contract Length</span>
-                          <p className="font-medium text-foreground">{dealsData.contract_length || 'N/A'}</p>
+                        <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                          <span className="text-gray-500 text-sm">Contract Length</span>
+                          <p className="text-gray-900 font-medium">{dealsData.contract_length || 'N/A'}</p>
                         </div>
-                        <div className="flex justify-between items-center py-2 border-b border-border/50">
-                          <span className="text-muted-foreground text-sm">Subscription Term</span>
-                          <p className="font-medium text-foreground">{dealsData.subscription_term || 'N/A'}</p>
+                        <div className="flex justify-between items-center py-2">
+                          <span className="text-gray-500 text-sm">Subscription Term</span>
+                          <p className="text-gray-900 font-medium">{dealsData.subscription_term || 'N/A'}</p>
                         </div>
                       </>
                     )}
-                    
+
                     {(dealsData.type === 'BOGO' || dealsData.type === 'Contract') && (
                        <>
                          {dealsData.contract_length && (
-                           <div className="flex justify-between items-center py-2 border-b border-border/50">
-                             <span className="text-muted-foreground text-sm">Contract Length</span>
-                             <p className="font-medium text-foreground">{dealsData.contract_length}</p>
+                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                             <span className="text-gray-500 text-sm">Contract Length</span>
+                             <p className="text-gray-900 font-medium">{dealsData.contract_length}</p>
                            </div>
                          )}
                          {dealsData.stage_name && (
-                           <div className="flex justify-between items-center py-2 border-b border-border/50">
-                             <span className="text-muted-foreground text-sm">Stage</span>
-                             <p className="font-medium text-foreground">{dealsData.stage_name}</p>
+                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                             <span className="text-gray-500 text-sm">Stage</span>
+                             <p className="text-gray-900 font-medium">{dealsData.stage_name}</p>
                            </div>
                          )}
                          {dealsData.issue && (
-                           <div className="flex justify-between items-center py-2 border-b border-border/50">
-                             <span className="text-muted-foreground text-sm">Issue</span>
-                             <p className="font-medium text-foreground">{dealsData.issue}</p>
+                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                             <span className="text-gray-500 text-sm">Issue</span>
+                             <p className="text-gray-900 font-medium">{dealsData.issue}</p>
                            </div>
                          )}
                        </>
                      )}
-                     
+
                      {/* Agreement Status for BOGO, Contract, and Subscription */}
                      {(dealsData.type === 'BOGO' || dealsData.type === 'Contract' || dealsData.type === 'Subscription') && dealsData.agreement_status && (
-                       <div className="flex justify-between items-center py-2 border-b border-border/50">
-                         <span className="text-muted-foreground text-sm">Agreement Status</span>
-                         <p className="font-medium text-foreground text-right">{dealsData.agreement_status}</p>
+                       <div className="flex justify-between items-center py-2">
+                         <span className="text-gray-500 text-sm">Agreement Status</span>
+                         <p className="text-gray-900 font-medium">{dealsData.agreement_status}</p>
                        </div>
                      )}
                   </div>

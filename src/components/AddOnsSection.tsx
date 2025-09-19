@@ -112,22 +112,22 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
                       {index === 0 ? (
                         // First addon tags
                         <>                        
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Full-Page Feature</span>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">8 Issues (Annual)</span>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Monthly Refresh</span>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Print + Digital</span>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Consistent Exposure</span>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Brand Recognition</span>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Cost Savings</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Full-Page Feature</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">8 Issues (Annual)</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Monthly Refresh</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Print + Digital</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Consistent Exposure</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Brand Recognition</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Cost Savings</span>
                         </>
                       ) : (
                         // Second addon tags
                         <>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">5,000+ Targeted Views</span>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Local Reach</span>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Seller Reporting</span>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Multi-Platform Exposure</span>
-                          <span className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-full text-xs font-medium text-foreground">Engagement Insights</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">5,000+ Targeted Views</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Local Reach</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Seller Reporting</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Multi-Platform Exposure</span>
+                          <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Engagement Insights</span>
                         </>
                       )}
                     </div>
@@ -180,7 +180,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
           Back
         </Button>
         
-        <Button onClick={onNext} className="gap-2 bg-black border-black text-white hover:bg-gray-800 hover:text-white">
+        <Button onClick={onNext} className="gap-2 bg-black border-black text-white hover:bg-primary-hover hover:text-white">
           Payment
           <ArrowRight className="w-4 h-4" />
         </Button>

@@ -23,7 +23,7 @@ const NotFound = () => {
           <Logo size="lg" className="mx-auto" />
         </div>
         <div className="space-y-4">
-          <Button  variant="default" asChild className="w-full bg-black border-black text-white hover:bg-gray-800 hover:text-white">
+          <Button  variant="default" asChild className="w-full bg-black border-black text-white hover:bg-primary-hover hover:text-white">
             <a
               href="https://havenlifestyles.com/"
               target="_blank"
@@ -32,7 +32,7 @@ const NotFound = () => {
               Haven | Homepage
             </a>
           </Button>
-          <Button variant="default" asChild className="w-full bg-black border-black text-white hover:bg-gray-800 hover:text-white">
+          <Button variant="default" asChild className="w-full bg-black border-black text-white hover:bg-primary-hover hover:text-white">
             <a
               href="https://havenlifestyles.com/category/haven-of-the-day/"
               target="_blank"
@@ -41,7 +41,7 @@ const NotFound = () => {
               Haven of the Day
             </a>
           </Button>
-          <Button variant="default" asChild className="w-full bg-black border-black text-white hover:bg-gray-800 hover:text-white">
+          <Button variant="default" asChild className="w-full bg-black border-black text-white hover:bg-primary-hover hover:text-white">
             <a
               href="https://issuu.com/havenlifestyles/"
               target="_blank"

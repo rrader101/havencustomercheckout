@@ -752,7 +752,7 @@ const StripePaymentContent = React.memo(({
               }
             }} 
            disabled={isProcessing || isLoading || (data.method !== 'check' && (!stripe || !elements)) || total === 0}
-           className="gap-2 bg-black border-black text-white hover:bg-gray-800 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+           className="gap-2 bg-black border-black text-white hover:bg-primary-hover hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
          >
           {(isProcessing || isLoading) ? (
             <>

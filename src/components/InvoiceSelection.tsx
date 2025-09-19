@@ -139,13 +139,15 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                             <span>Due: {formatDate(invoice.due_date)}</span>
                           </div>
                           <span className={`
-                            inline-flex text-center px-1 py-1 rounded-full text-xs font-small
-                            ${isPaid 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-amber-100 text-amber-800'
+                            inline-flex px-2 py-1 text-xs font-normal
+                            ${isPaid
+                              ? 'rounded-full bg-green-100 text-green-700'
+                              : invoice.status.toLowerCase() === 'awaiting payment'
+                                ? 'rounded-md border border-gray-300 text-gray-700 bg-white'
+                                : 'rounded-full bg-amber-100 text-amber-700'
                             }
                           `}>
-                            {invoice.status}
+                            {invoice.status.replace(/\b\w/g, (c) => c.toUpperCase())}
                           </span>
                         </div>
                       </div>
@@ -263,10 +265,10 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                   <div className="text-gray-500 font-medium">-</div>
                   <div>
                     <span className={`
-                      px-1 py-0.5 text-xs font-medium rounded-full shadow-sm
-                      ${isPaid 
-                        ? 'bg-green-100 text-green-800 border border-green-200' 
-                        : 'bg-amber-100 text-amber-800 border border-amber-200'
+                      inline-flex px-2 py-1 text-xs font-normal
+                      ${isPaid
+                        ? 'rounded-full bg-green-100 text-green-700'
+                        : 'rounded-md border border-gray-300 text-gray-700 bg-white'
                       }
                     `}>
                       {isPaid ? 'Paid' : 'Awaiting Payment'}
@@ -353,13 +355,15 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                     </div>
                     <div className="flex items-center">
                       <span className={`
-                        px-3 py-1.5 text-xs font-bold rounded-full border
-                        ${isPaid 
-                          ? 'bg-green-100 text-green-800 border-green-200' 
-                          : 'bg-amber-100 text-amber-800 border-amber-200'
+                        inline-flex px-2 py-1 text-xs font-normal
+                        ${isPaid
+                          ? 'rounded-full bg-green-100 text-green-700'
+                          : invoice.status.toLowerCase() === 'awaiting payment'
+                            ? 'rounded-md border border-gray-300 text-gray-700 bg-white'
+                            : 'rounded-full bg-amber-100 text-amber-700'
                         }
                       `}>
-                        {invoice.status}
+                        {invoice.status.replace(/\b\w/g, (c) => c.toUpperCase())}
                       </span>
                     </div>
                   </div>
@@ -440,7 +444,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
         </button>
         <button
           onClick={onNext}
-          className="px-8 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
+          className="px-8 py-3 bg-black text-white rounded-lg font-medium hover:bg-primary-hover transition-colors"
         >
           Continue to Payment →
         </button>

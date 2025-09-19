@@ -261,7 +261,7 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
       </div>
 
       <div className="flex justify-end mt-6">
-        <Button onClick={handleSubmit} className="gap-2 bg-black border-black text-white hover:bg-gray-800 hover:text-white" disabled={isLoading}>
+        <Button onClick={handleSubmit} className="gap-2 bg-black border-black text-white hover:bg-primary-hover hover:text-white" disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />

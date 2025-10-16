@@ -1,73 +1,79 @@
-# Welcome to your Lovable project
+# React + Vite Checkout App
 
-## Project info
+This is a React project bootstrapped with Vite and TypeScript.
 
-**URL**: https://lovable.dev/projects/94622f15-7854-49b0-aeb5-f2229867fe95
-
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/94622f15-7854-49b0-aeb5-f2229867fe95) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
+**Tech stack**
+- React
 - Vite
 - TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- React Router
+- Tailwind CSS + shadcn-ui
+- Stripe (Elements)
+- Radix UI, TanStack Query
 
-## How can I deploy this project?
+## Getting Started
 
-Simply open [Lovable](https://lovable.dev/projects/94622f15-7854-49b0-aeb5-f2229867fe95) and click on Share -> Publish.
+Prerequisites:
+- Node.js 18+ (Node 20.12.0 recommended)
+- Yarn, npm, or pnpm installed
 
-## Can I connect a custom domain to my Lovable project?
+Install dependencies:
+```sh
+# Yarn
+yarn install
 
-Yes, you can!
+# or npm
+npm install
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+# or pnpm
+pnpm install
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Run the development server:
+```sh
+# Yarn
+yarn dev
+
+# or npm
+npm run dev
+
+# or pnpm
+pnpm dev
+```
+
+Open `http://localhost:8080/` in your browser. The checkout route is:
+```
+/checkout/:dealId
+```
+
+## Scripts
+```sh
+# Start dev server
+yarn dev
+
+# Build for production
+yarn build
+
+# Build in development mode
+yarn build:dev
+
+# Preview a production build locally
+yarn preview
+
+# Lint the project
+yarn lint
+```
+
+## Environment Variables
+Create a `.env.local` (or `.env`) file and define any required keys. For Stripe:
+```env
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+```
+
+Common steps:
+```sh
+yarn build
+# Deploy the contents of the dist/ folder
+```
+
+If using Vercel, consult their Vite deployment guide or use the included `vercel.json` if present.

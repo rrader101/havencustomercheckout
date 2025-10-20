@@ -4,7 +4,9 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Select = SelectPrimitive.Root
+// We'll provide a small wrapper below (after SelectTrigger is defined)
+// so consumers can pass a `className` to <Select className="..."> and
+// it will be forwarded/merged into the visible trigger element.
 
 const SelectGroup = SelectPrimitive.Group
 
@@ -29,6 +31,50 @@ const SelectTrigger = React.forwardRef<
   </SelectPrimitive.Trigger>
 ))
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
+
+// Select wrapper: clones the Trigger child and merges any className
+// passed to <Select className="..."> into the trigger's className.
+const Select: React.FC<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root> & { className?: string }> = ({ className, children, ...props }) => {
+  const enhancedChildren = React.Children.map(children, (child) => {
+    if (!React.isValidElement(child)) return child
+
+    const childType: any = child.type
+
+    const isTrigger =
+      childType === SelectPrimitive.Trigger ||
+      childType === SelectTrigger ||
+      childType?.displayName === SelectPrimitive.Trigger.displayName ||
+      childType?.displayName === SelectTrigger.displayName
+
+    if (isTrigger) {
+      // If the user included a border utility in the Select's className,
+      // append explicit border classes at the end to ensure Tailwind's
+      // generated rules take effect (helps when utilities otherwise
+      // get overridden by other styles).
+      const appendBorder = typeof className === 'string' && /\bborder\b/.test(className)
+
+      // Append a stronger border utility (box-border + border-2) when
+      // the caller included any 'border' utility so the border is visible
+      // even if other styles compete.
+      const mergedStyle = appendBorder
+        ? { ...(child.props.style || {}), borderColor: '#0000001a' }
+        : child.props.style
+
+      return React.cloneElement(child, {
+        className: cn(
+          child.props.className,
+          className,
+          appendBorder ? 'box-border border border-input' : undefined
+        ),
+        style: mergedStyle
+      })
+    }
+
+    return child
+  })
+
+  return <SelectPrimitive.Root {...(props as any)}>{enhancedChildren}</SelectPrimitive.Root>
+}
 
 const SelectScrollUpButton = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,

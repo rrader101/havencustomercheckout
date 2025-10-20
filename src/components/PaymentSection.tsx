@@ -79,6 +79,7 @@ export const PaymentSection = React.memo(
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const [orderId, setOrderId] = useState<string>('');
     const navigate = useNavigate();
+    
 
     // Handle Stripe payment success
     const handlePaymentSuccess = async (paymentMethodId: string, method: string) => {
@@ -342,7 +343,8 @@ const StripePaymentContent = React.memo(
     const stripe = useStripe();
     const elements = useElements();
     const { paymentRequest, canMakePayment, updatePaymentRequest, setPaymentMethodHandler, setErrorHandler } = usePaymentRequest();
-
+    const [focused, setFocused] = useState(false);
+     const hasError = Boolean(errors.payment);
     useEffect(() => {
       setPaymentMethodHandler(onPaymentSuccess);
     }, [onPaymentSuccess, setPaymentMethodHandler]);
@@ -432,14 +434,31 @@ const StripePaymentContent = React.memo(
             <>
               <div>
                 <Label htmlFor="card-element">Card information</Label>
-                <div className="mt-1 p-3 border border-input rounded-md bg-background">
+                <div 
+                className="mt-1 p-[9px] rounded-md transition-all duration-200"
+      style={{
+        backgroundColor: 'hsl(0deg 0% 96.86%)',
+        border: hasError
+          ? '1px solid hsl(0deg 100% 40%)' // red border on error
+          : focused
+          ? '1px solid hsl(0deg 0% 0%)' // black border on focus
+          : '1px solid rgba(0, 0, 0, 0.1)',
+        boxShadow: hasError
+          ? '0 0 0 1px hsl(0deg 100% 40% / 0.3)' // red glow
+          : focused
+          ? '0 0 0 1px hsl(0deg 0% 0% / 0.1)' // subtle black glow
+          : 'none',
+      }}
+    >
                   <CardElement
                     options={{
                       style: {
-                        base: { fontSize: '16px', color: '#424770', '::placeholder': { color: '#aab7c4' } },
+                        base: {  fontSize: '16px', color: '#424770', '::placeholder': { color: '#aab7c4' } },
                         invalid: { color: '#9e2146' }
                       }
                     }}
+                    onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
                     onChange={(event) => {
                       if (event.error) setErrors({ ...errors, payment: event.error.message });
                       else setErrors({ ...errors, payment: '' });
@@ -534,6 +553,7 @@ const StripePaymentContent = React.memo(
                       <Select
                         value={normalizeCountry(data.billing_country || shippingData?.country || '')}
                         onValueChange={(value) => onUpdate({ billing_country: value })}
+                        className="bg-[#f7f7f7] border border-input"
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select country" />

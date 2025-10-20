@@ -616,8 +616,8 @@ const StripePaymentContent = React.memo(
               <Shield className="w-5 h-5 text-foreground" />
             </div>
             <div className="flex-1">
-              <p className="text-[14px] font-bold text-foreground">🔒 Secure Checkout</p>
-              <p className="text-[13px] text-muted-foreground mt-1">
+              <p className="text-sm font-semibold text-foreground">🔒 Secure Checkout</p>
+              <p className="text-xs text-muted-foreground mt-1">
                 Your payment information is encrypted with industry-standard SSL encryption. All transactions are protected.
               </p>
             </div>

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowRight, Truck, Loader2 } from 'lucide-react';
+import { Check, Loader2,Truck as FaTruck } from 'lucide-react';
 import AddressAutocomplete from './AddressAutocomplete';
 import { saveAddress } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
@@ -126,10 +126,10 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
   };
 
   return (
-      <Card className="sm:p-6 p-2 border-0 bg-card animate-fade-in">
+    <Card className="p-6 border-0 bg-card animate-fade-in">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <Truck className="w-5 h-5 text-foreground" />
+          <FaTruck className="w-5 h-5 text-foreground" />
           <h2 className="text-xl font-semibold" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Shipping Details</h2>
         </div>
         <p className="text-muted-foreground">Let's get your copies to you</p>
@@ -164,33 +164,33 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
         </div>
 
         <div>
-            <AddressAutocomplete
-              value={data.streetAddress}
-              onChange={(value) => handleInputChange('streetAddress', value)}
-              onAddressSelect={(addressComponents) => {
-                // Auto-fill the address fields when user selects from Google Places
-                console.log('Received address components in ShippingDetails:', addressComponents);
-                console.log('Current form data before update:', data);
-                
-                const updatedData = {
-                  streetAddress: addressComponents.streetAddress,
-                  city: addressComponents.city,
-                  state: addressComponents.state,
-                  country: normalizeCountry(addressComponents.country),
-                  zipCode: addressComponents.zipCode
-                };
-                
-                console.log('Updated data to be sent:', updatedData);
-                onUpdate(updatedData);
-                
-                // Mark that user has made changes when selecting from autocomplete
-                if (initialData && !hasUserChanges) {
-                  setHasUserChanges(true);
-                }
-              }}
-              error={errors.streetAddress}
-            />
-          </div>
+          <AddressAutocomplete
+            value={data.streetAddress}
+            onChange={(value) => handleInputChange('streetAddress', value)}
+            onAddressSelect={(addressComponents) => {
+              // Auto-fill the address fields when user selects from Google Places
+              console.log('Received address components in ShippingDetails:', addressComponents);
+              console.log('Current form data before update:', data);
+              
+              const updatedData = {
+                streetAddress: addressComponents.streetAddress,
+                city: addressComponents.city,
+                state: addressComponents.state,
+                country: normalizeCountry(addressComponents.country),
+                zipCode: addressComponents.zipCode
+              };
+              
+              console.log('Updated data to be sent:', updatedData);
+              onUpdate(updatedData);
+              
+              // Mark that user has made changes when selecting from autocomplete
+              if (initialData && !hasUserChanges) {
+                setHasUserChanges(true);
+              }
+            }}
+            error={errors.streetAddress}
+          />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -261,7 +261,7 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
       </div>
 
       <div className="flex justify-end mt-6">
-        <Button onClick={handleSubmit} className="gap-2 bg-black border-black text-white hover:bg-primary-hover hover:text-white" disabled={isLoading}>
+        <Button onClick={handleSubmit} className="gap-2" disabled={isLoading}>
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -269,8 +269,8 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
             </>
           ) : (
             <>
-              Continue
-              <ArrowRight className="w-4 h-4" />
+              Confirm
+              <Check className="w-4 h-4" />
             </>
           )}
         </Button>

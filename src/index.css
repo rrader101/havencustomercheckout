@@ -76,8 +76,8 @@ All colors MUST be HSL.
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 252.95 76% 50.98%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -163,7 +163,7 @@ All colors MUST be HSL.
   }
   
   .bg-primary {
-    background-color: hsl(var(--primary));
+    background-color: hsl(0deg 0% 0%);
   }
   
   .bg-secondary {
@@ -219,9 +219,9 @@ All colors MUST be HSL.
     border: 1px solid hsl(0deg 0% 0% / 29%) !important;
   }
   
-  /* Primary button styling */
+  /* Black button styling */
   .bg-primary {
-    background: hsl(var(--primary)); /* Purple primary color */
+    background: hsl(0 0% 0%); /* Pure black */
   }
   
   /* Custom text colors */
@@ -236,8 +236,8 @@ All colors MUST be HSL.
   /* Custom font weights and text transforms */
   .font-medium {
     text-transform: uppercase;
-    font-size: 12px;
-    letter-spacing: 1.5px;
+    font-size: 12.5px;
+    letter-spacing: 1.8px;
     font-weight: 700;
   }
   

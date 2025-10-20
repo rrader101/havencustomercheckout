@@ -247,6 +247,15 @@ const PaymentForm = () => {
     }
   };
 
+  const paymentStatus = getPaymentStatus();
+
+  const getNextChargeDate = () => {
+    const now = new Date();
+    const next = new Date(now);
+    next.setMonth(now.getMonth() + 1);
+    return next.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
   // Show loading spinner while API call is in progress
   if (loading) {
     return (
@@ -273,10 +282,10 @@ const PaymentForm = () => {
   }
 
   return (
-          <div className="min-h-screen p-4 md:p-8 relative" style={{ 
-          borderTop: '3px solid black',
-          backgroundColor: 'hsl(0 0% 96.86%)'
-        }}>
+    <div className="min-h-screen p-4 md:p-8 relative" style={{ 
+      borderTop: '3px solid black',
+      backgroundColor: 'hsl(0 0% 96.86%)'
+    }}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12 animate-fade-in" style={{ marginTop: '1.2rem' }}>
@@ -284,16 +293,22 @@ const PaymentForm = () => {
             <Logo size="lg" className="mx-auto" />
           </div>
           <p className="text-muted-foreground">Last steps — simple and secure</p>
-          
-
         </div>
 
         {/* Progress Indicator */}
         <FormProgress currentStep={currentStep} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+        <div className={`transition-all duration-700 ease-in-out ${
+          currentStep === 'shipping' 
+            ? 'grid grid-cols-1 max-w-4xl mx-auto' 
+            : 'grid grid-cols-1 lg:grid-cols-3 gap-8'
+        } mt-8`}>
           {/* Main Form Area */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className={`transition-all duration-700 ease-in-out ${
+            currentStep === 'shipping' 
+              ? 'w-full' 
+              : 'lg:col-span-2'
+          } space-y-6`}>
             <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
               {currentStep === 'shipping' && (
                 <ShippingDetails
@@ -314,8 +329,6 @@ const PaymentForm = () => {
                   loading={loading}
                 />
               )}
-              
-
             </Suspense>
             
             {/* PaymentSection rendered directly for immediate availability */}
@@ -339,167 +352,181 @@ const PaymentForm = () => {
             )}
           </div>
 
-          {/* Order Summary - Always Visible */}
-          <div className="lg:col-span-1">
-            <Card className="sm:p-6 p-2 border-0 sticky top-8">
-              <div className="flex items-center gap-3 mb-4">
-                <ClipboardList className="w-5 h-5 text-foreground" />
-                <h3 className="text-lg font-semibold text-foreground" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Order Summary</h3>
-              </div>
-              
-              {/* Invoice Selection - Only show for 'One Time' deals */}
-              {dealsData?.type === 'One Time' && (
-                <div className="mb-4">
-                  <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
-                    <InvoiceSelection
-                      data={formData.invoices}
-                      onUpdate={(data) => updateFormData('invoices', data)}
-                      availableInvoices={dealsData?.invoices || []}
-                      deal={dealsData}
-                      loading={loading}
-                      isOrderSummary={true}
-                    />
-                  </Suspense>
+          {/* Order Summary - Only visible after shipping stage */}
+          {currentStep !== 'shipping' && (
+            <div className={`lg:col-span-1 animate-slide-in-right transition-all duration-700 ease-in-out ${
+              currentStep === 'addons' ? 'opacity-100 translate-x-0' : 'opacity-100'
+            }`}>
+              <Card className="p-6 border-0 sticky top-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <ClipboardList className="w-5 h-5 text-foreground" />
+                  <h3 className="text-lg font-semibold text-foreground" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Order Summary</h3>
                 </div>
-              )}
-              
-              {/* Deal Summary - Show for non-'One Time' deals */}
-              {dealsData?.type !== 'One Time' && (
-                <div className="mb-6 bg-white border border-gray-200 rounded-lg overflow-hidden">
-                  {/* Clean Header to match invoice styling */}
-                  <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                    <h4 className="text-sm font-medium text-gray-900">{dealsData.type}</h4>
+                
+                {/* Invoice Selection - Only show for 'One Time' deals */}
+                {dealsData?.type === 'One Time' && (
+                  <div className="mb-4">
+                    <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
+                      <InvoiceSelection
+                        data={formData.invoices}
+                        onUpdate={(data) => updateFormData('invoices', data)}
+                        availableInvoices={dealsData?.invoices || []}
+                        deal={dealsData}
+                        loading={loading}
+                        isOrderSummary={true}
+                      />
+                    </Suspense>
                   </div>
-
-                  {/* Content matches neutral/invoice styling */}
-                  <div className="p-4 space-y-3">
-                    {/* Product Name */}
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                      <span className="text-gray-500 text-sm">Product</span>
-                      <p className="text-gray-900 text-sm font-medium">{dealsData.deal_products[0].name }</p>
+                )}
+                
+                {/* Deal Summary - Show for non-'One Time' deals */}
+                {dealsData?.type !== 'One Time' && (
+                  <>
+                    {/* Invoice Number */}
+                    <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                      <span className="text-sm">Deal Type</span>
+                      <span className="font-medium">{dealsData.type}</span>
                     </div>
-
+                    
+                    {/* Product Name */}
+                    <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                      <span className="text-sm">Product</span>
+                      <span className="font-medium">{dealsData.deal_products[0].name}</span>
+                    </div>
+                    
                     {/* Price Display - Different for each deal type */}
                     {dealsData.type === 'Subscription' ? (
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-gray-500 text-sm">Monthly Payment</span>
-                        <span className="text-gray-900 font-medium">${dealsData.monthly_subscription_price?.toFixed(2) || '0.00'}</span>
+                      <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                        <span className="text-sm">Monthly Payment</span>
+                        <span className="font-medium">${dealsData.monthly_subscription_price?.toFixed(2) || '0.00'}</span>
                       </div>
                     ) : (
-                      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                        <span className="text-gray-500 text-sm">Amount</span>
-                        <span className="text-gray-900 font-medium">${dealsData.amount?.toFixed(2) || '0.00'}</span>
+                      <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                        <span className="text-sm">Amount</span>
+                        <span className="font-medium">${dealsData.amount?.toFixed(2) || '0.00'}</span>
                       </div>
                     )}
 
                     {/* Additional Details based on deal type */}
                     {dealsData.type === 'Subscription' && (
                       <>
-                        <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                          <span className="text-gray-500 text-sm">Contract Length</span>
-                          <p className="text-gray-900 font-medium">{dealsData.contract_length || 'N/A'}</p>
+                        <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                          <span className="text-sm">Contract Length</span>
+                          <span className="font-medium">{dealsData.contract_length || 'N/A'}</span>
                         </div>
-                        <div className="flex justify-between items-center py-2">
-                          <span className="text-gray-500 text-sm">Subscription Term</span>
-                          <p className="text-gray-900 font-medium">{dealsData.subscription_term || 'N/A'}</p>
+                        <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                          <span className="text-sm">Subscription Term</span>
+                          <span className="font-medium">{dealsData.subscription_term || 'N/A'}</span>
                         </div>
                       </>
                     )}
 
                     {(dealsData.type === 'BOGO' || dealsData.type === 'Contract') && (
-                       <>
-                         {dealsData.contract_length && (
-                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                             <span className="text-gray-500 text-sm">Contract Length</span>
-                             <p className="text-gray-900 font-medium">{dealsData.contract_length}</p>
-                           </div>
-                         )}
-                         {dealsData.stage_name && (
-                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                             <span className="text-gray-500 text-sm">Stage</span>
-                             <p className="text-gray-900 font-medium">{dealsData.stage_name}</p>
-                           </div>
-                         )}
-                         {dealsData.issue && (
-                           <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                             <span className="text-gray-500 text-sm">Issue</span>
-                             <p className="text-gray-900 font-medium">{dealsData.issue}</p>
-                           </div>
-                         )}
-                       </>
-                     )}
+                      <>
+                        {dealsData.contract_length && (
+                          <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                            <span className="text-sm">Contract Length</span>
+                            <span className="font-medium">{dealsData.contract_length}</span>
+                          </div>
+                        )}
+                        {dealsData.stage_name && (
+                          <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                            <span className="text-sm">Stage</span>
+                            <span className="font-medium">{dealsData.stage_name}</span>
+                          </div>
+                        )}
+                        {dealsData.issue && (
+                          <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                            <span className="text-sm">Issue</span>
+                            <span className="font-medium">{dealsData.issue}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
 
-                     {/* Agreement Status for BOGO, Contract, and Subscription */}
-                     {(dealsData.type === 'BOGO' || dealsData.type === 'Contract' || dealsData.type === 'Subscription') && dealsData.agreement_status && (
-                       <div className="flex justify-between items-center py-2">
-                         <span className="text-gray-500 text-sm">Agreement Status</span>
-                         <p className="text-gray-900 font-medium">{dealsData.agreement_status}</p>
-                       </div>
-                     )}
-                  </div>
-                </div>
-              )}
-              
-              <div className="space-y-3">
-                {/* Show message if no invoices selected - Only for 'One Time' deals */}
-                {dealsData?.type === 'One Time' && Object.values(formData.invoices).every(selected => !selected) && (
-                  <div className="text-center py-4 text-muted-foreground text-sm">
-                    <p>No invoices selected</p>
-                  </div>
-                )}
-                
-                {/* Selected Add-ons */}
-                {dealsData?.add_ons.map(addon => (
-                  formData.addOns[addon.id.toString()] && (
-                    <div key={addon.id} className="flex justify-between items-center py-2 border-b border-border/50">
-                      <span className="text-muted-foreground text-sm">{addon.title}</span>
-                      <span className="font-medium text-foreground">${addon.amount}</span>
-                    </div>
-                  )
-                ))}
-                
-                {calculateTotal === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <p>Select add-ons to see pricing</p>
-                  </div>
-                )}
-                
-                {calculateTotal > 0 && (
-                  <>
-                    {/* Only show processing fee for one-time deals */}
-                    {dealsData?.type === 'One Time' && formData.payment?.method !== 'check' && Object.values(formData.addOns).every(selected => !selected) && (
-                      <div className="flex justify-between items-center py-2 border-b border-border/50">
-                        <span className="text-sm">Processing Fee</span>
-                        <span className="font-medium">
-                          ${parseFloat((calculateTotal * getProcessingFeeRate(formData.shipping.country || '')).toFixed(2)).toFixed(2)}
-                        </span>
+                    {/* Agreement Status for BOGO, Contract, and Subscription */}
+                    {(dealsData.type === 'BOGO' || dealsData.type === 'Contract' || dealsData.type === 'Subscription') && dealsData.agreement_status && (
+                      <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
+                        <span className="text-sm">Agreement Status</span>
+                        <span className="font-medium">{dealsData.agreement_status}</span>
                       </div>
                     )}
-                    
-                    <div className="flex justify-between items-center pt-3 font-semibold text-base">
-                      <span className="text-foreground">Total</span>
-                      <span className="text-foreground">
-                        ${(() => {
-                          // For subscriptions, no processing fee
-                          if (dealsData?.type !== 'One Time') {
-                            return parseFloat(calculateTotal.toFixed(2)).toFixed(2);
-                          }
-                          // For one-time deals with check payment or add-ons selected, no processing fee
-                          if (formData.payment?.method === 'check' || Object.values(formData.addOns).some(selected => selected)) {
-                            return parseFloat(calculateTotal.toFixed(2)).toFixed(2);
-                          }
-                          // For one-time deals with digital payment and no add-ons, add processing fee
-                          const processingFeeRate = getProcessingFeeRate(formData.shipping.country || '');
-                          const totalWithFee = calculateTotal * (1 + processingFeeRate);
-                          return parseFloat(totalWithFee.toFixed(2)).toFixed(2);
-                        })()}
-                      </span>
-                    </div>
                   </>
                 )}
-              </div>
-            </Card>
-          </div>
+                
+                <div className="space-y-3">
+                  {/* Show message if no invoices selected - Only for 'One Time' deals */}
+                  {dealsData?.type === 'One Time' && Object.values(formData.invoices).every(selected => !selected) && (
+                    <div className="text-center py-4 text-muted-foreground text-sm">
+                      <p>No invoices selected</p>
+                    </div>
+                  )}
+                  
+                  {/* Selected Add-ons */}
+                  {dealsData?.add_ons.map(addon => (
+                    formData.addOns[addon.id.toString()] && (
+                      <div key={addon.id} className="flex justify-between items-center py-2 border-b border-border/50">
+                        <span className="text-sm">{addon.title}</span>
+                        <span className="font-medium">${addon.amount}</span>
+                      </div>
+                    )
+                  ))}
+                  
+                  {calculateTotal === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>Select add-ons to see pricing</p>
+                    </div>
+                  )}
+                  
+                  {calculateTotal > 0 && (
+                    <>
+                      {/* Only show processing fee for one-time deals */}
+                      {dealsData?.type === 'One Time' && formData.payment?.method !== 'check' && Object.values(formData.addOns).every(selected => !selected) && (
+                        <div className="flex justify-between items-center py-2 border-b border-border/50">
+                          <span className="text-sm">Processing Fee</span>
+                          <span className="font-medium">
+                            ${parseFloat((calculateTotal * getProcessingFeeRate(formData.shipping.country || '')).toFixed(2)).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between items-center pt-3 text-lg font-bold">
+                        <span>Total</span>
+                        <span className="text-primary">
+                          ${(() => {
+                            // For subscriptions, no processing fee
+                            if (dealsData?.type !== 'One Time') {
+                              return parseFloat(calculateTotal.toFixed(2)).toFixed(2);
+                            }
+                            // For one-time deals with check payment or add-ons selected, no processing fee
+                            if (formData.payment?.method === 'check' || Object.values(formData.addOns).some(selected => selected)) {
+                              return parseFloat(calculateTotal.toFixed(2)).toFixed(2);
+                            }
+                            // For one-time deals with digital payment and no add-ons, add processing fee
+                            const processingFeeRate = getProcessingFeeRate(formData.shipping.country || '');
+                            const totalWithFee = calculateTotal * (1 + processingFeeRate);
+                            return parseFloat(totalWithFee.toFixed(2)).toFixed(2);
+                          })()}
+                        </span>
+                      </div>
+                      
+                      {/* Subscription Notice */}
+                      {dealsData?.type === 'Subscription' && (
+                        <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
+                          <p className="text-xs text-muted-foreground">
+                            Monthly billing — ${calculateTotal.toFixed(2)}/month. 8 print issues/year; digital content refreshed monthly.
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            First charge today; next charge on {getNextChargeDate()}. Receipts will be emailed to you. 12-month commitment; billed monthly; renews annually.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
     </div>

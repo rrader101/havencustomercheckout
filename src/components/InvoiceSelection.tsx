@@ -99,7 +99,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
           return (
             <div
               key={invoice.id}
-              className="bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg overflow-hidden"
+              className="bg-white border-2 border-primary/20 rounded-xl hover:shadow-lg overflow-hidden"
             >
               {/* Main Invoice Row */}
               <div
@@ -134,7 +134,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div>
-                        <p className="text-sm font-semibold text-foreground">#{invoice.invoice_num}</p>
+                        <p className="text-sm font-semibold text-foreground max-w-[155px] break-words whitespace-normal">#{invoice.invoice_num}</p>
                         <p className="text-xs text-muted-foreground mt-1">Due: {formatDate(invoice.due_date)}</p>
                       </div>
                       <div className="text-right flex-shrink-0">

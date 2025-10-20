@@ -112,7 +112,7 @@ All colors MUST be HSL.
 
   body {
     @apply text-foreground;
-    font-family: 'Proxima Nova', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     /* Sophisticated gradient background with subtle pattern overlay */
     background: 
       linear-gradient(135deg, 
@@ -236,8 +236,8 @@ All colors MUST be HSL.
   /* Custom font weights and text transforms */
   .font-medium {
     text-transform: uppercase;
-    font-size: 12.5px;
-    letter-spacing: 1.8px;
+    font-size: 12px;
+    letter-spacing: 1.5px;
     font-weight: 700;
   }
   

@@ -128,7 +128,7 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
   return (
     <Card className="p-6 border-0 bg-card animate-fade-in">
       <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3 mb-3 mt-[2px]">
           <FaTruck className="w-5 h-5 text-foreground" />
           <h2 className="text-xl font-semibold" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Shipping Details</h2>
         </div>

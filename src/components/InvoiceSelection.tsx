@@ -23,10 +23,25 @@ interface InvoiceSelectionProps {
 export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, loading, onNext, onBack, isOrderSummary = false }: InvoiceSelectionProps) => {
   // Updated UI styling for better visual consistency
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+  const [changeView, setChangeView] = useState(false);
 
-  const toggleInvoice = (invoiceId: string) => {
-    onUpdate({ [invoiceId]: !data[invoiceId] });
-  };
+ const toggleInvoice = (invoiceId: string) => {
+  // Ignore toggles on disabled invoices (already handled by caller guards)
+  const selectableIds = availableInvoices
+    .filter((inv) => !isInvoicePaid(inv.status))
+    .map((inv) => inv.id.toString());
+
+  const currentlySelectedIds = selectableIds.filter((id) => !!data[id]);
+  const isCurrentlySelected = !!data[invoiceId];
+
+  // If trying to deselect and it's the only selected one, block it
+  if (isCurrentlySelected && currentlySelectedIds.length === 1) {
+    return; // do nothing (must keep at least one selected)
+  }
+
+  // Otherwise, toggle normally
+  onUpdate({ [invoiceId]: !isCurrentlySelected });
+};
 
   const toggleDetails = (invoiceId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering the invoice selection
@@ -66,40 +81,42 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
   // Compact version for order summary
   if (isOrderSummary) {
     return (
-      <div className="space-y-3">
-        {/* Enhanced Header */}
-        <div className="bg-gradient-to-r from-black to-gray-800 text-white px-4 py-3 rounded-t-lg shadow-lg">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-white rounded-full"></div>
-            <h4 className="text-sm font-semibold uppercase tracking-wide">{deal?.type} Plan</h4>
-          </div>
-        </div>
-        
-        {/* Invoice List */}
-        <div className="space-y-1">
-          {availableInvoices.map((invoice) => {
-            const invoiceKey = invoice.id.toString();
-            const isPaid = isInvoicePaid(invoice.status);
-            const isSelected = data[invoiceKey];
-            const isDisabled = isPaid;
+        <div className="space-y-4">
+      {/* Header */}
+      <div className="px-1 py-2">
+        <h3 className="text-sm font-semibold text-foreground tracking-tight">{deal?.type} Plan</h3>
+        <p className="text-xs text-muted-foreground mt-1">Select invoices to process</p>
+      </div>
 
-            return (
-              <div key={invoice.id} className="bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg">
-                {/* Main Invoice Row */}
-                <div 
-                  className={`
+      {/* Invoice List */}
+      <div className="space-y-4">
+        {availableInvoices.map((invoice) => {
+          const invoiceKey = invoice.id.toString()
+          const isPaid = isInvoicePaid(invoice.status)
+          const isSelected = data[invoiceKey]
+          const isDisabled = isPaid
+
+          return (
+            <div
+              key={invoice.id}
+              className="bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg overflow-hidden"
+            >
+              {/* Main Invoice Row */}
+              <div
+                className={`
                     p-4 cursor-pointer relative
                     ${isDisabled 
                       ? 'bg-gray-50 cursor-not-allowed opacity-60' 
                       : isSelected 
-                        ? 'border-l-4 border-l-black-300 text-white' 
-                        : 'bg-gray-100 border-l-4 border-l-gray-300 hover:bg-gray-200'
+                        ? 'text-white' 
+                        : 'bg-gray-100 hover:bg-gray-200'
                     }
                   `}
-                  onClick={() => !isDisabled && toggleInvoice(invoiceKey)}
-                >
-                  <div className="flex items-start gap-2">
-                    {!isDisabled && (
+                onClick={() => !isDisabled && toggleInvoice(invoiceKey)}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Checkbox */}
+                  {!isDisabled && (
                       <div className={`
                         w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 mt-1
                         ${isSelected 
@@ -112,11 +129,42 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                         )}
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-bold text-gray-900 tracking-wide">#{invoice.invoice_num}</div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-gray-900">${phpRound(parseFloat(invoice.amount))}</div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4 mb-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">#{invoice.invoice_num}</p>
+                        <p className="text-xs text-muted-foreground mt-1">Due: {formatDate(invoice.due_date)}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-lg font-bold text-foreground">
+                          ${phpRound(Number.parseFloat(invoice.amount))}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Status and Toggle */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span
+                          className={`
+                            inline-flex px-2.5 py-1 text-xs font-medium rounded-full
+                            ${
+                              isPaid
+                                ? "bg-green-100 text-green-700"
+                                : invoice.status.toLowerCase() === "awaiting payment"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-blue-100 text-blue-700"
+                            }
+                          `}
+                        >
+                          {invoice.status.replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </span>
+                      </div>
+
+                      {/* Expand Button */}
+                    <div className="text-right">
                           {/* Enhanced Collapsible Toggle - moved below price */}
                           {invoice.invoice_products.length > 0 && (
                             <div className="flex justify-end mt-1">
@@ -133,64 +181,59 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                             </div>
                           )}
                         </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1 text-xs text-gray-600">
-                            <span>Due: {formatDate(invoice.due_date)}</span>
-                          </div>
-                          <span className={`
-                            inline-flex px-2 py-1 text-xs font-normal
-                            ${isPaid
-                              ? 'rounded-full bg-green-100 text-green-700'
-                              : invoice.status.toLowerCase() === 'awaiting payment'
-                                ? 'rounded-md border border-gray-300 text-gray-700 bg-white'
-                                : 'rounded-full bg-amber-100 text-amber-700'
-                            }
-                          `}>
-                            {invoice.status.replace(/\b\w/g, (c) => c.toUpperCase())}
-                          </span>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
-                
-                {/* Enhanced Collapsible Product Details */}
-                {expandedDetails[invoiceKey] && invoice.invoice_products.length > 0 && (
-                  <div className="border-t border-gray-200 text-white p-4">
-                     <div className="text-xs font-bold text-black mb-3 uppercase tracking-wide">📋 Invoice Details</div>
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-3 gap-3 text-xs font-bold text-gray-600 pb-2 border-b border-gray-300">
-                        <div>Product</div>
-                        <div className="text-center">Qty</div>
-                        <div className="text-right">Price</div>
-                      </div>
-                      {invoice.invoice_products.map((product, index) => (
-                        <div key={index} className="grid grid-cols-3 gap-3 text-xs bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-gray-800 font-semibold">{product.name}</div>
-                          <div className="text-center text-gray-600 font-medium">{product.quantity}</div>
-                          <div className="text-right font-bold text-gray-900">${phpRound(parseFloat(product.price))}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
-            );
-          })}
-        </div>
-        
-        {availableInvoices.length === 0 && (
-          <div className="text-center py-8 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-800 rounded-xl border-2 border-dashed border-blue-200">
-             <Receipt className="w-12 h-12 mx-auto mb-3 text-blue-400" />
-             <p className="text-sm font-medium text-blue-700">No invoices available</p>
-            <p className="text-xs text-blue-600 mt-1">Check back later for new invoices</p>
-          </div>
-        )}
+
+              {/* Collapsible Product Details */}
+              {expandedDetails[invoiceKey] && invoice.invoice_products.length > 0 && (
+                <div className="border-t border-border bg-muted/20 p-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                    Invoice Details
+                  </p>
+
+                  <div className="space-y-2">
+                    {/* Header Row */}
+                    <div className="grid grid-cols-3 gap-3 px-3 py-2 text-xs font-semibold text-muted-foreground">
+                      <div>Product</div>
+                      <div className="text-center">Qty</div>
+                      <div className="text-right">Price</div>
+                    </div>
+
+                    {/* Product Rows */}
+                    {invoice.invoice_products.map((product, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-3 gap-3 px-3 py-2.5 bg-card rounded-md border border-border/50 text-xs"
+                      >
+                        <div className="text-foreground truncate">{product.name}</div>
+                        <div className="text-center text-muted-foreground">{product.quantity}</div>
+                        <div className="text-right font-semibold text-foreground">
+                          ${phpRound(Number.parseFloat(product.price))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
+
+      {/* Empty State */}
+      {availableInvoices.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 px-4 border border-dashed border-border rounded-lg bg-muted/30">
+          <Receipt className="w-10 h-10 text-muted-foreground mb-3" />
+          <p className="text-sm font-medium text-foreground">No invoices available</p>
+          <p className="text-xs text-muted-foreground mt-1">Check back later for new invoices</p>
+        </div>
+      )}
+    </div>
     );
   }
+
 
   // Full version for dedicated step
   return (

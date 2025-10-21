@@ -276,14 +276,14 @@ export const PaymentSection = React.memo(
     useEffect(() => {
       if (shippingData) {
         const updates: Partial<PaymentFormData> = {};
-        if (!data.userEmail) updates.userEmail = userEmail || "";
-        if (!data.cardholderName)
+        if (data.userEmail == null) updates.userEmail = userEmail || "";
+        if (data.cardholderName == null)
           updates.cardholderName = shippingData.name || "";
         if (Object.keys(updates).length > 0) onUpdate(updates);
       }
       if (!data.method) onUpdate({ method: "card" });
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [shippingData, onUpdate, userEmail]);
+    }, []);
 
     const validateForm = () => {
       if (
@@ -555,7 +555,7 @@ const StripePaymentContent = React.memo(
             <Input
               id="email"
               type="email"
-              value={data.userEmail || shippingData?.email || userEmail || ""}
+              value={data.userEmail || ""}
               placeholder="email@example.com"
               onChange={(e) => onUpdate({ userEmail: e.target.value })}
               className="mt-0"
@@ -610,7 +610,7 @@ const StripePaymentContent = React.memo(
                 <Input
                   id="cardholderName"
                   placeholder="Full name on card"
-                  value={data.cardholderName || shippingData?.name || ""}
+                  value={data.cardholderName || ""}
                   onChange={(e) => onUpdate({ cardholderName: e.target.value })}
                   className="mt-0"
                 />
@@ -625,20 +625,23 @@ const StripePaymentContent = React.memo(
                     checked={data.useDifferentBilling || false}
                     onChange={(e) => {
                       const checked = e.target.checked;
-                      onUpdate({
-                        useDifferentBilling: checked,
-                        billing_street_address: checked
-                          ? ""
-                          : shippingData?.streetAddress || "",
-                        billing_city: checked ? "" : shippingData?.city || "",
-                        billing_state: checked ? "" : shippingData?.state || "",
-                        billing_country: checked
-                          ? ""
-                          : shippingData?.country || "",
-                        billing_zipcode: checked
-                          ? ""
-                          : shippingData?.zipCode || "",
-                      });
+                      if (checked) {
+                        // Use different billing address
+                        const updates: Partial<PaymentFormData> = {
+                          useDifferentBilling: true,
+                        };
+                        // If fields are empty, set to ""
+                        if (!data.billing_street_address)
+                          updates.billing_street_address = "";
+                        if (!data.billing_city) updates.billing_city = "";
+                        if (!data.billing_state) updates.billing_state = "";
+                        if (!data.billing_country) updates.billing_country = "";
+                        if (!data.billing_zipcode) updates.billing_zipcode = "";
+                        onUpdate(updates);
+                      } else {
+                        // Use same as shipping
+                        onUpdate({ useDifferentBilling: false });
+                      }
                     }}
                     className="rounded"
                   />
@@ -652,11 +655,7 @@ const StripePaymentContent = React.memo(
                 <div className="space-y-4 mt-4">
                   <div className="mb-4">
                     <AddressAutocomplete
-                      value={
-                        data.billing_street_address ||
-                        shippingData?.streetAddress ||
-                        ""
-                      }
+                      value={data.billing_street_address || ""}
                       onChange={(value) =>
                         onUpdate({ billing_street_address: value })
                       }
@@ -666,7 +665,9 @@ const StripePaymentContent = React.memo(
                             addressComponents.streetAddress,
                           billing_city: addressComponents.city,
                           billing_state: addressComponents.state,
-                          billing_country: addressComponents.country,
+                          billing_country: normalizeCountry(
+                            addressComponents.country
+                          ),
                           billing_zipcode: addressComponents.zipCode,
                         });
                       }}
@@ -681,7 +682,7 @@ const StripePaymentContent = React.memo(
                       <Input
                         id="billing_city"
                         placeholder="City"
-                        value={data.billing_city || shippingData?.city || ""}
+                        value={data.billing_city || ""}
                         onChange={(e) =>
                           onUpdate({ billing_city: e.target.value })
                         }
@@ -693,7 +694,7 @@ const StripePaymentContent = React.memo(
                       <Input
                         id="billing_state"
                         placeholder="State"
-                        value={data.billing_state || shippingData?.state || ""}
+                        value={data.billing_state || ""}
                         onChange={(e) =>
                           onUpdate({ billing_state: e.target.value })
                         }
@@ -706,9 +707,7 @@ const StripePaymentContent = React.memo(
                     <div>
                       <Label htmlFor="billing_country">Country</Label>
                       <Select
-                        value={normalizeCountry(
-                          data.billing_country || shippingData?.country || ""
-                        )}
+                        value={data.billing_country || ""}
                         onValueChange={(value) =>
                           onUpdate({ billing_country: value })
                         }
@@ -731,9 +730,7 @@ const StripePaymentContent = React.memo(
                       <Input
                         id="billing_zipcode"
                         placeholder="12345"
-                        value={
-                          data.billing_zipcode || shippingData?.zipCode || ""
-                        }
+                        value={data.billing_zipcode || ""}
                         onChange={(e) =>
                           onUpdate({ billing_zipcode: e.target.value })
                         }
@@ -823,13 +820,12 @@ const StripePaymentContent = React.memo(
           <Button
             variant="outline"
             onClick={onBack}
-            className="gap-2 text-foreground border-0 hover:text-white transition-colors"
+            className="gap-2 text-foreground border-0 hover:text-white transition-colors custom-back-button"
             style={{ backgroundColor: "hsl(0deg 0% 96.86%)" }}
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </Button>
-
           <Button
             onClick={() => {
               if (data.method === "card") {

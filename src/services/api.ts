@@ -228,7 +228,7 @@ export const saveAddress = async (addressData: AddressData): Promise<AddressResp
 };
 
 export const processChequePayment = async (chequeData: ChequePaymentData): Promise<ChequePaymentResponse> => {
-  const response = await fetch(`https://${API_DOMAIN}/cheque-payments`, {
+  const response = await fetch(`https://${API_DOMAIN}/api/payments/cheque-payments`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -134,11 +134,11 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div>
-                        <p className="text-sm font-semibold text-foreground max-w-[155px] break-words whitespace-normal">#{invoice.invoice_num}</p>
+                        <p className="text-xs font-semibold text-foreground max-w-[185px] break-words whitespace-normal">#{invoice.invoice_num}</p>
                         <p className="text-xs text-muted-foreground mt-1">Due: {formatDate(invoice.due_date)}</p>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="text-lg font-bold text-foreground">
+                        <p className="text-xs font-bold text-foreground">
                           ${phpRound(Number.parseFloat(invoice.amount))}
                         </p>
                       </div>

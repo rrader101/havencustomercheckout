@@ -132,7 +132,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-xs font-bold text-foreground max-w-[185px] break-words whitespace-normal">#{invoice.invoice_num}</p>
                         <p className="text-xs text-muted-foreground mt-1">Due: {formatDate(invoice.due_date)}</p>
@@ -147,20 +147,9 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                     {/* Status and Toggle */}
                     <div className="flex items-center justify-between">
                       <div>
-                        <span
-                          className={`
-                            inline-flex px-2.5 py-1 text-xs rounded-full border
-                            ${
-                              isPaid
-                                ? "border-green-700 text-green-700 bg-green-50"
-                                : invoice.status.toLowerCase() === "awaiting payment"
-                                  ? "border-amber-700 text-amber-700 bg-amber-50"
-                                  : "border-blue-700 text-blue-700 bg-blue-50"
-                            }
-                          `}
-                        >
-                          {invoice.status.replace(/\b\w/g, (c) => c.toUpperCase())}
-                        </span>
+                        <p className="text-xs text-muted-foreground">
+                          Status: {invoice.status.replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </p>
                       </div>
 
                       {/* Expand Button */}

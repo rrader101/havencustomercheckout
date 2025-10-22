@@ -134,7 +134,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4 mb-3">
                       <div>
-                        <p className="text-xs font-semibold text-foreground max-w-[185px] break-words whitespace-normal">#{invoice.invoice_num}</p>
+                        <p className="text-xs font-bold text-foreground max-w-[185px] break-words whitespace-normal">#{invoice.invoice_num}</p>
                         <p className="text-xs text-muted-foreground mt-1">Due: {formatDate(invoice.due_date)}</p>
                       </div>
                       <div className="text-right flex-shrink-0">
@@ -149,13 +149,13 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                       <div>
                         <span
                           className={`
-                            inline-flex px-2.5 py-1 text-xs font-medium rounded-full
+                            inline-flex px-2.5 py-1 text-xs rounded-full border
                             ${
                               isPaid
-                                ? "bg-green-100 text-green-700"
+                                ? "border-green-700 text-green-700 bg-green-50"
                                 : invoice.status.toLowerCase() === "awaiting payment"
-                                  ? "bg-amber-100 text-amber-700"
-                                  : "bg-blue-100 text-blue-700"
+                                  ? "border-amber-700 text-amber-700 bg-amber-50"
+                                  : "border-blue-700 text-blue-700 bg-blue-50"
                             }
                           `}
                         >
@@ -189,7 +189,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
               {/* Collapsible Product Details */}
               {expandedDetails[invoiceKey] && invoice.invoice_products.length > 0 && (
                 <div className="border-t border-border bg-muted/20 p-4">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">
                     Invoice Details
                   </p>
 
@@ -209,7 +209,7 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
                       >
                         <div className="text-foreground truncate">{product.name}</div>
                         <div className="text-center text-muted-foreground">{product.quantity}</div>
-                        <div className="text-right font-semibold text-foreground">
+                        <div className="text-right text-foreground">
                           ${phpRound(Number.parseFloat(product.price))}
                         </div>
                       </div>

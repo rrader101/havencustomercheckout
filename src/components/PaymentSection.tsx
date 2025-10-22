@@ -643,9 +643,10 @@ const StripePaymentContent = React.memo(
                         onUpdate({ useDifferentBilling: false });
                       }
                     }}
-                    className="rounded"
+                  className="h-4 w-4 rounded"
+                  style={{ accentColor: "hsl(var(--primary))" }}
                   />
-                  <Label htmlFor="useDifferentBilling" className="text-sm">
+                  <Label htmlFor="useDifferentBilling" className="text-sm cursor-pointer">
                     Use different billing address
                   </Label>
                 </div>
@@ -759,7 +760,7 @@ const StripePaymentContent = React.memo(
               />
               <Label
                 htmlFor="check"
-                className="text-base font-medium cursor-pointer flex items-center gap-2"
+                className="font-sm cursor-pointer flex items-center gap-2"
               >
                 <Mail className="w-4 h-4 text-foreground" />
                 Pay by check instead

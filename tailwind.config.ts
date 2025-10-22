@@ -18,8 +18,7 @@ export default {
 			}
 		},
 		extend: {
-			fontFamily: {
-				'proxima': ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'sans-serif'],
+		fontFamily: {
 				'sans': ['Proxima Nova', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'sans-serif'],
 			},
 			colors: {

@@ -146,9 +146,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   };
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-1 ${className}`}>
       {label && (
-        <Label className="block text-sm font-medium text-gray-700">
+        <Label className="text-sm font-medium text-foreground">
           {label}
         </Label>
       )}

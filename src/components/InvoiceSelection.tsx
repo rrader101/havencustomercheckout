@@ -82,11 +82,6 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
   if (isOrderSummary) {
     return (
         <div className="space-y-4">
-      {/* Header */}
-      <div className="px-1 py-2">
-        <h3 className="text-sm font-semibold text-foreground tracking-tight">{deal?.type} Plan</h3>
-        <p className="text-xs text-muted-foreground mt-1">Select invoices to process</p>
-      </div>
 
       {/* Invoice List */}
       <div className="space-y-4">

@@ -27,6 +27,7 @@ import {
 import { SuccessPopup } from "./SuccessPopup";
 import { useNavigate } from "react-router-dom";
 import AddressAutocomplete from "./AddressAutocomplete";
+import StripeProvider from "./StripeProvider";
 
 // Display mapping for country names
 const getCountryDisplayName = (countryCode: string): string => {
@@ -341,41 +342,43 @@ export const PaymentSection = React.memo(
     };
 
     return (
-      <Card className="p-6 border-0 bg-card animate-fade-in">
-        <StripePaymentContent
-          data={data}
-          onUpdate={onUpdate}
-          total={total}
-          userEmail={userEmail}
-          shippingData={shippingData}
-          dealData={dealData}
-          onPaymentSuccess={handlePaymentSuccess}
-          errors={errors}
-          setErrors={setErrors}
-          isProcessing={isProcessing}
-          setIsProcessing={setIsProcessing}
-          isLoading={isLoading}
-          addOns={addOns}
-          currency={currency}
-          onBack={onBack}
-          handleCheckPayment={handleCheckPayment}
-          handleInputChange={handleInputChange}
-          validateForm={validateForm}
-          handleSubmit={handleSubmit}
-          formatCardNumber={formatCardNumber}
-          formatExpiryDate={formatExpiryDate}
-          getProcessingFeeRate={getProcessingFeeRate}
-          countries={countries}
-          getCountryDisplayName={getCountryDisplayName}
-          normalizeCountry={normalizeCountry}
-        />
+      <StripeProvider>
+        <Card className="p-6 border-0 bg-card animate-fade-in">
+          <StripePaymentContent
+            data={data}
+            onUpdate={onUpdate}
+            total={total}
+            userEmail={userEmail}
+            shippingData={shippingData}
+            dealData={dealData}
+            onPaymentSuccess={handlePaymentSuccess}
+            errors={errors}
+            setErrors={setErrors}
+            isProcessing={isProcessing}
+            setIsProcessing={setIsProcessing}
+            isLoading={isLoading}
+            addOns={addOns}
+            currency={currency}
+            onBack={onBack}
+            handleCheckPayment={handleCheckPayment}
+            handleInputChange={handleInputChange}
+            validateForm={validateForm}
+            handleSubmit={handleSubmit}
+            formatCardNumber={formatCardNumber}
+            formatExpiryDate={formatExpiryDate}
+            getProcessingFeeRate={getProcessingFeeRate}
+            countries={countries}
+            getCountryDisplayName={getCountryDisplayName}
+            normalizeCountry={normalizeCountry}
+          />
 
-        <SuccessPopup
-          isVisible={showSuccessPopup}
-          orderId={orderId}
-          onClose={handlePopupClose}
-        />
-      </Card>
+          <SuccessPopup
+            isVisible={showSuccessPopup}
+            orderId={orderId}
+            onClose={handlePopupClose}
+          />
+        </Card>
+      </StripeProvider>
     );
   },
   // Custom comparison to prevent unnecessary re-renders that cause Stripe remounting
@@ -587,10 +590,16 @@ const StripePaymentContent = React.memo(
                     options={{
                       style: {
                         base: {
-                          fontSize: "14px",
+                          fontSize: "13px",
                           color: "#424770",
-                          fontFamily: '"Proxima Nova", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
-                          "::placeholder": { color: "#aab7c4" },
+                          fontFamily: '"Poppins", sans-serif',
+                          fontWeight: "400",
+                          // "::placeholder": { color: "#aab7c4" },
+                          "::placeholder": {
+                            color: "#434343",
+                            fontSize: "12px",
+                            // set it explicitly for the placeholder as well
+                          },
                         },
                         invalid: { color: "#9e2146" },
                       },
@@ -644,8 +653,8 @@ const StripePaymentContent = React.memo(
                         onUpdate({ useDifferentBilling: false });
                       }
                     }}
-                  className="h-4 w-4 rounded"
-                  style={{ accentColor: "hsl(var(--primary))" }}
+                    className="h-4 w-4 rounded"
+                    style={{ accentColor: "hsl(var(--primary))" }}
                   />
                   <Label htmlFor="useDifferentBilling" className="text-sm cursor-pointer">
                     Use different billing address

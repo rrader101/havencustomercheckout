@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Star, TrendingUp, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import { DealAddOn } from '@/services/api';
+import { AddOnsTypes } from '@/lib/constants';
 
 interface AddOnsSectionProps {
   data: Record<string, boolean>;
@@ -91,7 +92,10 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold">{addon.title}</h3>
-                      <div className="text-sm text-primary font-medium">${addon.amount}</div>
+                      <div className="text-sm text-primary font-medium">${addon.amount}
+                          {addon.type === AddOnsTypes.Subscription && <span>/month</span>}
+                          {addon.type === AddOnsTypes.OneTime && <span> one-time</span>}
+                        </div> {/* add /month if month other add one-time */}
                     </div>
                   </div>
 
@@ -125,7 +129,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
                     {/* Tags - Only show when expanded (to mirror previous file’s style) */}
                     {isExpanded && (
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {index === 0 ? (
+                        {addon.type === AddOnsTypes.OneTime ? (
                           <>
                             <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">Full-Page Feature</span>
                             <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">8 Issues (Annual)</span>

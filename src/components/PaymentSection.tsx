@@ -587,8 +587,9 @@ const StripePaymentContent = React.memo(
                     options={{
                       style: {
                         base: {
-                          fontSize: "16px",
+                          fontSize: "14px",
                           color: "#424770",
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
                           "::placeholder": { color: "#aab7c4" },
                         },
                         invalid: { color: "#9e2146" },

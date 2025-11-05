@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +10,9 @@ import { PaymentRequestProvider } from "./contexts/PaymentRequestContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { OrderConfirmed } from "./pages/OrderConfirmed";
+
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -26,6 +30,22 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/checkout/:dealId" element={<Index />} />
               <Route path="/order-confirmed/:orderID" element={<OrderConfirmed />} />
+              <Route
+                path="/terms"
+                element={
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <Terms />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/privacy"
+                element={
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <Privacy />
+                  </Suspense>
+                }
+              />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

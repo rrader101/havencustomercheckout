@@ -186,21 +186,37 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
         </div>
       )}
 
-      <div className="flex justify-between mt-6">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="gap-2 text-foreground border-0 hover:text-white transition-colors custom-back-button"
-          style={{ backgroundColor: 'hsl(0deg 0% 96.86%)' }}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
+      <div className="space-y-6 mt-6">
+        <div className="flex justify-between">
+          <Button
+            variant="outline"
+            onClick={onBack}
+            className="gap-2 text-foreground border-0 hover:text-white transition-colors custom-back-button"
+            style={{ backgroundColor: 'hsl(0deg 0% 96.86%)' }}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
 
-        <Button onClick={onNext} className="gap-2">
-          Payment
-          <ArrowRight className="w-4 h-4" />
-        </Button>
+          <Button onClick={onNext} className="gap-2">
+            {Object.values(data).some(Boolean) ? 'Payment' : 'No thanks'}
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Legal Links */}
+        <div className="text-center text-sm text-muted-foreground">
+          <p>
+            By continuing, you agree to our{' '}
+            <a href="/terms" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a href="/privacy" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
+              Privacy Policy
+            </a>
+          </p>
+        </div>
       </div>
     </Card>
   );

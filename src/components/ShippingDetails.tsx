@@ -260,20 +260,36 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
         </div>
       </div>
 
-      <div className="flex justify-end mt-6">
-        <Button onClick={handleSubmit} className="gap-2" disabled={isLoading}>
-          {isLoading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              Confirm
-              <Check className="w-4 h-4" />
-            </>
-          )}
-        </Button>
+      <div className="space-y-6 mt-6">
+        <div className="flex justify-end">
+          <Button onClick={handleSubmit} className="gap-2" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                Confirm
+                <Check className="w-4 h-4" />
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Legal Links */}
+        <div className="text-center text-sm text-muted-foreground">
+          <p>
+            By continuing, you agree to our{' '}
+            <a href="/terms" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a href="/privacy" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
+              Privacy Policy
+            </a>
+          </p>
+        </div>
       </div>
     </Card>
   );

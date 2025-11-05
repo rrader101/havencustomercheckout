@@ -594,11 +594,10 @@ const StripePaymentContent = React.memo(
                           color: "#424770",
                           fontFamily: '"Poppins", sans-serif',
                           fontWeight: "400",
-                          // "::placeholder": { color: "#aab7c4" },
                           "::placeholder": {
-                            color: "#434343",
+                            color: "rgba(67, 67, 67, 0.6)", // Lighter gray for placeholders
                             fontSize: "12px",
-                            // set it explicitly for the placeholder as well
+                            fontFamily: '"Poppins", sans-serif',
                           },
                         },
                         invalid: { color: "#9e2146" },
@@ -826,48 +825,64 @@ const StripePaymentContent = React.memo(
           </div>
         </div>
 
-        {/* Action Buttons — match earlier components */}
-        <div className="flex justify-between mt-6">
-          <Button
-            variant="outline"
-            onClick={onBack}
-            className="gap-2 text-foreground border-0 hover:text-white transition-colors custom-back-button"
-            style={{ backgroundColor: "hsl(0deg 0% 96.86%)" }}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-          <Button
-            onClick={() => {
-              if (data.method === "card") {
-                handleCardPayment();
-              } else {
-                handleSubmit();
+        {/* Action Buttons and Legal Text */}
+        <div className="space-y-6 mt-6">
+          <div className="flex justify-between">
+            <Button
+              variant="outline"
+              onClick={onBack}
+              className="gap-2 text-foreground border-0 hover:text-white transition-colors custom-back-button"
+              style={{ backgroundColor: "hsl(0deg 0% 96.86%)" }}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+            <Button
+              onClick={() => {
+                if (data.method === "card") {
+                  handleCardPayment();
+                } else {
+                  handleSubmit();
+                }
+              }}
+              disabled={
+                isProcessing ||
+                isLoading ||
+                (data.method !== "check" && (!stripe || !elements)) ||
+                total === 0
               }
-            }}
-            disabled={
-              isProcessing ||
-              isLoading ||
-              (data.method !== "check" && (!stripe || !elements)) ||
-              total === 0
-            }
-            className="gap-2"
-          >
-            {isProcessing || isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Processing
-              </>
-            ) : total > 0 ? (
-              data.method === "check" ? (
-                `Complete $${parseFloat(total.toFixed(2)).toFixed(2)}`
+              className="gap-2"
+            >
+              {isProcessing || isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processing
+                </>
+              ) : total > 0 ? (
+                data.method === "check" ? (
+                  `Complete $${parseFloat(total.toFixed(2)).toFixed(2)}`
+                ) : (
+                  `Pay $${parseFloat(total.toFixed(2)).toFixed(2)}`
+                )
               ) : (
-                `Pay $${parseFloat(total.toFixed(2)).toFixed(2)}`
-              )
-            ) : (
-              "Complete Order"
-            )}
-          </Button>
+                "Complete Order"
+              )}
+            </Button>
+          </div>
+
+          {/* Legal Links */}
+          <div className="text-center text-sm text-muted-foreground">
+            <p>
+              By clicking "{total > 0 ? (data.method === "check" ? "Complete" : "Pay") : "Complete Order"}", you agree to our{' '}
+              <a href="/terms" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
+                Terms of Service
+              </a>{' '}
+              and{' '}
+              <a href="/privacy" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
+                Privacy Policy
+              </a>
+            </p>
+          </div>
         </div>
 
         {/* Error Display */}

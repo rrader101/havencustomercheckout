@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ClipboardList, Loader2 } from 'lucide-react';
 import { FormProgress } from './FormProgress';
@@ -42,11 +42,19 @@ export interface FormData {
 
 const PaymentForm = () => {
   const { dealId } = useParams<{ dealId: string }>();
-  const [currentStep, setCurrentStep] = useState<'shipping' | 'addons' | 'payment'>('shipping');
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialStep = (searchParams.get('step') || 'shipping') as 'shipping' | 'addons' | 'payment';
+  const [currentStep, setCurrentStep] = useState<'shipping' | 'addons' | 'payment'>(initialStep);
   const [dealsData, setDealsData] = useState<Deal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNotFound, setShowNotFound] = useState(false);
+
+  const handleStepChange = useCallback((step: 'shipping' | 'addons' | 'payment') => {
+    setCurrentStep(step);
+    navigate(`?step=${step}`, { replace: true });
+  }, [navigate]);
 
   // Normalize country names to match dropdown options
   const normalizeCountry = (country: string): string => {
@@ -314,7 +322,7 @@ const PaymentForm = () => {
                 <ShippingDetails
                   data={formData.shipping}
                   onUpdate={(data) => updateFormData('shipping', data)}
-                  onNext={() => setCurrentStep('addons')}
+                  onNext={() => handleStepChange('addons')}
                   dealId={dealId}
                 />
               )}
@@ -323,8 +331,8 @@ const PaymentForm = () => {
                 <AddOnsSection
                   data={formData.addOns}
                   onUpdate={(data) => updateFormData('addOns', data)}
-                  onNext={() => setCurrentStep('payment')}
-                  onBack={() => setCurrentStep('shipping')}
+                  onNext={() => handleStepChange('payment')}
+                  onBack={() => handleStepChange('shipping')}
                   availableAddOns={dealsData?.add_ons || []}
                   loading={loading}
                 />
@@ -336,7 +344,7 @@ const PaymentForm = () => {
               <PaymentSection
                 data={formData.payment}
                 onUpdate={(data) => updateFormData('payment', data)}
-                onBack={() => setCurrentStep('addons')}
+                onBack={() => handleStepChange('addons')}
                 total={calculateTotalWithProcessingFee}
                 userEmail={formData.shipping.email}
                 shippingData={formData.shipping}

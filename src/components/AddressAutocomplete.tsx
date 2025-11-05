@@ -160,6 +160,7 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           onChange={handleInputChange}
           placeholder={placeholder}
           disabled={!isLoaded}
+          className="placeholder:text-muted-foreground/60 placeholder:text-sm"
         />
       </div>
       {error && (

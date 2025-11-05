@@ -871,7 +871,7 @@ const StripePaymentContent = React.memo(
           </div>
 
           {/* Legal Links */}
-          <div className="text-center text-sm text-muted-foreground">
+          <div className="text-left text-sm text-muted-foreground">
             <p>
               By clicking "{total > 0 ? (data.method === "check" ? "Complete" : "Pay") : "Complete Order"}", you agree to our{' '}
               <a href="/terms" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">

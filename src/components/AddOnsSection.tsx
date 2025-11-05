@@ -204,19 +204,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
           </Button>
         </div>
 
-        {/* Legal Links */}
-        <div className="text-center text-sm text-muted-foreground">
-          <p>
-            By continuing, you agree to our{' '}
-            <a href="/terms" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
-              Terms of Service
-            </a>{' '}
-            and{' '}
-            <a href="/privacy" className="underline hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">
-              Privacy Policy
-            </a>
-          </p>
-        </div>
+      
       </div>
     </Card>
   );

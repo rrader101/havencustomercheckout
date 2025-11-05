@@ -249,7 +249,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack }: AddOnsSectionP
         <Button onClick={onNext} className="gap-2">
           {data.monthlyPlan || data.digitalExposure ? (
             <>
-              Continue to Payment
+              Payment
               <ArrowRight className="w-4 h-4" />
             </>
           ) : (

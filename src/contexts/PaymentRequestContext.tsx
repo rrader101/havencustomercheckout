@@ -67,8 +67,8 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
     });
 
     const pr = stripe.paymentRequest({
-      country: 'US',
-      currency: 'usd',
+      country: stripeCountry,
+      currency: stripeCurrency,
       total: {
         label: 'Total',
         amount: 100, // Default amount, will be updated

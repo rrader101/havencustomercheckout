@@ -459,13 +459,17 @@ const StripePaymentContent = React.memo(
   }) => {
     const stripe = useStripe();
     const elements = useElements();
+    
+    // Determine country based on deal data
+    const country = dealData?.mailing_address_country || 'US';
+    
     const {
       paymentRequest,
       canMakePayment,
       updatePaymentRequest,
       setPaymentMethodHandler,
       setErrorHandler,
-    } = usePaymentRequest();
+    } = usePaymentRequest(currency, country);
     const [focused, setFocused] = useState(false);
     const hasError = Boolean(errors.payment);
     useEffect(() => {
@@ -476,7 +480,7 @@ const StripePaymentContent = React.memo(
       setErrorHandler((error: string) => {
         setErrors((prev) => ({ ...prev, payment: error }));
       });
-    }, [setErrorHandler]);
+    }, [setErrorHandler, setErrors]);
 
     useEffect(() => {
       if (total > 0) updatePaymentRequest(total);

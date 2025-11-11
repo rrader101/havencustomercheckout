@@ -6,18 +6,31 @@ interface PaymentRequestContextType {
   paymentRequest: PaymentRequest | null;
   canMakePayment: {applePay?: boolean; googlePay?: boolean; link?: boolean} | null;
   updatePaymentRequest: (total: number) => void;
+  initializePaymentRequest: (currency: 'USD' | 'CAD', country: string) => void;
   setPaymentMethodHandler: (handler: (paymentMethodId: string, method: string) => void | Promise<void>) => void;
   setErrorHandler: (handler: (error: string) => void) => void;
 }
 
 const PaymentRequestContext = createContext<PaymentRequestContextType | undefined>(undefined);
 
-export const usePaymentRequest = () => {
+export const usePaymentRequest = (currency: 'USD' | 'CAD' = 'USD', country: string = 'US') => {
   const context = useContext(PaymentRequestContext);
   if (context === undefined) {
     throw new Error('usePaymentRequest must be used within a PaymentRequestProvider');
   }
-  return context;
+  
+  // Initialize with the provided currency and country immediately
+  const { initializePaymentRequest, ...rest } = context;
+  
+  // Call initialization directly since currency and country won't change
+  if (initializePaymentRequest) {
+    initializePaymentRequest(currency, country);
+  }
+  
+  return {
+    ...rest,
+    initializePaymentRequest // Still expose it in case needed
+  };
 };
 
 interface PaymentRequestProviderProps {
@@ -31,13 +44,19 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
   const paymentMethodHandlerRef = useRef<((paymentMethodId: string, method: string) => void | Promise<void>) | null>(null);
   const errorHandlerRef = useRef<((error: string) => void) | null>(null);
 
-  // Initialize payment request when Stripe is available
-  useEffect(() => {
+  // Function to initialize payment request with specific currency and country
+  const initializePaymentRequest = useCallback((currency: 'USD' | 'CAD', country: string) => {
     if (!stripe) return;
 
+    // Map currency to lowercase for Stripe
+    const stripeCurrency = currency.toLowerCase();
+    
+    // Map country code for Stripe (use US for both US and Canada for Apple Pay support)
+    const stripeCountry = country === 'Canada' || country === 'CA' ? 'CA' : 'US';
+
     const pr = stripe.paymentRequest({
-      country: 'US',
-      currency: 'usd',
+      country: stripeCountry,
+      currency: stripeCurrency,
       total: {
         label: 'Total',
         amount: 100, // Default amount, will be updated
@@ -85,6 +104,11 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
         event.complete('fail');
       }
     });
+  }, [stripe]);
+
+  // Initialize payment request when Stripe is available
+  useEffect(() => {
+    if (!stripe) return;
 
     return () => {
       setPaymentRequest(null);
@@ -115,6 +139,7 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
     paymentRequest,
     canMakePayment,
     updatePaymentRequest,
+    initializePaymentRequest,
     setPaymentMethodHandler: setPaymentMethodHandlerWrapper,
     setErrorHandler: setErrorHandlerWrapper,
   };

@@ -51,8 +51,20 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
     // Map currency to lowercase for Stripe
     const stripeCurrency = currency.toLowerCase();
     
-    // Map country code for Stripe (use US for both US and Canada for Apple Pay support)
-    const stripeCountry = country === 'Canada' || country === 'CA' ? 'CA' : 'US';
+    // Map country code for Stripe - Important: currency and country must match for Apple Pay
+    // CAD currency requires CA country, USD currency requires US country
+    let stripeCountry;
+    if (currency === 'CAD') {
+      stripeCountry = 'CA'; // Canadian dollars require Canada
+    } else {
+      stripeCountry = 'US'; // US dollars require United States
+    }
+
+    console.log(`🏗️ Creating PaymentRequest:`, { 
+      currency: stripeCurrency, 
+      country: stripeCountry, 
+      originalCountry: country 
+    });
 
     const pr = stripe.paymentRequest({
       country: stripeCountry,
@@ -67,9 +79,20 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
 
     // Check what payment methods are available
     pr.canMakePayment().then(result => {
+      console.log(`🍎 Apple Pay check for ${currency} in ${stripeCountry}:`, result);
       if (result) {
+        console.log('✅ Payment methods available:', result);
         setPaymentRequest(pr);
         setCanMakePayment(result);
+      } else {
+        console.warn('❌ No payment methods available for', {
+          currency,
+          country: stripeCountry,
+          originalCountry: country
+        });
+        // Clear previous payment request if currency change made it unavailable
+        setPaymentRequest(null);
+        setCanMakePayment(null);
       }
     });
 

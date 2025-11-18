@@ -28,6 +28,9 @@ import { SuccessPopup } from "./SuccessPopup";
 import { useNavigate } from "react-router-dom";
 import AddressAutocomplete from "./AddressAutocomplete";
 import StripeProvider from "./StripeProvider";
+import { usePostHog } from 'posthog-js/react';
+import type { PostHog } from 'posthog-js';
+import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
 
 // Display mapping for country names
 const getCountryDisplayName = (countryCode: string): string => {
@@ -103,6 +106,7 @@ export const PaymentSection = React.memo(
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const [orderId, setOrderId] = useState<string>("");
     const navigate = useNavigate();
+    const posthog = usePostHog();
 
     // Handle Stripe payment success
     const handlePaymentSuccess = async (
@@ -134,6 +138,19 @@ export const PaymentSection = React.memo(
       method: string
     ) => {
       setIsLoading(true);
+
+      // PostHog: Track payment attempt
+      if (posthog) {
+        posthog.capture(CheckoutEvents.PAYMENT_ATTEMPTED, {
+          [CheckoutEventProperties.PAYMENT_METHOD]: method,
+          [CheckoutEventProperties.TOTAL_AMOUNT]: total,
+          [CheckoutEventProperties.CURRENCY]: currency,
+          [CheckoutEventProperties.DEAL_ID]: dealId,
+          [CheckoutEventProperties.CURRENT_STEP]: 'payment',
+          [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+        });
+      }
+
       try {
         const selectedAddOns = addOns
           ? Object.keys(addOns).filter((key) => addOns[key])
@@ -216,6 +233,19 @@ export const PaymentSection = React.memo(
         if (result && result.order_id) {
           setOrderId(result.order_id);
           setShowSuccessPopup(true);
+
+          // PostHog: Track payment success
+          if (posthog) {
+            posthog.capture(CheckoutEvents.PAYMENT_SUCCEEDED, {
+              [CheckoutEventProperties.PAYMENT_METHOD]: method,
+              [CheckoutEventProperties.TOTAL_AMOUNT]: total,
+              [CheckoutEventProperties.CURRENCY]: currency,
+              [CheckoutEventProperties.DEAL_ID]: dealId,
+              [CheckoutEventProperties.CURRENT_STEP]: 'payment',
+              order_id: result.order_id,
+              [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+            });
+          }
         }
       } catch (error) {
         console.error("Payment failed:", error);
@@ -224,6 +254,20 @@ export const PaymentSection = React.memo(
             ? error.message
             : "Payment processing failed. Please try again.";
         setErrors((prev) => ({ ...prev, payment: errorMessage, api: "" }));
+
+        // PostHog: Track payment failure
+        if (posthog) {
+          posthog.capture(CheckoutEvents.PAYMENT_FAILED, {
+            [CheckoutEventProperties.PAYMENT_METHOD]: method,
+            [CheckoutEventProperties.TOTAL_AMOUNT]: total,
+            [CheckoutEventProperties.CURRENCY]: currency,
+            [CheckoutEventProperties.DEAL_ID]: dealId,
+            [CheckoutEventProperties.CURRENT_STEP]: 'payment',
+            [CheckoutEventProperties.ERROR_TYPE]: 'payment_processing_failed',
+            [CheckoutEventProperties.ERROR_MESSAGE]: errorMessage,
+            [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+          });
+        }
       } finally {
         setIsLoading(false);
       }
@@ -263,7 +307,7 @@ export const PaymentSection = React.memo(
     const handlePopupClose = () => {
       setShowSuccessPopup(false);
       if (orderId) {
-        navigate(`/order-confirmed/${orderId}`);
+        navigate(`/order-confirmed/${orderId}?dealId=${dealId}`);
       }
     };
 
@@ -370,6 +414,8 @@ export const PaymentSection = React.memo(
             countries={countries}
             getCountryDisplayName={getCountryDisplayName}
             normalizeCountry={normalizeCountry}
+            posthog={posthog}
+            dealId={dealId}
           />
 
           <SuccessPopup
@@ -422,6 +468,8 @@ const StripePaymentContent = React.memo(
     countries,
     getCountryDisplayName,
     normalizeCountry,
+    posthog,
+    dealId,
   }: {
     data: PaymentFormData;
     onUpdate: (data: Partial<PaymentFormData>) => void;
@@ -456,6 +504,8 @@ const StripePaymentContent = React.memo(
     countries: string[];
     getCountryDisplayName: (countryCode: string) => string;
     normalizeCountry: (country: string) => string;
+    posthog: PostHog | null;
+    dealId: string;
   }) => {
     const stripe = useStripe();
     const elements = useElements();
@@ -564,7 +614,18 @@ const StripePaymentContent = React.memo(
               type="email"
               value={data.userEmail || ""}
               placeholder="email@example.com"
-              onChange={(e) => onUpdate({ userEmail: e.target.value })}
+              onChange={(e) => {
+                onUpdate({ userEmail: e.target.value });
+
+                // PostHog: Track email update
+                if (posthog) {
+                  posthog.capture(CheckoutEvents.PAYMENT_EMAIL_UPDATED, {
+                    [CheckoutEventProperties.DEAL_ID]: dealId,
+                    [CheckoutEventProperties.CURRENT_STEP]: 'payment',
+                    [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+                  });
+                }
+              }}
               className="mt-0"
             />
           </div>
@@ -624,7 +685,18 @@ const StripePaymentContent = React.memo(
                   id="cardholderName"
                   placeholder="Full name on card"
                   value={data.cardholderName || ""}
-                  onChange={(e) => onUpdate({ cardholderName: e.target.value })}
+                  onChange={(e) => {
+                    onUpdate({ cardholderName: e.target.value });
+
+                    // PostHog: Track cardholder name update
+                    if (posthog) {
+                      posthog.capture(CheckoutEvents.PAYMENT_CARDHOLDER_NAME_UPDATED, {
+                        [CheckoutEventProperties.DEAL_ID]: dealId,
+                        [CheckoutEventProperties.CURRENT_STEP]: 'payment',
+                        [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+                      });
+                    }
+                  }}
                   className="mt-0"
                 />
               </div>
@@ -638,6 +710,17 @@ const StripePaymentContent = React.memo(
                     checked={data.useDifferentBilling || false}
                     onChange={(e) => {
                       const checked = e.target.checked;
+
+                      // PostHog: Track billing address toggle
+                      if (posthog) {
+                        posthog.capture(CheckoutEvents.PAYMENT_BILLING_ADDRESS_TOGGLED, {
+                          [CheckoutEventProperties.DEAL_ID]: dealId,
+                          [CheckoutEventProperties.CURRENT_STEP]: 'payment',
+                          use_different_billing: checked,
+                          [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+                        });
+                      }
+
                       if (checked) {
                         // Use different billing address
                         const updates: Partial<PaymentFormData> = {

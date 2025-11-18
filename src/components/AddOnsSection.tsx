@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Star, TrendingUp, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import { DealAddOn } from '@/services/api';
 import { AddOnsTypes } from '@/lib/constants';
+import { usePostHog } from 'posthog-js/react';
+import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
 
 interface AddOnsSectionProps {
   data: Record<string, boolean>;
@@ -12,10 +14,27 @@ interface AddOnsSectionProps {
   onBack: () => void;
   availableAddOns: DealAddOn[];
   loading?: boolean;
+  dealId?: string;
 }
 
-export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns, loading }: AddOnsSectionProps) => {
+export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns, loading, dealId }: AddOnsSectionProps) => {
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
+  const posthog = usePostHog();
+
+  // PostHog: Track addon viewed when component mounts
+  useEffect(() => {
+    if (posthog && availableAddOns.length > 0) {
+      availableAddOns.forEach(addon => {
+        posthog.capture(CheckoutEvents.ADDON_VIEWED, {
+          [CheckoutEventProperties.ADDON_ID]: addon.id.toString(),
+          [CheckoutEventProperties.ADDON_TITLE]: addon.title,
+          [CheckoutEventProperties.ADDON_AMOUNT]: addon.amount,
+          [CheckoutEventProperties.DEAL_ID]: dealId,
+          [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+        });
+      });
+    }
+  }, [posthog, availableAddOns, dealId]);
 
   const toggleAddon = (addonId: string) => {
     onUpdate({ [addonId]: !data[addonId] });
@@ -107,7 +126,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
                           {' '}
                           <button
                             onClick={(e) => toggleDescription(addonKey, e)}
-                            className="text-muted-foreground text-xs font-medium hover:text-muted-foreground/80 transition-colors flex items-center gap-1 inline-flex"
+                            className="text-muted-foreground text-xs font-medium hover:text-muted-foreground/80 transition-colors inline-flex items-center gap-1"
                           >
                             SEE MORE <ChevronDown className="w-3 h-3" />
                           </button>
@@ -118,7 +137,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
                           {' '}
                           <button
                             onClick={(e) => toggleDescription(addonKey, e)}
-                            className="text-muted-foreground text-xs font-medium hover:text-muted-foreground/80 transition-colors flex items-center gap-1 inline-flex"
+                            className="text-muted-foreground text-xs font-medium hover:text-muted-foreground/80 transition-colors inline-flex items-center gap-1"
                           >
                             SEE LESS <ChevronUp className="w-3 h-3" />
                           </button>

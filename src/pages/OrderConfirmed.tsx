@@ -1,10 +1,31 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { CheckCircle, Package, Mail, Calendar } from 'lucide-react';
+import { usePostHog } from 'posthog-js/react';
+import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
 
 export const OrderConfirmed: React.FC = () => {
   const { orderID } = useParams<{ orderID: string }>();
+  const [searchParams] = useSearchParams();
+  const dealId = searchParams.get('dealId');
+  const posthog = usePostHog();
+
+  // PostHog: Track checkout completion and cleanup localStorage
+  useEffect(() => {
+    if (posthog && orderID) {
+      posthog.capture(CheckoutEvents.CHECKOUT_COMPLETED, {
+        order_id: orderID,
+        [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+      });
+    }
+
+    // Clean up localStorage for this deal
+    if (dealId) {
+      const localStorageKey = `checkout_addons_${dealId}`;
+      localStorage.removeItem(localStorageKey);
+    }
+  }, [posthog, orderID, dealId]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

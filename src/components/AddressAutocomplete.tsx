@@ -59,7 +59,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           const autocomplete = new Autocomplete(inputRef.current, {
             types: ['address'],
             fields: ['address_components', 'formatted_address'],
-            componentRestrictions: { country: ['us', 'ca'] }
+            componentRestrictions: { 
+              country: ['us', 'ca', 'bs', 'bb', 'ky', 'jm', 'tt', 'tc', 'vg', 'vi', 'bm']
+            }
           } as google.maps.places.AutocompleteOptions);
 
           autocompleteRef.current = autocomplete;

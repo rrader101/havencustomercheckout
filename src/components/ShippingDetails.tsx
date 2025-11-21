@@ -33,9 +33,207 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
   const [isLoading, setIsLoading] = useState(false);
   const [hasUserChanges, setHasUserChanges] = useState(false);
   const [initialData, setInitialData] = useState<ShippingData | null>(null);
+  const [isOtherCountry, setIsOtherCountry] = useState(false);
 
-  // Comprehensive country list (same as PaymentSection)
-  const countries = ['US', 'Canada'];
+  // Comprehensive country list including Caribbean countries
+ const countries = [
+  "Other",
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Andorra",
+  "Angola",
+  "Antigua and Barbuda",
+  "Argentina",
+  "Armenia",
+  "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+  "Belarus",
+  "Belgium",
+  "Belize",
+  "Benin",
+  "Bhutan",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Botswana",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Burkina Faso",
+  "Burundi",
+  "Cambodia",
+  "Cameroon",
+  "Canada",
+  "Cape Verde",
+  "Central African Republic",
+  "Chad",
+  "Chile",
+  "China",
+  "Colombia",
+  "Comoros",
+  "Congo",
+  "Costa Rica",
+  "Croatia",
+  "Cuba",
+  "Cyprus",
+  "Czech Republic",
+  "Denmark",
+  "Djibouti",
+  "Dominica",
+  "Dominican Republic",
+  "East Timor",
+  "Ecuador",
+  "Egypt",
+  "El Salvador",
+  "Equatorial Guinea",
+  "Eritrea",
+  "Estonia",
+  "Eswatini",
+  "Ethiopia",
+  "Fiji",
+  "Finland",
+  "France",
+  "Gabon",
+  "Gambia",
+  "Georgia",
+  "Germany",
+  "Ghana",
+  "Greece",
+  "Grenada",
+  "Guatemala",
+  "Guinea",
+  "Guinea-Bissau",
+  "Guyana",
+  "Haiti",
+  "Honduras",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Indonesia",
+  "Iran",
+  "Iraq",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Ivory Coast",
+  "Jamaica",
+  "Japan",
+  "Jordan",
+  "Kazakhstan",
+  "Kenya",
+  "Kiribati",
+  "Kuwait",
+  "Kyrgyzstan",
+  "Laos",
+  "Latvia",
+  "Lebanon",
+  "Lesotho",
+  "Liberia",
+  "Libya",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Madagascar",
+  "Malawi",
+  "Malaysia",
+  "Maldives",
+  "Mali",
+  "Malta",
+  "Marshall Islands",
+  "Mauritania",
+  "Mauritius",
+  "Mexico",
+  "Micronesia",
+  "Moldova",
+  "Monaco",
+  "Mongolia",
+  "Montenegro",
+  "Morocco",
+  "Mozambique",
+  "Myanmar",
+  "Namibia",
+  "Nauru",
+  "Nepal",
+  "Netherlands",
+  "New Zealand",
+  "Nicaragua",
+  "Niger",
+  "Nigeria",
+  "North Korea",
+  "North Macedonia",
+  "Norway",
+  "Oman",
+  "Pakistan",
+  "Palau",
+  "Panama",
+  "Papua New Guinea",
+  "Paraguay",
+  "Peru",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Russia",
+  "Rwanda",
+  "Saint Kitts and Nevis",
+  "Saint Lucia",
+  "Saint Vincent and the Grenadines",
+  "Samoa",
+  "San Marino",
+  "Sao Tome and Principe",
+  "Saudi Arabia",
+  "Senegal",
+  "Serbia",
+  "Seychelles",
+  "Sierra Leone",
+  "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "Solomon Islands",
+  "Somalia",
+  "South Africa",
+  "South Korea",
+  "South Sudan",
+  "Spain",
+  "Sri Lanka",
+  "Sudan",
+  "Suriname",
+  "Sweden",
+  "Switzerland",
+  "Syria",
+  "Taiwan",
+  "Tajikistan",
+  "Tanzania",
+  "Thailand",
+  "Togo",
+  "Tonga",
+  "Trinidad and Tobago",
+  "Tunisia",
+  "Turkey",
+  "Turkmenistan",
+  "Tuvalu",
+  "Uganda",
+  "Ukraine",
+  "United Arab Emirates",
+  "United Kingdom",
+  "United States",
+  "Uruguay",
+  "Uzbekistan",
+  "Vanuatu",
+  "Vatican City",
+  "Venezuela",
+  "Vietnam",
+  "Yemen",
+  "Zambia",
+  "Zimbabwe"
+]
+
 
   // Display mapping for country names
   const getCountryDisplayName = (countryCode: string): string => {
@@ -44,6 +242,26 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
         return 'United States';
       case 'Canada':
         return 'Canada';
+      case 'Bahamas':
+        return 'Bahamas';
+      case 'Barbados':
+        return 'Barbados';
+      case 'Cayman Islands':
+        return 'Cayman Islands';
+      case 'Jamaica':
+        return 'Jamaica';
+      case 'Trinidad and Tobago':
+        return 'Trinidad and Tobago';
+      case 'Turks and Caicos Islands':
+        return 'Turks and Caicos Islands';
+      case 'British Virgin Islands':
+        return 'British Virgin Islands';
+      case 'US Virgin Islands':
+        return 'US Virgin Islands';
+      case 'Bermuda':
+        return 'Bermuda';
+      case 'Other':
+        return 'Other Country';
       default:
         return countryCode;
     }
@@ -53,10 +271,37 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
   const normalizeCountry = (country: string): string => {
     const normalized = country.toLowerCase().trim();
     if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
-    return 'US';
+      return 'US';
     }
     if (['canada', 'ca'].includes(normalized)) {
       return 'Canada';
+    }
+    if (['bahamas', 'the bahamas', 'bs'].includes(normalized)) {
+      return 'Bahamas';
+    }
+    if (['barbados', 'bb'].includes(normalized)) {
+      return 'Barbados';
+    }
+    if (['cayman islands', 'cayman', 'ky'].includes(normalized)) {
+      return 'Cayman Islands';
+    }
+    if (['jamaica', 'jm'].includes(normalized)) {
+      return 'Jamaica';
+    }
+    if (['trinidad and tobago', 'trinidad', 'tobago', 'tt'].includes(normalized)) {
+      return 'Trinidad and Tobago';
+    }
+    if (['turks and caicos', 'turks and caicos islands', 'tc'].includes(normalized)) {
+      return 'Turks and Caicos Islands';
+    }
+    if (['british virgin islands', 'bvi', 'vg'].includes(normalized)) {
+      return 'British Virgin Islands';
+    }
+    if (['us virgin islands', 'usvi', 'virgin islands', 'vi'].includes(normalized)) {
+      return 'US Virgin Islands';
+    }
+    if (['bermuda', 'bm'].includes(normalized)) {
+      return 'Bermuda';
     }
     return country; // Return original if no match
   };
@@ -221,28 +466,59 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="country">Country</Label>
-            <Select
-              value={data.country}
-              onValueChange={(value) => handleInputChange('country', value)}
-            >
-              <SelectTrigger 
-                className={errors.country ? 'border-destructive' : ''}
-                style={{ backgroundColor: '#f7f7f7', border: '1px solid rgba(0, 0, 0, 0.1)' }}
-              >
-                <SelectValue placeholder="Select country" />
-              </SelectTrigger>
-              <SelectContent className="bg-[#f7f7f7]">
-                {countries.map((country) => (
-                  <SelectItem 
-                    key={country} 
-                    value={country}
-                    className="hover:bg-gray-200 focus:bg-gray-200 data-[highlighted]:bg-gray-200"
+            {!isOtherCountry ? (
+              <>
+                <Select
+                  value={data.country}
+                  onValueChange={(value) => {
+                    if (value === 'Other') {
+                      setIsOtherCountry(true);
+                      handleInputChange('country', '');
+                    } else {
+                      handleInputChange('country', value);
+                    }
+                  }}
+                >
+                  <SelectTrigger 
+                    className={errors.country ? 'border-destructive' : ''}
+                    style={{ backgroundColor: '#f7f7f7', border: '1px solid rgba(0, 0, 0, 0.1)' }}
                   >
-                    {getCountryDisplayName(country)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#f7f7f7]">
+                    {countries.map((country) => (
+                      <SelectItem 
+                        key={country} 
+                        value={country}
+                        className="hover:bg-gray-200 focus:bg-gray-200 data-[highlighted]:bg-gray-200"
+                      >
+                        {getCountryDisplayName(country)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            ) : (
+              <>
+                <Input
+                  id="country"
+                  value={data.country}
+                  onChange={(e) => handleInputChange('country', e.target.value)}
+                  placeholder="Enter your country"
+                  className={errors.country ? 'border-destructive' : ''}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOtherCountry(false);
+                    handleInputChange('country', 'US');
+                  }}
+                  className="text-xs text-primary hover:underline mt-1"
+                >
+                  ← Back to country list
+                </button>
+              </>
+            )}
             {errors.country && <p className="text-sm text-destructive mt-1">{errors.country}</p>}
           </div>
           

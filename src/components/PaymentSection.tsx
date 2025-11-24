@@ -28,6 +28,203 @@ import { SuccessPopup } from "./SuccessPopup";
 import { useNavigate } from "react-router-dom";
 import AddressAutocomplete from "./AddressAutocomplete";
 import StripeProvider from "./StripeProvider";
+   const countries = [
+  "Other",
+  "Afghanistan",
+  "Albania",
+  "Algeria",
+  "Andorra",
+  "Angola",
+  "Antigua and Barbuda",
+  "Argentina",
+  "Armenia",
+  "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+  "Belarus",
+  "Belgium",
+  "Belize",
+  "Benin",
+  "Bhutan",
+  "Bolivia",
+  "Bosnia and Herzegovina",
+  "Botswana",
+  "Brazil",
+  "Brunei",
+  "Bulgaria",
+  "Burkina Faso",
+  "Burundi",
+  "Cambodia",
+  "Cameroon",
+  "Canada",
+  "Cape Verde",
+  "Central African Republic",
+  "Chad",
+  "Chile",
+  "China",
+  "Colombia",
+  "Comoros",
+  "Congo",
+  "Costa Rica",
+  "Croatia",
+  "Cuba",
+  "Cyprus",
+  "Czech Republic",
+  "Denmark",
+  "Djibouti",
+  "Dominica",
+  "Dominican Republic",
+  "East Timor",
+  "Ecuador",
+  "Egypt",
+  "El Salvador",
+  "Equatorial Guinea",
+  "Eritrea",
+  "Estonia",
+  "Eswatini",
+  "Ethiopia",
+  "Fiji",
+  "Finland",
+  "France",
+  "Gabon",
+  "Gambia",
+  "Georgia",
+  "Germany",
+  "Ghana",
+  "Greece",
+  "Grenada",
+  "Guatemala",
+  "Guinea",
+  "Guinea-Bissau",
+  "Guyana",
+  "Haiti",
+  "Honduras",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Indonesia",
+  "Iran",
+  "Iraq",
+  "Ireland",
+  "Israel",
+  "Italy",
+  "Ivory Coast",
+  "Jamaica",
+  "Japan",
+  "Jordan",
+  "Kazakhstan",
+  "Kenya",
+  "Kiribati",
+  "Kuwait",
+  "Kyrgyzstan",
+  "Laos",
+  "Latvia",
+  "Lebanon",
+  "Lesotho",
+  "Liberia",
+  "Libya",
+  "Liechtenstein",
+  "Lithuania",
+  "Luxembourg",
+  "Madagascar",
+  "Malawi",
+  "Malaysia",
+  "Maldives",
+  "Mali",
+  "Malta",
+  "Marshall Islands",
+  "Mauritania",
+  "Mauritius",
+  "Mexico",
+  "Micronesia",
+  "Moldova",
+  "Monaco",
+  "Mongolia",
+  "Montenegro",
+  "Morocco",
+  "Mozambique",
+  "Myanmar",
+  "Namibia",
+  "Nauru",
+  "Nepal",
+  "Netherlands",
+  "New Zealand",
+  "Nicaragua",
+  "Niger",
+  "Nigeria",
+  "North Korea",
+  "North Macedonia",
+  "Norway",
+  "Oman",
+  "Pakistan",
+  "Palau",
+  "Panama",
+  "Papua New Guinea",
+  "Paraguay",
+  "Peru",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Qatar",
+  "Romania",
+  "Russia",
+  "Rwanda",
+  "Saint Kitts and Nevis",
+  "Saint Lucia",
+  "Saint Vincent and the Grenadines",
+  "Samoa",
+  "San Marino",
+  "Sao Tome and Principe",
+  "Saudi Arabia",
+  "Senegal",
+  "Serbia",
+  "Seychelles",
+  "Sierra Leone",
+  "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "Solomon Islands",
+  "Somalia",
+  "South Africa",
+  "South Korea",
+  "South Sudan",
+  "Spain",
+  "Sri Lanka",
+  "Sudan",
+  "Suriname",
+  "Sweden",
+  "Switzerland",
+  "Syria",
+  "Taiwan",
+  "Tajikistan",
+  "Tanzania",
+  "Thailand",
+  "Togo",
+  "Tonga",
+  "Trinidad and Tobago",
+  "Tunisia",
+  "Turkey",
+  "Turkmenistan",
+  "Tuvalu",
+  "Uganda",
+  "Ukraine",
+  "United Arab Emirates",
+  "United Kingdom",
+  "United States",
+  "Uruguay",
+  "Uzbekistan",
+  "Vanuatu",
+  "Vatican City",
+  "Venezuela",
+  "Vietnam",
+  "Yemen",
+  "Zambia",
+  "Zimbabwe"
+]
 import { usePostHog } from 'posthog-js/react';
 import type { PostHog } from 'posthog-js';
 import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
@@ -39,6 +236,26 @@ const getCountryDisplayName = (countryCode: string): string => {
       return "United States";
     case "Canada":
       return "Canada";
+    case "Bahamas":
+      return "Bahamas";
+    case "Barbados":
+      return "Barbados";
+    case "Cayman Islands":
+      return "Cayman Islands";
+    case "Jamaica":
+      return "Jamaica";
+    case "Trinidad and Tobago":
+      return "Trinidad and Tobago";
+    case "Turks and Caicos Islands":
+      return "Turks and Caicos Islands";
+    case "British Virgin Islands":
+      return "British Virgin Islands";
+    case "US Virgin Islands":
+      return "US Virgin Islands";
+    case "Bermuda":
+      return "Bermuda";
+    case "Other":
+      return "Other Country";
     default:
       return countryCode;
   }
@@ -285,7 +502,7 @@ export const PaymentSection = React.memo(
       return usaVariants.includes(normalizedCountry) ? 0.029 : 0.024;
     };
 
-    const countries = ["US", "Canada"];
+  
 
     // Normalize country names to match dropdown options
     const normalizeCountry = (country: string): string => {
@@ -299,6 +516,33 @@ export const PaymentSection = React.memo(
       }
       if (["canada", "ca"].includes(normalized)) {
         return "Canada";
+      }
+      if (["bahamas", "the bahamas", "bs"].includes(normalized)) {
+        return "Bahamas";
+      }
+      if (["barbados", "bb"].includes(normalized)) {
+        return "Barbados";
+      }
+      if (["cayman islands", "cayman", "ky"].includes(normalized)) {
+        return "Cayman Islands";
+      }
+      if (["jamaica", "jm"].includes(normalized)) {
+        return "Jamaica";
+      }
+      if (["trinidad and tobago", "trinidad", "tobago", "tt"].includes(normalized)) {
+        return "Trinidad and Tobago";
+      }
+      if (["turks and caicos", "turks and caicos islands", "tc"].includes(normalized)) {
+        return "Turks and Caicos Islands";
+      }
+      if (["british virgin islands", "bvi", "vg"].includes(normalized)) {
+        return "British Virgin Islands";
+      }
+      if (["us virgin islands", "usvi", "virgin islands", "vi"].includes(normalized)) {
+        return "US Virgin Islands";
+      }
+      if (["bermuda", "bm"].includes(normalized)) {
+        return "Bermuda";
       }
       return country;
     };
@@ -522,6 +766,7 @@ const StripePaymentContent = React.memo(
     } = usePaymentRequest(currency, country);
     const [focused, setFocused] = useState(false);
     const hasError = Boolean(errors.payment);
+    const [isOtherCountry, setIsOtherCountry] = useState(false);
     useEffect(() => {
       setPaymentMethodHandler(onPaymentSuccess);
     }, [onPaymentSuccess, setPaymentMethodHandler]);
@@ -803,24 +1048,55 @@ const StripePaymentContent = React.memo(
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div>
                       <Label htmlFor="billing_country">Country</Label>
-                      <Select
-                        value={data.billing_country || ""}
-                        onValueChange={(value) =>
-                          onUpdate({ billing_country: value })
-                        }
-                        className="bg-[#f7f7f7] border border-input"
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countries.map((country) => (
-                            <SelectItem key={country} value={country}>
-                              {getCountryDisplayName(country)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      {!isOtherCountry ? (
+                        <>
+                          <Select
+                            value={data.billing_country || ""}
+                            onValueChange={(value) => {
+                              if (value === 'Other') {
+                                setIsOtherCountry(true);
+                                onUpdate({ billing_country: '' });
+                              } else {
+                                onUpdate({ billing_country: value });
+                              }
+                            }}
+                            className="bg-[#f7f7f7] border border-input"
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select country" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {countries.map((country) => (
+                                <SelectItem key={country} value={country}>
+                                  {getCountryDisplayName(country)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </>
+                      ) : (
+                        <>
+                          <Input
+                            id="billing_country"
+                            placeholder="Enter your country"
+                            value={data.billing_country || ""}
+                            onChange={(e) =>
+                              onUpdate({ billing_country: e.target.value })
+                            }
+                            className="mt-0"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsOtherCountry(false);
+                              onUpdate({ billing_country: 'US' });
+                            }}
+                            className="text-xs text-primary hover:underline mt-1"
+                          >
+                            ← Back to country list
+                          </button>
+                        </>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="billing_zipcode">ZIP Code</Label>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ClipboardList, Loader2 } from 'lucide-react';
@@ -6,14 +6,15 @@ import { FormProgress } from './FormProgress';
 import Logo from './Logo';
 import { fetchDealsData, DealsResponse, DealAddOn, Deal } from '@/services/api';
 import NotFound from '@/pages/NotFound';
+import { usePostHog } from 'posthog-js/react';
+import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
 
-// Import PaymentSection directly for immediate availability
+// Import commonly used components directly for immediate availability
 import { PaymentSection } from './PaymentSection';
+import { AddOnsSection } from './AddOnsSection';
+import { ShippingDetails } from './ShippingDetails';
 
-// Lazy load other heavy components
-const ShippingDetails = lazy(() => import('./ShippingDetails').then(module => ({ default: module.ShippingDetails })));
-const AddOnsSection = lazy(() => import('./AddOnsSection').then(module => ({ default: module.AddOnsSection })));
-
+// Lazy load less frequently used components
 const InvoiceSelection = lazy(() => import('./InvoiceSelection').then(module => ({ default: module.InvoiceSelection })));
 
 export interface FormData {
@@ -50,11 +51,30 @@ const PaymentForm = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNotFound, setShowNotFound] = useState(false);
+  const [stepStartTime, setStepStartTime] = useState<Date>(new Date());
+  const posthog = usePostHog();
+  const hasLoadedData = useRef(false);
 
   const handleStepChange = useCallback((step: 'shipping' | 'addons' | 'payment') => {
+    const now = new Date();
+    const timeSpent = now.getTime() - stepStartTime.getTime();
+
+    // PostHog: Track step transition
+    if (posthog) {
+      posthog.capture(CheckoutEvents.CHECKOUT_STEP_TRANSITION, {
+        [CheckoutEventProperties.DEAL_ID]: dealId,
+        [CheckoutEventProperties.FROM_STEP]: currentStep,
+        [CheckoutEventProperties.TO_STEP]: step,
+        [CheckoutEventProperties.TIME_SPENT_MS]: timeSpent,
+        [CheckoutEventProperties.TIME_SPENT_SECONDS]: Math.round(timeSpent / 1000),
+        [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+      });
+    }
+
     setCurrentStep(step);
+    setStepStartTime(now);
     navigate(`?step=${step}`, { replace: true });
-  }, [navigate]);
+  }, [navigate, currentStep, stepStartTime, posthog, dealId]);
 
   // Normalize country names to match dropdown options
   const normalizeCountry = (country: string): string => {
@@ -87,9 +107,13 @@ const PaymentForm = () => {
 
   // Fetch deals data on component mount
   useEffect(() => {
+    // Only load once
+    if (hasLoadedData.current) return;
+    
     const loadDealsData = async () => {
       try {
         setLoading(true);
+        hasLoadedData.current = true;
         const currentDealId = dealId;
         const response = await fetchDealsData(currentDealId);
         const dealData = response.deal;
@@ -100,6 +124,23 @@ const PaymentForm = () => {
         dealData.add_ons.forEach(addon => {
           initialAddOns[addon.id.toString()] = false;
         });
+
+        // Try to restore add-ons from localStorage
+        const localStorageKey = `checkout_addons_${currentDealId}`;
+        const savedAddOns = localStorage.getItem(localStorageKey);
+        if (savedAddOns) {
+          try {
+            const parsedAddOns = JSON.parse(savedAddOns);
+            // Only restore add-ons that still exist in the current deal
+            Object.keys(parsedAddOns).forEach(addonId => {
+              if (addonId in initialAddOns) {
+                initialAddOns[addonId] = parsedAddOns[addonId];
+              }
+            });
+          } catch (e) {
+            console.error('Failed to parse saved add-ons:', e);
+          }
+        }
         
         // Initialize invoices state - select all invoices by default
         const initialInvoices: Record<string, boolean> = {};
@@ -130,13 +171,46 @@ const PaymentForm = () => {
         // Show NotFound component inline instead of redirecting
         setShowNotFound(true);
         setError(err instanceof Error ? err.message : 'Failed to load deals data');
+
+        // PostHog: Track API error
+        if (posthog) {
+          posthog.capture(CheckoutEvents.API_ERROR, {
+            [CheckoutEventProperties.ERROR_TYPE]: 'deals_data_load_failed',
+            [CheckoutEventProperties.ERROR_MESSAGE]: err instanceof Error ? err.message : 'Unknown error',
+            [CheckoutEventProperties.DEAL_ID]: dealId,
+            [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+          });
+        }
       } finally {
         setLoading(false);
       }
     };
 
     loadDealsData();
-  }, [dealId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dealId]); // Only re-run if dealId changes
+
+  // Separate effect for PostHog tracking (runs when posthog is ready)
+  useEffect(() => {
+    if (posthog && dealsData) {
+      posthog.identify(dealsData.contact_email || `deal_${dealId}`, {
+        [CheckoutEventProperties.DEAL_ID]: dealId,
+        [CheckoutEventProperties.DEAL_TYPE]: dealsData.type,
+        [CheckoutEventProperties.CURRENCY]: dealsData.currency,
+        [CheckoutEventProperties.COUNTRY]: dealsData.mailing_address_country,
+        name: dealsData.name,
+        contact_email: dealsData.contact_email
+      });
+
+      posthog.capture(CheckoutEvents.CHECKOUT_PAGE_VIEW, {
+        [CheckoutEventProperties.DEAL_ID]: dealId,
+        [CheckoutEventProperties.DEAL_TYPE]: dealsData.type,
+        [CheckoutEventProperties.CURRENCY]: dealsData.currency,
+        [CheckoutEventProperties.CURRENT_STEP]: initialStep,
+        [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+      });
+    }
+  }, [posthog, dealsData, dealId, initialStep]);
 
   // Helper function to determine processing fee rate based on country
   const getProcessingFeeRate = useCallback((country: string) => {
@@ -148,18 +222,72 @@ const PaymentForm = () => {
   const updateFormData = useCallback(<K extends keyof FormData>(section: K, data: Partial<FormData[K]>) => {
     setFormData(prev => {
       const currentSection = prev[section];
-      if (typeof currentSection === 'object' && currentSection !== null) {
-        return {
-          ...prev,
-          [section]: { ...currentSection, ...data }
-        };
+      const newFormData = typeof currentSection === 'object' && currentSection !== null
+        ? { ...prev, [section]: { ...currentSection, ...data } }
+        : { ...prev, [section]: data };
+
+      // Save add-ons to localStorage when they change
+      if (section === 'addOns' && dealId) {
+        const localStorageKey = `checkout_addons_${dealId}`;
+        const updatedAddOns = typeof currentSection === 'object' && currentSection !== null
+          ? { ...currentSection, ...data }
+          : data;
+        localStorage.setItem(localStorageKey, JSON.stringify(updatedAddOns));
       }
-      return {
-        ...prev,
-        [section]: data
-      };
+
+      // PostHog: Track form updates (using the updated values from newFormData)
+      if (posthog && dealsData) {
+        if (section === 'addOns' && data) {
+          Object.keys(data).forEach(addonId => {
+            const addon = dealsData.add_ons.find(a => a.id.toString() === addonId);
+            if (addon) {
+              const wasSelected = prev.addOns[addonId];
+              const nowSelected = (data as Record<string, boolean>)[addonId];
+              if (wasSelected !== nowSelected) {
+                posthog.capture(nowSelected ? CheckoutEvents.ADDON_SELECTED : CheckoutEvents.ADDON_DESELECTED, {
+                  [CheckoutEventProperties.ADDON_ID]: addonId,
+                  [CheckoutEventProperties.ADDON_TITLE]: addon.title,
+                  [CheckoutEventProperties.ADDON_AMOUNT]: addon.amount,
+                  [CheckoutEventProperties.DEAL_ID]: dealId,
+                  [CheckoutEventProperties.CURRENT_STEP]: currentStep,
+                  [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+                });
+              }
+            }
+          });
+        } else if (section === 'invoices' && data) {
+          Object.keys(data).forEach(invoiceId => {
+            const invoice = dealsData.invoices.find(i => i.id.toString() === invoiceId);
+            if (invoice) {
+              const wasSelected = prev.invoices[invoiceId];
+              const nowSelected = (data as Record<string, boolean>)[invoiceId];
+              if (wasSelected !== nowSelected) {
+                posthog.capture(nowSelected ? CheckoutEvents.INVOICE_SELECTED : CheckoutEvents.INVOICE_DESELECTED, {
+                  [CheckoutEventProperties.INVOICE_ID]: invoiceId,
+                  [CheckoutEventProperties.INVOICE_AMOUNT]: invoice.amount,
+                  [CheckoutEventProperties.DEAL_ID]: dealId,
+                  [CheckoutEventProperties.CURRENT_STEP]: currentStep,
+                  [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+                });
+              }
+            }
+          });
+        } else if (section === 'payment' && data) {
+          const paymentData = data as Partial<FormData['payment']>;
+          if (paymentData.method && paymentData.method !== prev.payment.method) {
+            posthog.capture(CheckoutEvents.PAYMENT_METHOD_CHANGED, {
+              [CheckoutEventProperties.PAYMENT_METHOD]: paymentData.method,
+              [CheckoutEventProperties.DEAL_ID]: dealId,
+              [CheckoutEventProperties.CURRENT_STEP]: currentStep,
+              [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+            });
+          }
+        }
+      }
+
+      return newFormData;
     });
-  }, []);
+  }, [posthog, dealsData, dealId, currentStep]);
 
   const calculateTotal = useMemo(() => {
     if (!dealsData) return 0;
@@ -264,6 +392,23 @@ const PaymentForm = () => {
     return next.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
+  // PostHog: Track page drop-off on unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (posthog) {
+        posthog.capture(CheckoutEvents.CHECKOUT_DROP_OFF, {
+          [CheckoutEventProperties.CURRENT_STEP]: currentStep,
+          [CheckoutEventProperties.DEAL_ID]: dealId,
+          [CheckoutEventProperties.TIME_SPENT_SECONDS]: Math.round((new Date().getTime() - stepStartTime.getTime()) / 1000),
+          [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [posthog, currentStep, dealId, stepStartTime]);
+
   // Show loading spinner while API call is in progress
   if (loading) {
     return (
@@ -317,29 +462,27 @@ const PaymentForm = () => {
               ? 'w-full' 
               : 'lg:col-span-2'
           } space-y-6`}>
-            <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
-              {currentStep === 'shipping' && (
-                <ShippingDetails
-                  data={formData.shipping}
-                  onUpdate={(data) => updateFormData('shipping', data)}
-                  onNext={() => handleStepChange('addons')}
-                  dealId={dealId}
-                />
-              )}
-              
-              {currentStep === 'addons' && (
-                <AddOnsSection
-                  data={formData.addOns}
-                  onUpdate={(data) => updateFormData('addOns', data)}
-                  onNext={() => handleStepChange('payment')}
-                  onBack={() => handleStepChange('shipping')}
-                  availableAddOns={dealsData?.add_ons || []}
-                  loading={loading}
-                />
-              )}
-            </Suspense>
+            {currentStep === 'shipping' && (
+              <ShippingDetails
+                data={formData.shipping}
+                onUpdate={(data) => updateFormData('shipping', data)}
+                onNext={() => handleStepChange('addons')}
+                dealId={dealId}
+              />
+            )}
             
-            {/* PaymentSection rendered directly for immediate availability */}
+            {currentStep === 'addons' && (
+              <AddOnsSection
+                data={formData.addOns}
+                onUpdate={(data) => updateFormData('addOns', data)}
+                onNext={() => handleStepChange('payment')}
+                onBack={() => handleStepChange('shipping')}
+                availableAddOns={dealsData?.add_ons || []}
+                loading={loading}
+                dealId={dealId}
+              />
+            )}
+            
             {currentStep === 'payment' && (
               <PaymentSection
                 data={formData.payment}

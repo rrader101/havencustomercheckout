@@ -9,6 +9,8 @@ import AddressAutocomplete from './AddressAutocomplete';
 import { saveAddress } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
 import { FaTruck } from 'react-icons/fa';
+import { usePostHog } from 'posthog-js/react';
+import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
 
 interface ShippingData {
   name: string;
@@ -233,6 +235,7 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
   "Zambia",
   "Zimbabwe"
 ]
+  const posthog = usePostHog();
 
 
   // Display mapping for country names
@@ -318,6 +321,18 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
     if (!data.zipCode.trim()) newErrors.zipCode = 'Zip code is required';
 
     setErrors(newErrors);
+
+    // PostHog: Track validation errors
+    if (Object.keys(newErrors).length > 0 && posthog) {
+      posthog.capture(CheckoutEvents.FORM_VALIDATION_ERROR, {
+        [CheckoutEventProperties.ERROR_TYPE]: 'shipping_validation_failed',
+        [CheckoutEventProperties.ERROR_MESSAGE]: Object.keys(newErrors).join(', '),
+        [CheckoutEventProperties.DEAL_ID]: dealId,
+        [CheckoutEventProperties.CURRENT_STEP]: 'shipping',
+        [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+      });
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -431,6 +446,15 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
               // Mark that user has made changes when selecting from autocomplete
               if (initialData && !hasUserChanges) {
                 setHasUserChanges(true);
+              }
+
+              // PostHog: Track autocomplete usage
+              if (posthog) {
+                posthog.capture(CheckoutEvents.SHIPPING_ADDRESS_AUTOCOMPLETE_USED, {
+                  [CheckoutEventProperties.DEAL_ID]: dealId,
+                  [CheckoutEventProperties.CURRENT_STEP]: 'shipping',
+                  [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+                });
               }
             }}
             error={errors.streetAddress}

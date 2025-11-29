@@ -50,7 +50,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
 
   if (loading) {
     return (
-      <Card className="p-6 border-0 bg-card animate-fade-in">
+      <Card className="p-6 border-0 bg-card">
         <div className="text-center py-8">
           <p className="text-muted-foreground">Loading add-ons...</p>
         </div>
@@ -59,7 +59,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
   }
 
   return (
-    <Card className="p-6 border-0 bg-card animate-fade-in">
+    <Card className="p-6 border-0 bg-card">
       <div className="mb-10">
         <h2
           className="text-xl font-semibold mb-2"
@@ -239,7 +239,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
 
       {/* Value Proposition (style aligned with previous file) */}
       {availableAddOns?.[0]?.type === "Subscription" && data?.[1] === true && (
-        <div className="mt-6 p-4 bg-gradient-accent rounded-lg border border-primary/20 animate-slide-in">
+        <div className="mt-6 p-4 bg-gradient-accent rounded-lg border border-primary/20">
           <div className="flex items-center gap-2 text-primary mb-2">
             <Star className="w-4 h-4" />
             <span className="font-medium">Major Savings</span>
@@ -251,7 +251,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
         </div>
       )}
       {availableAddOns?.[0]?.type === "Subscription" && data?.[2] === true && (
-        <div className="mt-6 p-4 bg-gradient-accent rounded-lg border border-primary/20 animate-slide-in">
+        <div className="mt-6 p-4 bg-gradient-accent rounded-lg border border-primary/20">
           <div className="flex items-center gap-2 text-primary mb-2">
             <Star className="w-4 h-4" />
             <span className="font-medium">Good Move</span>

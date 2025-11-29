@@ -17,7 +17,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import { usePaymentRequest } from "@/contexts/PaymentRequestContext";
+import { usePaymentRequest } from "@/contexts/usePaymentRequest";
 import {
   processPayment,
   PaymentData as ApiPaymentData,
@@ -409,7 +409,6 @@ export const PaymentSection = React.memo(
           };
 
           result = await processChequePayment(chequeData);
-          console.log("Cheque payment successful:", result);
         } else {
           const paymentData: ApiPaymentData = {
             uuid: dealId,
@@ -444,7 +443,6 @@ export const PaymentSection = React.memo(
           };
 
           result = await processPayment(paymentData);
-          console.log("Card payment successful:", result);
         }
 
         if (result && result.order_id) {
@@ -603,7 +601,6 @@ export const PaymentSection = React.memo(
           handleCheckPayment();
         } else {
           // Other payment methods are handled via Stripe UI
-          console.log("Processing payment...", { data, total });
         }
       }
     };

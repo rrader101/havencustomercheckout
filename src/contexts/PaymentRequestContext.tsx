@@ -1,37 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import React, { useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { PaymentRequest } from '@stripe/stripe-js';
 import { useStripe } from '@stripe/react-stripe-js';
+import { PaymentRequestContext, type PaymentRequestContextType } from './PaymentRequestContextBase';
 
-interface PaymentRequestContextType {
-  paymentRequest: PaymentRequest | null;
-  canMakePayment: {applePay?: boolean; googlePay?: boolean; link?: boolean} | null;
-  updatePaymentRequest: (total: number) => void;
-  initializePaymentRequest: (currency: 'USD' | 'CAD', country: string) => void;
-  setPaymentMethodHandler: (handler: (paymentMethodId: string, method: string) => void | Promise<void>) => void;
-  setErrorHandler: (handler: (error: string) => void) => void;
-}
-
-const PaymentRequestContext = createContext<PaymentRequestContextType | undefined>(undefined);
-
-export const usePaymentRequest = (currency: 'USD' | 'CAD' = 'USD', country: string = 'US') => {
-  const context = useContext(PaymentRequestContext);
-  if (context === undefined) {
-    throw new Error('usePaymentRequest must be used within a PaymentRequestProvider');
-  }
-  
-  // Initialize with the provided currency and country immediately
-  const { initializePaymentRequest, ...rest } = context;
-  
-  // Call initialization directly since currency and country won't change
-  if (initializePaymentRequest) {
-    initializePaymentRequest(currency, country);
-  }
-  
-  return {
-    ...rest,
-    initializePaymentRequest // Still expose it in case needed
-  };
-};
+// Note: Hook moved to ./usePaymentRequest to keep this file exporting only components
 
 interface PaymentRequestProviderProps {
   children: ReactNode;
@@ -60,11 +32,6 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
       stripeCountry = 'US'; // US dollars require United States
     }
 
-    console.log(`🏗️ Creating PaymentRequest:`, { 
-      currency: stripeCurrency, 
-      country: stripeCountry, 
-      originalCountry: country 
-    });
 
     const pr = stripe.paymentRequest({
       country: stripeCountry,
@@ -79,9 +46,7 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
 
     // Check what payment methods are available
     pr.canMakePayment().then(result => {
-      console.log(`🍎 Apple Pay check for ${currency} in ${stripeCountry}:`, result);
       if (result) {
-        console.log('✅ Payment methods available:', result);
         setPaymentRequest(pr);
         setCanMakePayment(result);
       } else {

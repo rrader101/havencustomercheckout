@@ -38,13 +38,22 @@ const Select: React.FC<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Roo
   const enhancedChildren = React.Children.map(children, (child) => {
     if (!React.isValidElement(child)) return child
 
-    const childType: any = child.type
+    const childType = child.type
+
+    const childDisplayName =
+      (typeof childType === 'function' || (typeof childType === 'object' && childType !== null)) &&
+      'displayName' in (childType as unknown as Record<string, unknown>)
+        ? (() => {
+            const dn = (childType as unknown as Record<string, unknown>).displayName
+            return typeof dn === 'string' ? dn : undefined
+          })()
+        : undefined
 
     const isTrigger =
       childType === SelectPrimitive.Trigger ||
       childType === SelectTrigger ||
-      childType?.displayName === SelectPrimitive.Trigger.displayName ||
-      childType?.displayName === SelectTrigger.displayName
+      childDisplayName === SelectPrimitive.Trigger.displayName ||
+      childDisplayName === SelectTrigger.displayName
 
     if (isTrigger) {
       // If the user included a border utility in the Select's className,
@@ -73,7 +82,7 @@ const Select: React.FC<React.ComponentPropsWithoutRef<typeof SelectPrimitive.Roo
     return child
   })
 
-  return <SelectPrimitive.Root {...(props as any)}>{enhancedChildren}</SelectPrimitive.Root>
+  return <SelectPrimitive.Root {...props}>{enhancedChildren}</SelectPrimitive.Root>
 }
 
 const SelectScrollUpButton = React.forwardRef<

@@ -4,11 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Check, Loader2, } from 'lucide-react';
+import { Check, Loader2, Truck } from 'lucide-react';
 import AddressAutocomplete from './AddressAutocomplete';
 import { saveAddress } from '@/services/api';
 import { useToast } from '@/hooks/use-toast';
-import { FaTruck } from 'react-icons/fa';
 import { usePostHog } from 'posthog-js/react';
 import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
 
@@ -389,7 +388,7 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
     <Card className="p-6 border-0 bg-card animate-fade-in">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
-          <FaTruck className="w-5 h-5 text-foreground" />
+          <Truck className="w-5 h-5 text-foreground" />
           <h2 className="text-xl font-semibold" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Shipping Details</h2>
         </div>
         <p className="text-muted-foreground">Let's get your copies to you</p>
@@ -429,8 +428,6 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
             onChange={(value) => handleInputChange('streetAddress', value)}
             onAddressSelect={(addressComponents) => {
               // Auto-fill the address fields when user selects from Google Places
-              console.log('Received address components in ShippingDetails:', addressComponents);
-              console.log('Current form data before update:', data);
               
               const updatedData = {
                 streetAddress: addressComponents.streetAddress,
@@ -440,7 +437,6 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
                 zipCode: addressComponents.zipCode
               };
               
-              console.log('Updated data to be sent:', updatedData);
               onUpdate(updatedData);
               
               // Mark that user has made changes when selecting from autocomplete

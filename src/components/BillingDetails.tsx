@@ -36,17 +36,7 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
   // Comprehensive country list (same as PaymentSection)
   const countries = ['US', 'Canada'];
 
-  // Normalize country names to match dropdown options
-  const normalizeCountry = (country: string): string => {
-    const normalized = country.toLowerCase().trim();
-    if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
-    return 'US';
-    }
-    if (['canada', 'ca'].includes(normalized)) {
-      return 'Canada';
-    }
-    return country; // Return original if no match
-  };
+  // Country normalization handled inline in address selection callback
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -103,7 +93,6 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
         shipping_zipcode: data.zipCode,
         shipping_country: data.country
       });
-      console.log('API Response:', response);
       onNext();
     } catch (error) {
       console.error('Error saving billing address::::::::::::::::', error);
@@ -137,8 +126,18 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
     country: string;
     zipCode: string;
   }) => {
-  // Normalize the country from Google Places API
-    const normalizedCountry = normalizeCountry(addressData.country); 
+    // Normalize the country from Google Places API
+    const normalizedInput = addressData.country.toLowerCase().trim();
+    const normalizedCountry = [
+      'usa',
+      'us',
+      'united states',
+      'united states of america',
+    ].includes(normalizedInput)
+      ? 'US'
+      : ['canada', 'ca'].includes(normalizedInput)
+      ? 'Canada'
+      : addressData.country;
     onUpdate({
       streetAddress: addressData.streetAddress,
       city: addressData.city,
@@ -157,7 +156,7 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
       delete newErrors.zipCode;
       return newErrors;
     });
-  }, [onUpdate, normalizeCountry]);
+  }, [onUpdate]);
 
   // Store initial data on mount
   useEffect(() => {

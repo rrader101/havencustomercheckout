@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import animate from "tailwindcss-animate";
 
 export default {
 	darkMode: ["class"],
@@ -17,7 +18,7 @@ export default {
 				'2xl': '1400px'
 			}
 		},
-		extend: {
+			extend: {
 		fontFamily: {
 				'sans': ['Proxima Nova', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'system-ui', 'sans-serif'],
 			},
@@ -87,22 +88,6 @@ export default {
 				'strong': 'var(--shadow-strong)',
 			},
 			keyframes: {
-				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
-				},
-				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
-				},
 				'fade-in': {
 					'0%': {
 						opacity: '0',
@@ -113,9 +98,9 @@ export default {
 						transform: 'translateY(0)'
 					}
 				},
-				'slide-in': {
+				'slide-in-right': {
 					'0%': {
-						transform: 'translateX(-10px)',
+						transform: 'translateX(12px)',
 						opacity: '0'
 					},
 					'100%': {
@@ -123,18 +108,11 @@ export default {
 						opacity: '1'
 					}
 				},
-				'pulse': {
-					'50%': {
-						opacity: '.5'
-					}
-				}
 			},
 			animation: {
-				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.3s ease-out',
-				'slide-in': 'slide-in 0.3s ease-out',
-				'pulse': 'pulse 2s cubic-bezier(.4,0,.6,1) infinite'
+				'fade-in-fast': 'fade-in 0.15s ease-out',
+				'slide-in-right-fast': 'slide-in-right 0.15s ease-out',
 			},
 			/* Custom spacing and sizing from Chrome inspect */
 			spacing: {
@@ -150,5 +128,5 @@ export default {
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+    plugins: [animate],
 } satisfies Config;

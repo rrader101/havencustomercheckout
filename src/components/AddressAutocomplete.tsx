@@ -76,7 +76,6 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
               return;
             }
 
-            console.log('Google Place selected:', place);
 
             // Extract address components
             const components: AddressComponents = {
@@ -124,7 +123,6 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
               components.streetAddress = parts[0]?.trim() || '';
             }
 
-            console.log('Extracted components:', components);
 
             // Update input with street address
             const streetAddr = components.streetAddress;

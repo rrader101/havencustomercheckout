@@ -510,7 +510,8 @@ export const PaymentSection = React.memo(
           normalized
         )
       ) {
-        return "US";
+        // Match dropdown option value
+        return "United States";
       }
       if (["canada", "ca"].includes(normalized)) {
         return "Canada";
@@ -1086,7 +1087,8 @@ const StripePaymentContent = React.memo(
                             type="button"
                             onClick={() => {
                               setIsOtherCountry(false);
-                              onUpdate({ billing_country: 'US' });
+                              // Set to dropdown option value
+                              onUpdate({ billing_country: 'United States' });
                             }}
                             className="text-xs text-primary hover:underline mt-1"
                           >

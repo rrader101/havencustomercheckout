@@ -222,6 +222,7 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
             className={`${errors.streetAddress ? 'border-red-500' : ''}`}
             value={data.streetAddress || ''}
             onChange={(value) => handleInputChange('streetAddress', value)}
+            allowedCountries={['us', 'ca']}
           />
           {errors.streetAddress && (
             <p className="text-sm text-red-600">{errors.streetAddress}</p>

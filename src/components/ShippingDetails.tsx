@@ -273,7 +273,8 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
   const normalizeCountry = (country: string): string => {
     const normalized = country.toLowerCase().trim();
     if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
-      return 'US';
+      // Match dropdown option value
+      return 'United States';
     }
     if (['canada', 'ca'].includes(normalized)) {
       return 'Canada';

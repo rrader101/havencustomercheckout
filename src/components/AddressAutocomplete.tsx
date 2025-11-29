@@ -22,6 +22,8 @@ interface AddressAutocompleteProps {
   label?: string;
   className?: string;
   error?: string;
+  // Optional list of allowed country codes (ISO 3166-1 alpha-2, lowercase)
+  allowedCountries?: string[];
 }
 
 export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
@@ -31,7 +33,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   placeholder = "Enter street address",
   label = "Street Address",
   className = "",
-  error
+  error,
+  allowedCountries = ['us', 'ca', 'bs', 'bb', 'ky', 'jm', 'tt', 'tc', 'vg', 'vi', 'bm']
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -59,8 +62,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           const autocomplete = new Autocomplete(inputRef.current, {
             types: ['address'],
             fields: ['address_components', 'formatted_address'],
-            componentRestrictions: { 
-              country: ['us', 'ca', 'bs', 'bb', 'ky', 'jm', 'tt', 'tc', 'vg', 'vi', 'bm']
+            componentRestrictions: {
+              country: allowedCountries
             }
           } as google.maps.places.AutocompleteOptions);
 
@@ -104,7 +107,8 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
               } else if (types.includes('administrative_area_level_1')) {
                 components.state = component.short_name;
               } else if (types.includes('country')) {
-                components.country = component.long_name;
+                // Use ISO country code (short_name) for consistent handling (e.g., 'US', 'CA')
+                components.country = component.short_name;
               } else if (types.includes('postal_code')) {
                 components.zipCode = component.long_name;
               }

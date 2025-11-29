@@ -3,7 +3,6 @@ import { Card } from '@/components/ui/card';
 import { ChevronDown, ChevronUp, Receipt, Calendar, DollarSign } from 'lucide-react';
 import { Invoice, Deal } from '@/services/api';
 
-// PHP-like rounding function to handle cases like 0.024 -> 0.02
 const phpRound = (value: number, precision: number = 2): string => {
   const factor = Math.pow(10, precision);
   return (Math.floor(value * factor) / factor).toFixed(precision);
@@ -21,12 +20,10 @@ interface InvoiceSelectionProps {
 }
 
 export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, loading, onNext, onBack, isOrderSummary = false }: InvoiceSelectionProps) => {
-  // Updated UI styling for better visual consistency
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const [changeView, setChangeView] = useState(false);
 
  const toggleInvoice = (invoiceId: string) => {
-  // Ignore toggles on disabled invoices (already handled by caller guards)
   const selectableIds = availableInvoices
     .filter((inv) => !isInvoicePaid(inv.status))
     .map((inv) => inv.id.toString());
@@ -34,12 +31,10 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
   const currentlySelectedIds = selectableIds.filter((id) => !!data[id]);
   const isCurrentlySelected = !!data[invoiceId];
 
-  // If trying to deselect and it's the only selected one, block it
   if (isCurrentlySelected && currentlySelectedIds.length === 1) {
     return; // do nothing (must keep at least one selected)
   }
 
-  // Otherwise, toggle normally
   onUpdate({ [invoiceId]: !isCurrentlySelected });
 };
 
@@ -56,7 +51,6 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
   };
 
   const isOneTimeInvoice = (invoice: Invoice) => {
-    // Check if deal type is 'One Time'
     return deal?.type === 'One Time';
   };
 
@@ -78,7 +72,6 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
     );
   }
 
-  // Compact version for order summary
   if (isOrderSummary) {
     return (
         <div className="space-y-4">
@@ -219,7 +212,6 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
   }
 
 
-  // Full version for dedicated step
   return (
     <div className="space-y-4">
       <div className="mb-6">
@@ -239,7 +231,6 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
         const isDisabled = isPaid;
 
         if (isOneTime) {
-          // Enhanced One Time invoice UI
           return (
             <div key={invoice.id} className="bg-white rounded-xl border border-gray-200 shadow-lg hover:shadow-xl">
               {/* Enhanced Header */}
@@ -346,7 +337,6 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
             </div>
           );
         } else {
-          // Enhanced Regular invoice UI
           return (
             <div 
               key={invoice.id}

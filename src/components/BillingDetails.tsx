@@ -33,10 +33,8 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [initialData, setInitialData] = useState<BillingData | null>(null);
 
-  // Comprehensive country list (same as PaymentSection)
   const countries = ['US', 'Canada'];
 
-  // Country normalization handled inline in address selection callback
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -109,7 +107,6 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
   const handleInputChange = useCallback((field: keyof BillingData, value: string) => {
     onUpdate({ [field]: value });
     
-    // Clear error for this field when user starts typing
     if (errors[field]) {
       setErrors(prev => {
         const newErrors = { ...prev };
@@ -126,7 +123,6 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
     country: string;
     zipCode: string;
   }) => {
-    // Normalize the country from Google Places API
     const normalizedInput = addressData.country.toLowerCase().trim();
     const normalizedCountry = [
       'usa',
@@ -146,7 +142,6 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
       zipCode: addressData.zipCode,
     });
     
-    // Clear related errors
     setErrors(prev => {
       const newErrors = { ...prev };
       delete newErrors.streetAddress;
@@ -158,7 +153,6 @@ export const BillingDetails = React.memo(({ data, onUpdate, onNext, onBack, deal
     });
   }, [onUpdate]);
 
-  // Store initial data on mount
   useEffect(() => {
     if (!initialData) {
       setInitialData({ ...data });

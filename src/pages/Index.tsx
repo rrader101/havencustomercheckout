@@ -9,13 +9,11 @@ const Index = () => {
   const [showNotFound, setShowNotFound] = useState(false);
 
   useEffect(() => {
-    // If we're on the root path and no dealId, show NotFound component
     if (location.pathname === '/' && !dealId) {
       setShowNotFound(true);
     }
   }, [dealId, location.pathname]);
 
-  // If we're on root path and no dealId, show NotFound component
   if (location.pathname === '/' && !dealId) {
     return <NotFound />;
   }

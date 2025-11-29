@@ -3,7 +3,6 @@ import { PaymentRequest } from '@stripe/stripe-js';
 import { useStripe } from '@stripe/react-stripe-js';
 import { PaymentRequestContext, type PaymentRequestContextType } from './PaymentRequestContextBase';
 
-// Note: Hook moved to ./usePaymentRequest to keep this file exporting only components
 
 interface PaymentRequestProviderProps {
   children: ReactNode;
@@ -16,15 +15,11 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
   const paymentMethodHandlerRef = useRef<((paymentMethodId: string, method: string) => void | Promise<void>) | null>(null);
   const errorHandlerRef = useRef<((error: string) => void) | null>(null);
 
-  // Function to initialize payment request with specific currency and country
   const initializePaymentRequest = useCallback((currency: 'USD' | 'CAD', country: string) => {
     if (!stripe) return;
 
-    // Map currency to lowercase for Stripe
     const stripeCurrency = currency.toLowerCase();
     
-    // Map country code for Stripe - Important: currency and country must match for Apple Pay
-    // CAD currency requires CA country, USD currency requires US country
     let stripeCountry;
     if (currency === 'CAD') {
       stripeCountry = 'CA'; // Canadian dollars require Canada
@@ -44,7 +39,6 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
       requestPayerEmail: true,
     });
 
-    // Check what payment methods are available
     pr.canMakePayment().then(result => {
       if (result) {
         setPaymentRequest(pr);
@@ -55,13 +49,11 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
           country: stripeCountry,
           originalCountry: country
         });
-        // Clear previous payment request if currency change made it unavailable
         setPaymentRequest(null);
         setCanMakePayment(null);
       }
     });
 
-    // Handle payment method selection
     pr.on('paymentmethod', async (event) => {
       try {
         if (!paymentMethodHandlerRef.current) {
@@ -72,7 +64,6 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
           return;
         }
 
-        // Determine payment method type
         let method = 'card';
         if (event.walletName === 'applePay') method = 'apple-pay';
         else if (event.walletName === 'googlePay') method = 'google-pay';
@@ -94,7 +85,6 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
     });
   }, [stripe]);
 
-  // Initialize payment request when Stripe is available
   useEffect(() => {
     if (!stripe) return;
 

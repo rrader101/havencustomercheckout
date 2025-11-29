@@ -36,7 +36,6 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
   const [initialData, setInitialData] = useState<ShippingData | null>(null);
   const [isOtherCountry, setIsOtherCountry] = useState(false);
 
-  // Comprehensive country list including Caribbean countries
  const countries = [
   "Other",
   "Afghanistan",
@@ -237,7 +236,6 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
   const posthog = usePostHog();
 
 
-  // Display mapping for country names
   const getCountryDisplayName = (countryCode: string): string => {
     switch (countryCode) {
       case 'US':
@@ -269,11 +267,9 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
     }
   };
 
-  // Normalize country names to match dropdown options
   const normalizeCountry = (country: string): string => {
     const normalized = country.toLowerCase().trim();
     if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
-      // Match dropdown option value
       return 'United States';
     }
     if (['canada', 'ca'].includes(normalized)) {
@@ -322,7 +318,6 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
 
     setErrors(newErrors);
 
-    // PostHog: Track validation errors
     if (Object.keys(newErrors).length > 0 && posthog) {
       posthog.capture(CheckoutEvents.FORM_VALIDATION_ERROR, {
         [CheckoutEventProperties.ERROR_TYPE]: 'shipping_validation_failed',
@@ -338,7 +333,6 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
 
   const handleSubmit = async () => {
     if (validateForm()) {
-      // Call address API only if user has made changes
     if (dealId && hasUserChanges) {
       try {
         setIsLoading(true);
@@ -356,7 +350,6 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
         toast({
         description: 'Failed to save shipping address. Please try again.',
         });
-        // You might want to show an error message to the user here
       } finally {
         setIsLoading(false);
       }
@@ -366,7 +359,6 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
     }
   };
 
-  // Track initial data to detect user changes
   useEffect(() => {
     if (!initialData && data.name) {
       setInitialData({ ...data });
@@ -379,7 +371,6 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
     
-    // Mark that user has made changes
     if (initialData && !hasUserChanges) {
       setHasUserChanges(true);
     }
@@ -428,7 +419,6 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
             value={data.streetAddress}
             onChange={(value) => handleInputChange('streetAddress', value)}
             onAddressSelect={(addressComponents) => {
-              // Auto-fill the address fields when user selects from Google Places
               
               const updatedData = {
                 streetAddress: addressComponents.streetAddress,
@@ -440,12 +430,10 @@ export const ShippingDetails = React.memo(({ data, onUpdate, onNext, dealId }: S
               
               onUpdate(updatedData);
               
-              // Mark that user has made changes when selecting from autocomplete
               if (initialData && !hasUserChanges) {
                 setHasUserChanges(true);
               }
 
-              // PostHog: Track autocomplete usage
               if (posthog) {
                 posthog.capture(CheckoutEvents.SHIPPING_ADDRESS_AUTOCOMPLETE_USED, {
                   [CheckoutEventProperties.DEAL_ID]: dealId,

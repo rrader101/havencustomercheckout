@@ -21,7 +21,6 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
   const posthog = usePostHog();
 
-  // PostHog: Track addon viewed when component mounts
   useEffect(() => {
     if (posthog && availableAddOns.length > 0) {
       availableAddOns.forEach(addon => {

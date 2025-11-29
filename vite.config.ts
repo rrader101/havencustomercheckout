@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -20,7 +19,6 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    // Enable code splitting
     rollupOptions: {
       output: {
         manualChunks: {
@@ -30,9 +28,7 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
-    // Optimize chunk size
     chunkSizeWarningLimit: 1000,
-    // Enable minification
     minify: 'terser',
     terserOptions: {
       compress: {
@@ -41,7 +37,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  // Enable CSS code splitting
   css: {
     devSourcemap: mode === 'development',
   },

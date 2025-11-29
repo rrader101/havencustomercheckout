@@ -11,7 +11,6 @@ export const OrderConfirmed: React.FC = () => {
   const dealId = searchParams.get('dealId');
   const posthog = usePostHog();
 
-  // PostHog: Track checkout completion and cleanup localStorage
   useEffect(() => {
     if (posthog && orderID) {
       posthog.capture(CheckoutEvents.CHECKOUT_COMPLETED, {
@@ -20,7 +19,6 @@ export const OrderConfirmed: React.FC = () => {
       });
     }
 
-    // Clean up localStorage for this deal
     if (dealId) {
       const localStorageKey = `checkout_addons_${dealId}`;
       localStorage.removeItem(localStorageKey);

@@ -1,4 +1,3 @@
-// API service for fetching deals data
 
 export interface DealAddOn {
   id: number;
@@ -182,7 +181,6 @@ export const processPayment = async (paymentData: PaymentData): Promise<PaymentR
     const result = await response.json();
 
     if (!response.ok) {
-      // Create structured error object with message property
       const errorObj = {
         message: result.message || result.error || 'Payment failed',
         error: result.error,
@@ -211,7 +209,6 @@ export const saveAddress = async (addressData: AddressData): Promise<AddressResp
     const result = await response.json();
 
     if (!response.ok) {
-      // Create structured error object with message property
       const errorObj = {
         message: result.message || result.error || 'Address save failed',
         error: result.error,
@@ -238,7 +235,6 @@ export const processChequePayment = async (chequeData: ChequePaymentData): Promi
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    // Create structured error object with message property
     const errorObj = {
       message: errorData.message || errorData.error || `HTTP error! status: ${response.status}`,
       error: errorData.error,

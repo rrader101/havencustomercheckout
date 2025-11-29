@@ -4,45 +4,36 @@
  */
 
 export enum CheckoutEvents {
-  // Page and session events
   CHECKOUT_PAGE_VIEW = 'checkout_page_view',
   CHECKOUT_DROP_OFF = 'checkout_drop_off',
   CHECKOUT_COMPLETED = 'checkout_completed',
 
-  // Step transition events
   CHECKOUT_STEP_TRANSITION = 'checkout_step_transition',
 
-  // Shipping step events
   SHIPPING_INFO_UPDATED = 'shipping_info_updated',
   SHIPPING_ADDRESS_AUTOCOMPLETE_USED = 'shipping_address_autocomplete_used',
 
-  // Addon step events
   ADDON_SELECTED = 'addon_selected',
   ADDON_DESELECTED = 'addon_deselected',
   ADDON_VIEWED = 'addon_viewed',
 
-  // Invoice selection events (for One Time deals)
   INVOICE_SELECTED = 'invoice_selected',
   INVOICE_DESELECTED = 'invoice_deselected',
 
-  // Payment step events
   PAYMENT_METHOD_CHANGED = 'payment_method_changed',
   PAYMENT_BILLING_ADDRESS_TOGGLED = 'payment_billing_address_toggled',
   PAYMENT_BILLING_ADDRESS_UPDATED = 'payment_billing_address_updated',
   PAYMENT_CARDHOLDER_NAME_UPDATED = 'payment_cardholder_name_updated',
   PAYMENT_EMAIL_UPDATED = 'payment_email_updated',
 
-  // Payment processing events
   PAYMENT_ATTEMPTED = 'payment_attempted',
   PAYMENT_SUCCEEDED = 'payment_succeeded',
   PAYMENT_FAILED = 'payment_failed',
 
-  // Error events
   FORM_VALIDATION_ERROR = 'form_validation_error',
   API_ERROR = 'api_error',
   STRIPE_ERROR = 'stripe_error',
 
-  // User interaction events
   BUTTON_CLICKED = 'button_clicked',
   FORM_FIELD_FOCUSED = 'form_field_focused',
   FORM_FIELD_BLURRED = 'form_field_blurred',

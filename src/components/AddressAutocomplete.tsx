@@ -3,7 +3,6 @@ import { setOptions, importLibrary } from '@googlemaps/js-api-loader';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-// Track whether Google Maps API options have been set to avoid repeated calls
 let gmapsApiOptionsInitialized: boolean = false;
 
 interface AddressComponents {
@@ -22,7 +21,6 @@ interface AddressAutocompleteProps {
   label?: string;
   className?: string;
   error?: string;
-  // Optional list of allowed country codes (ISO 3166-1 alpha-2, lowercase)
   allowedCountries?: string[];
 }
 
@@ -41,14 +39,11 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
   const [inputValue, setInputValue] = useState(value);
 
-  // Sync with external value
   useEffect(() => {
     setInputValue(value);
   }, [value]);
 
-  // Initialize Google Places Autocomplete
   useEffect(() => {
-    // Configure loader options once and import the Places library
     try {
       if (!gmapsApiOptionsInitialized) {
         setOptions({ key: import.meta.env.VITE_GOOGLE_MAPS_PLACES_API_KEY, v: 'weekly' });
@@ -70,7 +65,6 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           autocompleteRef.current = autocomplete;
           setIsLoaded(true);
 
-          // Handle place selection from Google Places only
           autocomplete.addListener('place_changed', () => {
             const place = autocomplete.getPlace();
 
@@ -80,7 +74,6 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
             }
 
 
-            // Extract address components
             const components: AddressComponents = {
               streetAddress: '',
               city: '',
@@ -107,28 +100,24 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
               } else if (types.includes('administrative_area_level_1')) {
                 components.state = component.short_name;
               } else if (types.includes('country')) {
-                // Use ISO country code (short_name) for consistent handling (e.g., 'US', 'CA')
                 components.country = component.short_name;
               } else if (types.includes('postal_code')) {
                 components.zipCode = component.long_name;
               }
             });
 
-            // Combine street number, route, and subpremise (unit number) for street address
             const addressParts = [streetNumber, route];
             if (subpremise) {
               addressParts.push(`${subpremise}`);
             }
             components.streetAddress = addressParts.filter(part => part).join(' ').trim();
 
-            // If no street address found, use formatted address first part
             if (!components.streetAddress && place.formatted_address) {
               const parts = place.formatted_address.split(',');
               components.streetAddress = parts[0]?.trim() || '';
             }
 
 
-            // Update input with street address
             const streetAddr = components.streetAddress;
             setInputValue(streetAddr);
             onChange(streetAddr);

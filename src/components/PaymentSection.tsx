@@ -229,7 +229,6 @@ import { usePostHog } from 'posthog-js/react';
 import type { PostHog } from 'posthog-js';
 import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
 
-// Display mapping for country names
 const getCountryDisplayName = (countryCode: string): string => {
   switch (countryCode) {
     case "US":
@@ -325,7 +324,6 @@ export const PaymentSection = React.memo(
     const navigate = useNavigate();
     const posthog = usePostHog();
 
-    // Handle Stripe payment success
     const handlePaymentSuccess = async (
       paymentMethodId: string,
       method: string
@@ -349,14 +347,12 @@ export const PaymentSection = React.memo(
       setIsProcessing(false);
     };
 
-    // Handle checkout API call
     const handleCheckoutAPI = async (
       paymentMethodId: string,
       method: string
     ) => {
       setIsLoading(true);
 
-      // PostHog: Track payment attempt
       if (posthog) {
         posthog.capture(CheckoutEvents.PAYMENT_ATTEMPTED, {
           [CheckoutEventProperties.PAYMENT_METHOD]: method,
@@ -449,7 +445,6 @@ export const PaymentSection = React.memo(
           setOrderId(result.order_id);
           setShowSuccessPopup(true);
 
-          // PostHog: Track payment success
           if (posthog) {
             posthog.capture(CheckoutEvents.PAYMENT_SUCCEEDED, {
               [CheckoutEventProperties.PAYMENT_METHOD]: method,
@@ -470,7 +465,6 @@ export const PaymentSection = React.memo(
             : "Payment processing failed. Please try again.";
         setErrors((prev) => ({ ...prev, payment: errorMessage, api: "" }));
 
-        // PostHog: Track payment failure
         if (posthog) {
           posthog.capture(CheckoutEvents.PAYMENT_FAILED, {
             [CheckoutEventProperties.PAYMENT_METHOD]: method,
@@ -488,7 +482,6 @@ export const PaymentSection = React.memo(
       }
     };
 
-    // Helper function to determine processing fee rate based on country
     const getProcessingFeeRate = (country: string) => {
       const normalizedCountry = country.toLowerCase().trim();
       const usaVariants = [
@@ -502,7 +495,6 @@ export const PaymentSection = React.memo(
 
   
 
-    // Normalize country names to match dropdown options
     const normalizeCountry = (country: string): string => {
       const normalized = country.toLowerCase().trim();
       if (
@@ -510,7 +502,6 @@ export const PaymentSection = React.memo(
           normalized
         )
       ) {
-        // Match dropdown option value
         return "United States";
       }
       if (["canada", "ca"].includes(normalized)) {
@@ -546,7 +537,6 @@ export const PaymentSection = React.memo(
       return country;
     };
 
-    // Handle popup close and navigation
     const handlePopupClose = () => {
       setShowSuccessPopup(false);
       if (orderId) {
@@ -554,13 +544,11 @@ export const PaymentSection = React.memo(
       }
     };
 
-    // Handle check payment submission
     const handleCheckPayment = async () => {
       setErrors({ payment: "", api: "", card: "" });
       await handleCheckoutAPI("", "check");
     };
 
-    // Auto-populate shipping data when component mounts
     useEffect(() => {
       if (shippingData) {
         const updates: Partial<PaymentFormData> = {};
@@ -570,7 +558,6 @@ export const PaymentSection = React.memo(
         if (Object.keys(updates).length > 0) onUpdate(updates);
       }
       if (!data.method) onUpdate({ method: "card" });
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const validateForm = () => {
@@ -600,8 +587,6 @@ export const PaymentSection = React.memo(
       if (validateForm()) {
         if (data.method === "check") {
           handleCheckPayment();
-        } else {
-          // Other payment methods are handled via Stripe UI
         }
       }
     };
@@ -669,7 +654,6 @@ export const PaymentSection = React.memo(
       </StripeProvider>
     );
   },
-  // Custom comparison to prevent unnecessary re-renders that cause Stripe remounting
   (prevProps, nextProps) =>
     prevProps.data === nextProps.data &&
     prevProps.total === nextProps.total &&
@@ -682,7 +666,6 @@ export const PaymentSection = React.memo(
     prevProps.dealData === nextProps.dealData
 );
 
-// Stripe Payment Content Component (inside Elements provider)
 const StripePaymentContent = React.memo(
   ({
     data,
@@ -752,7 +735,6 @@ const StripePaymentContent = React.memo(
     const stripe = useStripe();
     const elements = useElements();
     
-    // Determine country based on deal data
     const country = dealData?.mailing_address_country || 'US';
     
     const {
@@ -860,7 +842,6 @@ const StripePaymentContent = React.memo(
               onChange={(e) => {
                 onUpdate({ userEmail: e.target.value });
 
-                // PostHog: Track email update
                 if (posthog) {
                   posthog.capture(CheckoutEvents.PAYMENT_EMAIL_UPDATED, {
                     [CheckoutEventProperties.DEAL_ID]: dealId,
@@ -931,7 +912,6 @@ const StripePaymentContent = React.memo(
                   onChange={(e) => {
                     onUpdate({ cardholderName: e.target.value });
 
-                    // PostHog: Track cardholder name update
                     if (posthog) {
                       posthog.capture(CheckoutEvents.PAYMENT_CARDHOLDER_NAME_UPDATED, {
                         [CheckoutEventProperties.DEAL_ID]: dealId,
@@ -954,7 +934,6 @@ const StripePaymentContent = React.memo(
                     onChange={(e) => {
                       const checked = e.target.checked;
 
-                      // PostHog: Track billing address toggle
                       if (posthog) {
                         posthog.capture(CheckoutEvents.PAYMENT_BILLING_ADDRESS_TOGGLED, {
                           [CheckoutEventProperties.DEAL_ID]: dealId,
@@ -965,11 +944,9 @@ const StripePaymentContent = React.memo(
                       }
 
                       if (checked) {
-                        // Use different billing address
                         const updates: Partial<PaymentFormData> = {
                           useDifferentBilling: true,
                         };
-                        // If fields are empty, set to ""
                         if (!data.billing_street_address)
                           updates.billing_street_address = "";
                         if (!data.billing_city) updates.billing_city = "";
@@ -978,7 +955,6 @@ const StripePaymentContent = React.memo(
                         if (!data.billing_zipcode) updates.billing_zipcode = "";
                         onUpdate(updates);
                       } else {
-                        // Use same as shipping
                         onUpdate({ useDifferentBilling: false });
                       }
                     }}
@@ -1087,7 +1063,6 @@ const StripePaymentContent = React.memo(
                             type="button"
                             onClick={() => {
                               setIsOtherCountry(false);
-                              // Set to dropdown option value
                               onUpdate({ billing_country: 'United States' });
                             }}
                             className="text-xs text-primary hover:underline mt-1"

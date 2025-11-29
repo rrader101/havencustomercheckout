@@ -9,12 +9,10 @@ import NotFound from '@/pages/NotFound';
 import { usePostHog } from 'posthog-js/react';
 import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
 
-// Import commonly used components directly for immediate availability
 import { PaymentSection } from './PaymentSection';
 import { AddOnsSection } from './AddOnsSection';
 import { ShippingDetails } from './ShippingDetails';
 
-// Lazy load less frequently used components
 const InvoiceSelection = lazy(() => import('./InvoiceSelection').then(module => ({ default: module.InvoiceSelection })));
 
 export interface FormData {
@@ -59,7 +57,6 @@ const PaymentForm = () => {
     const now = new Date();
     const timeSpent = now.getTime() - stepStartTime.getTime();
 
-    // PostHog: Track step transition
     if (posthog) {
       posthog.capture(CheckoutEvents.CHECKOUT_STEP_TRANSITION, {
         [CheckoutEventProperties.DEAL_ID]: dealId,
@@ -76,11 +73,9 @@ const PaymentForm = () => {
     navigate(`?step=${step}`, { replace: true });
   }, [navigate, currentStep, stepStartTime, posthog, dealId]);
 
-  // Normalize country names to match dropdown options
   const normalizeCountry = (country: string): string => {
     const normalized = country.toLowerCase().trim();
     if (['usa', 'us', 'united states', 'united states of america'].includes(normalized)) {
-      // Match dropdown option value
       return 'United States';
     }
     if (['canada', 'ca'].includes(normalized)) {
@@ -106,9 +101,7 @@ const PaymentForm = () => {
     },
   });
 
-  // Fetch deals data on component mount
   useEffect(() => {
-    // Only load once
     if (hasLoadedData.current) return;
     
     const loadDealsData = async () => {
@@ -120,19 +113,16 @@ const PaymentForm = () => {
         const dealData = response.deal;
         setDealsData(dealData);
         
-        // Initialize addOns state based on API response
         const initialAddOns: Record<string, boolean> = {};
         dealData.add_ons.forEach(addon => {
           initialAddOns[addon.id.toString()] = false;
         });
 
-        // Try to restore add-ons from localStorage
         const localStorageKey = `checkout_addons_${currentDealId}`;
         const savedAddOns = localStorage.getItem(localStorageKey);
         if (savedAddOns) {
           try {
             const parsedAddOns = JSON.parse(savedAddOns);
-            // Only restore add-ons that still exist in the current deal
             Object.keys(parsedAddOns).forEach(addonId => {
               if (addonId in initialAddOns) {
                 initialAddOns[addonId] = parsedAddOns[addonId];
@@ -143,14 +133,11 @@ const PaymentForm = () => {
           }
         }
         
-        // Initialize invoices state - select all invoices by default
         const initialInvoices: Record<string, boolean> = {};
         dealData.invoices.forEach(invoice => {
-          // Select all invoices by default, but disable paid ones from being toggled
           initialInvoices[invoice.id.toString()] = true;
         });
         
-        // Pre-fill form data from API response
         setFormData(prev => ({
           ...prev,
           shipping: {
@@ -169,11 +156,9 @@ const PaymentForm = () => {
         }));
       } catch (err) {
         console.error('API Error:', err);
-        // Show NotFound component inline instead of redirecting
         setShowNotFound(true);
         setError(err instanceof Error ? err.message : 'Failed to load deals data');
 
-        // PostHog: Track API error
         if (posthog) {
           posthog.capture(CheckoutEvents.API_ERROR, {
             [CheckoutEventProperties.ERROR_TYPE]: 'deals_data_load_failed',
@@ -188,10 +173,8 @@ const PaymentForm = () => {
     };
 
     loadDealsData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dealId]); // Only re-run if dealId changes
 
-  // Separate effect for PostHog tracking (runs when posthog is ready)
   useEffect(() => {
     if (posthog && dealsData) {
       posthog.identify(dealsData.contact_email || `deal_${dealId}`, {
@@ -213,7 +196,6 @@ const PaymentForm = () => {
     }
   }, [posthog, dealsData, dealId, initialStep]);
 
-  // Helper function to determine processing fee rate based on country
   const getProcessingFeeRate = useCallback((country: string) => {
     const normalizedCountry = country.toLowerCase().trim();
     const usaVariants = ['usa', 'us', 'united states', 'united states of america'];
@@ -227,7 +209,6 @@ const PaymentForm = () => {
         ? { ...prev, [section]: { ...currentSection, ...data } }
         : { ...prev, [section]: data };
 
-      // Save add-ons to localStorage when they change
       if (section === 'addOns' && dealId) {
         const localStorageKey = `checkout_addons_${dealId}`;
         const updatedAddOns = typeof currentSection === 'object' && currentSection !== null
@@ -236,7 +217,6 @@ const PaymentForm = () => {
         localStorage.setItem(localStorageKey, JSON.stringify(updatedAddOns));
       }
 
-      // PostHog: Track form updates (using the updated values from newFormData)
       if (posthog && dealsData) {
         if (section === 'addOns' && data) {
           Object.keys(data).forEach(addonId => {
@@ -295,9 +275,7 @@ const PaymentForm = () => {
     
     let transactionAmount = 0;
     
-    // Handle different deal types - base amount calculation
     if (dealsData.type === 'One Time') {
-      // For One Time deals, only use invoice amounts if invoices are selected
       const selectedInvoiceIds = Object.keys(formData.invoices).filter(id => formData.invoices[id]);
       if (selectedInvoiceIds.length > 0 && dealsData.invoices) {
         const selectedInvoices = dealsData.invoices.filter(invoice => 
@@ -307,30 +285,23 @@ const PaymentForm = () => {
           transactionAmount = selectedInvoices.reduce((sum, invoice) => sum + parseFloat(invoice.amount), 0);
         }
       }
-      // If no invoices selected, transactionAmount remains 0
     } else if (dealsData.type === 'Subscription') {
-      // For subscription deals, use monthly_subscription_price
       transactionAmount = dealsData.monthly_subscription_price || 0;
     } else {
-      // For BOGO and Contract deals, use amount
       transactionAmount = dealsData.amount || 0;
     }
     
-    // Handle add-ons with pricing behavior logic
     if (dealsData.add_ons) {
       const selectedAddOns = dealsData.add_ons.filter(addon => formData.addOns[addon.id.toString()]);
       
       if (selectedAddOns.length > 0) {
         if (selectedAddOns.length > 1) {
-          // Multiple add-ons: use sum of add-on amounts
           transactionAmount = selectedAddOns.reduce((sum, addon) => sum + parseFloat(addon.amount), 0);
         } else {
-          // Single add-on: apply pricing behavior
           const addon = selectedAddOns[0];
           if (addon.pricing_behavior.toLowerCase() === 'add') {
             transactionAmount = transactionAmount + parseFloat(addon.amount);
           } else {
-            // Replace behavior or default
             transactionAmount = parseFloat(addon.amount);
           }
         }
@@ -340,32 +311,26 @@ const PaymentForm = () => {
     return transactionAmount;
   }, [dealsData, formData.invoices, formData.addOns]);
 
-  // Calculate total with processing fee for payment processing
   const calculateTotalWithProcessingFee = useMemo(() => {
     if (calculateTotal <= 0) return 0;
     
-    // For subscriptions, no processing fee
     if (dealsData?.type !== 'One Time') {
       return parseFloat(calculateTotal.toFixed(2));
     }
     
-    // For one-time deals with check payment or add-ons selected, no processing fee
     if (formData.payment?.method === 'check' || Object.values(formData.addOns).some(selected => selected)) {
       return parseFloat(calculateTotal.toFixed(2));
     }
     
-    // For one-time deals with digital payment and no add-ons, add processing fee
     const processingFeeRate = getProcessingFeeRate(formData.shipping.country || '');
     const totalWithFee = calculateTotal * (1 + processingFeeRate);
     return parseFloat(totalWithFee.toFixed(2));
   }, [calculateTotal, dealsData?.type, formData.payment?.method, formData.addOns, formData.shipping.country, getProcessingFeeRate]);
 
-  // Payment status logic
   const getPaymentStatus = () => {
     const dueDate = new Date('2025-08-25'); // Updated due date: August 25, 2025
     const today = new Date();
     
-    // Reset time to compare just dates
     today.setHours(0, 0, 0, 0);
     dueDate.setHours(0, 0, 0, 0);
     
@@ -393,7 +358,6 @@ const PaymentForm = () => {
     return next.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
-  // PostHog: Track page drop-off on unload
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (posthog) {
@@ -410,7 +374,6 @@ const PaymentForm = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [posthog, currentStep, dealId, stepStartTime]);
 
-  // Show loading spinner while API call is in progress
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ 
@@ -430,7 +393,6 @@ const PaymentForm = () => {
     );
   }
 
-  // Show NotFound component if API error occurred
   if (showNotFound) {
     return <NotFound />;
   }
@@ -647,15 +609,12 @@ const PaymentForm = () => {
                         <span>Total</span>
                         <span className="text-primary">
                           ${(() => {
-                            // For subscriptions, no processing fee
                             if (dealsData?.type !== 'One Time') {
                               return parseFloat(calculateTotal.toFixed(2)).toFixed(2);
                             }
-                            // For one-time deals with check payment or add-ons selected, no processing fee
                             if (formData.payment?.method === 'check' || Object.values(formData.addOns).some(selected => selected)) {
                               return parseFloat(calculateTotal.toFixed(2)).toFixed(2);
                             }
-                            // For one-time deals with digital payment and no add-ons, add processing fee
                             const processingFeeRate = getProcessingFeeRate(formData.shipping.country || '');
                             const totalWithFee = calculateTotal * (1 + processingFeeRate);
                             return parseFloat(totalWithFee.toFixed(2)).toFixed(2);

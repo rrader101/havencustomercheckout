@@ -317,7 +317,6 @@ export const PaymentSection = React.memo(
     dealData,
   }: PaymentSectionProps) => {
     const [errors, setErrors] = useState<Record<string, string>>({});
-    const [isProcessing, setIsProcessing] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
     const [orderId, setOrderId] = useState<string>("");
@@ -328,7 +327,6 @@ export const PaymentSection = React.memo(
       paymentMethodId: string,
       method: string
     ) => {
-      setIsProcessing(true);
       setErrors((prev) => ({ ...prev, api: "" }));
       try {
         onUpdate({
@@ -344,15 +342,12 @@ export const PaymentSection = React.memo(
             : "Payment processing failed. Please try again.";
         setErrors((prev) => ({ ...prev, payment: errorMessage, api: "" }));
       }
-      setIsProcessing(false);
     };
 
     const handleCheckoutAPI = async (
       paymentMethodId: string,
       method: string
     ) => {
-      setIsLoading(true);
-
       if (posthog) {
         posthog.capture(CheckoutEvents.PAYMENT_ATTEMPTED, {
           [CheckoutEventProperties.PAYMENT_METHOD]: method,
@@ -545,6 +540,8 @@ export const PaymentSection = React.memo(
     };
 
     const handleCheckPayment = async () => {
+      if (isLoading) return; // Prevent double submission
+      setIsLoading(true);
       setErrors({ payment: "", api: "", card: "" });
       await handleCheckoutAPI("", "check");
     };
@@ -625,9 +622,8 @@ export const PaymentSection = React.memo(
             onPaymentSuccess={handlePaymentSuccess}
             errors={errors}
             setErrors={setErrors}
-            isProcessing={isProcessing}
-            setIsProcessing={setIsProcessing}
             isLoading={isLoading}
+            setIsLoading={setIsLoading}
             addOns={addOns}
             currency={currency}
             onBack={onBack}
@@ -677,9 +673,8 @@ const StripePaymentContent = React.memo(
     onPaymentSuccess,
     errors,
     setErrors,
-    isProcessing,
-    setIsProcessing,
     isLoading,
+    setIsLoading,
     addOns,
     currency,
     onBack,
@@ -713,9 +708,8 @@ const StripePaymentContent = React.memo(
     onPaymentSuccess: (paymentMethodId: string, method: string) => void;
     errors: Record<string, string>;
     setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
-    isProcessing: boolean;
-    setIsProcessing: (processing: boolean) => void;
     isLoading: boolean;
+    setIsLoading: (loading: boolean) => void;
     addOns?: Record<string, boolean>;
     currency: "USD" | "CAD";
     onBack: () => void;
@@ -763,10 +757,11 @@ const StripePaymentContent = React.memo(
 
     const handleCardPayment = async () => {
       if (!stripe || !elements) return;
+      if (isLoading) return; // Prevent double submission
       const cardElement = elements.getElement(CardElement);
       if (!cardElement) return;
 
-      setIsProcessing(true);
+      setIsLoading(true);
       setErrors({ payment: "", api: "", card: "" });
 
       try {
@@ -783,10 +778,12 @@ const StripePaymentContent = React.memo(
             api: "",
             card: "",
           });
-          setIsProcessing(false);
+          setIsLoading(false);
           return;
         }
 
+        // Call onPaymentSuccess but isLoading is already true, so it will skip the guard and setIsLoading
+        // handleCheckoutAPI will reset isLoading in finally block
         await onPaymentSuccess(paymentMethod.id, "card");
       } catch (error) {
         console.error("Payment processing failed:", error);
@@ -795,7 +792,7 @@ const StripePaymentContent = React.memo(
             ? error.message
             : "Payment processing failed. Please try again.";
         setErrors({ payment: errorMessage, api: "", card: "" });
-        setIsProcessing(false);
+        setIsLoading(false);
       }
     };
 
@@ -1183,14 +1180,13 @@ const StripePaymentContent = React.memo(
                 }
               }}
               disabled={
-                isProcessing ||
                 isLoading ||
                 (data.method !== "check" && (!stripe || !elements)) ||
                 total === 0
               }
               className="gap-2"
             >
-              {isProcessing || isLoading ? (
+              {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Processing

@@ -300,6 +300,7 @@ interface PaymentSectionProps {
     type: string;
     mailing_address_country: string;
   };
+  hasSubscriptionUpgrade?: boolean;
 }
 
 export const PaymentSection = React.memo(
@@ -315,6 +316,7 @@ export const PaymentSection = React.memo(
     currency,
     dealId,
     dealData,
+    hasSubscriptionUpgrade,
   }: PaymentSectionProps) => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isLoading, setIsLoading] = useState(false);
@@ -573,7 +575,8 @@ export const PaymentSection = React.memo(
     };
 
     const handleSubmit = () => {
-      if (total <= 0) {
+      // Allow $0 total for subscription upgrades (user pays new price from next billing cycle)
+      if (total <= 0 && !hasSubscriptionUpgrade) {
         setErrors((prev) => ({
           ...prev,
           payment:
@@ -639,6 +642,7 @@ export const PaymentSection = React.memo(
             normalizeCountry={normalizeCountry}
             posthog={posthog}
             dealId={dealId}
+            hasSubscriptionUpgrade={hasSubscriptionUpgrade}
           />
 
           <SuccessPopup
@@ -659,7 +663,8 @@ export const PaymentSection = React.memo(
     prevProps.invoices === nextProps.invoices &&
     prevProps.currency === nextProps.currency &&
     prevProps.dealId === nextProps.dealId &&
-    prevProps.dealData === nextProps.dealData
+    prevProps.dealData === nextProps.dealData &&
+    prevProps.hasSubscriptionUpgrade === nextProps.hasSubscriptionUpgrade
 );
 
 const StripePaymentContent = React.memo(
@@ -690,6 +695,7 @@ const StripePaymentContent = React.memo(
     normalizeCountry,
     posthog,
     dealId,
+    hasSubscriptionUpgrade,
   }: {
     data: PaymentFormData;
     onUpdate: (data: Partial<PaymentFormData>) => void;
@@ -725,6 +731,7 @@ const StripePaymentContent = React.memo(
     normalizeCountry: (country: string) => string;
     posthog: PostHog | null;
     dealId: string;
+    hasSubscriptionUpgrade?: boolean;
   }) => {
     const stripe = useStripe();
     const elements = useElements();
@@ -1190,7 +1197,7 @@ const StripePaymentContent = React.memo(
               disabled={
                 isLoading ||
                 (data.method !== "check" && (!stripe || !elements)) ||
-                total === 0
+                (total === 0 && !hasSubscriptionUpgrade)
               }
               className="gap-2"
             >

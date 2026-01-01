@@ -755,11 +755,16 @@ const StripePaymentContent = React.memo(
       if (total > 0) updatePaymentRequest(total);
     }, [total, updatePaymentRequest]);
 
+    const clickedRef = React.useRef(false);
     const handleCardPayment = async () => {
       if (!stripe || !elements) return;
-      if (isLoading) return; // Prevent double submission
+      if (isLoading || clickedRef.current) return; // Prevent double submission
+      clickedRef.current = true;
       const cardElement = elements.getElement(CardElement);
-      if (!cardElement) return;
+      if (!cardElement) {
+        clickedRef.current = false;
+        return;
+      }
 
       setIsLoading(true);
       setErrors({ payment: "", api: "", card: "" });
@@ -779,6 +784,7 @@ const StripePaymentContent = React.memo(
             card: "",
           });
           setIsLoading(false);
+          clickedRef.current = false;
           return;
         }
 
@@ -793,6 +799,8 @@ const StripePaymentContent = React.memo(
             : "Payment processing failed. Please try again.";
         setErrors({ payment: errorMessage, api: "", card: "" });
         setIsLoading(false);
+      } finally {
+        clickedRef.current = false;
       }
     };
 

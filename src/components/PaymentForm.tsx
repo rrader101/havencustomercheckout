@@ -275,6 +275,9 @@ const PaymentForm = () => {
     
     let transactionAmount = 0;
     
+    // Check if any add-ons are selected
+    const hasSelectedAddOns = dealsData.add_ons && dealsData.add_ons.some(addon => formData.addOns[addon.id.toString()]);
+    
     if (dealsData.type === 'One Time') {
       const selectedInvoiceIds = Object.keys(formData.invoices).filter(id => formData.invoices[id]);
       if (selectedInvoiceIds.length > 0 && dealsData.invoices) {
@@ -286,7 +289,22 @@ const PaymentForm = () => {
         }
       }
     } else if (dealsData.type === 'Subscription') {
-      transactionAmount = dealsData.monthly_subscription_price || 0;
+      // If user has active subscription, base amount is $0 (they already paid)
+      // They only pay for add-ons they select OR pending invoices
+      if (dealsData.has_active_subscription) {
+        // Check if there are pending invoices selected
+        const selectedInvoiceIds = Object.keys(formData.invoices).filter(id => formData.invoices[id]);
+        if (selectedInvoiceIds.length > 0 && dealsData.invoices) {
+          const selectedInvoices = dealsData.invoices.filter(invoice => 
+            selectedInvoiceIds.includes(invoice.id.toString()) && invoice.status !== 'Paid'
+          );
+          if (selectedInvoices.length > 0) {
+            transactionAmount = selectedInvoices.reduce((sum, invoice) => sum + parseFloat(invoice.amount), 0);
+          }
+        }
+      } else {
+        transactionAmount = dealsData.monthly_subscription_price || 0;
+      }
     } else {
       transactionAmount = dealsData.amount || 0;
     }
@@ -295,7 +313,17 @@ const PaymentForm = () => {
       const selectedAddOns = dealsData.add_ons.filter(addon => formData.addOns[addon.id.toString()]);
       
       if (selectedAddOns.length > 0) {
-        if (selectedAddOns.length > 1) {
+        // When user has active subscription, calculate add-on prices with proration for subscription upgrades
+        if (dealsData.has_active_subscription) {
+          transactionAmount += selectedAddOns.reduce((sum, addon) => {
+            // For subscription upgrades, use prorated price (new price - current price)
+            if (addon.type === 'Subscription' && parseFloat(addon.amount) > (dealsData.active_subscription_amount || 0)) {
+              const prorationAmount = parseFloat(addon.amount) - (dealsData.active_subscription_amount || 0);
+              return sum + prorationAmount;
+            }
+            return sum + parseFloat(addon.amount);
+          }, 0);
+        } else if (selectedAddOns.length > 1) {
           transactionAmount = selectedAddOns.reduce((sum, addon) => sum + parseFloat(addon.amount), 0);
         } else {
           const addon = selectedAddOns[0];
@@ -314,18 +342,35 @@ const PaymentForm = () => {
   const calculateTotalWithProcessingFee = useMemo(() => {
     if (calculateTotal <= 0) return 0;
     
-    if (dealsData?.type !== 'One Time') {
+    // For subscription deals WITHOUT active subscription (new subscription), no processing fee on frontend
+    // The subscription itself doesn't have processing fee added
+    if (dealsData?.type === 'Subscription' && !dealsData?.has_active_subscription) {
       return parseFloat(calculateTotal.toFixed(2));
     }
     
-    if (formData.payment?.method === 'check' || Object.values(formData.addOns).some(selected => selected)) {
-      return parseFloat(calculateTotal.toFixed(2));
+    // For subscription deals WITH active subscription (paying invoices/add-ons), add processing fee
+    // This matches backend logic in processInvoicePaymentForActiveSubscription
+    if (dealsData?.type === 'Subscription' && dealsData?.has_active_subscription) {
+      if (formData.payment?.method === 'check') {
+        return parseFloat(calculateTotal.toFixed(2));
+      }
+      const processingFeeRate = getProcessingFeeRate(formData.shipping.country || '');
+      const totalWithFee = calculateTotal * (1 + processingFeeRate);
+      return parseFloat(totalWithFee.toFixed(2));
     }
     
-    const processingFeeRate = getProcessingFeeRate(formData.shipping.country || '');
-    const totalWithFee = calculateTotal * (1 + processingFeeRate);
-    return parseFloat(totalWithFee.toFixed(2));
-  }, [calculateTotal, dealsData?.type, formData.payment?.method, formData.addOns, formData.shipping.country, getProcessingFeeRate]);
+    // For One Time deals
+    if (dealsData?.type === 'One Time') {
+      if (formData.payment?.method === 'check' || Object.values(formData.addOns).some(selected => selected)) {
+        return parseFloat(calculateTotal.toFixed(2));
+      }
+      const processingFeeRate = getProcessingFeeRate(formData.shipping.country || '');
+      const totalWithFee = calculateTotal * (1 + processingFeeRate);
+      return parseFloat(totalWithFee.toFixed(2));
+    }
+    
+    return parseFloat(calculateTotal.toFixed(2));
+  }, [calculateTotal, dealsData?.type, dealsData?.has_active_subscription, formData.payment?.method, formData.addOns, formData.shipping.country, getProcessingFeeRate]);
 
   const getPaymentStatus = () => {
     const dueDate = new Date('2025-08-25'); // Updated due date: August 25, 2025
@@ -443,6 +488,8 @@ const PaymentForm = () => {
                 availableAddOns={dealsData?.add_ons || []}
                 loading={loading}
                 dealId={dealId}
+                hasActiveSubscription={dealsData?.has_active_subscription}
+                activeSubscriptionAmount={dealsData?.active_subscription_amount}
               />
             )}
             
@@ -473,13 +520,31 @@ const PaymentForm = () => {
               style={{ willChange: 'transform, opacity' }}
             >
               <Card className="p-6 border-0 sticky top-8">
+                {/* Active Subscription Banner */}
+                {dealsData?.has_active_subscription && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-green-800">
+                          Active Subscription: ${dealsData.active_subscription_amount?.toFixed(2)}/month
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex items-center gap-3 mb-4">
                   <ClipboardList className="w-5 h-5 text-foreground" />
                   <h3 className="text-lg font-semibold text-foreground" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Order Summary</h3>
                 </div>
                 
-                {/* Invoice Selection - Only show for 'One Time' deals */}
-                {dealsData?.type === 'One Time' && (
+                {/* Invoice Selection - Show for 'One Time' and 'Subscription' deals with pending invoices */}
+                {(dealsData?.type === 'One Time' || (dealsData?.type === 'Subscription' && dealsData?.invoices && dealsData.invoices.length > 0)) && (
                   <div className="mb-4">
                     <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
                       <InvoiceSelection
@@ -494,8 +559,8 @@ const PaymentForm = () => {
                   </div>
                 )}
                 
-                {/* Deal Summary - Show for non-'One Time' deals */}
-                {dealsData?.type !== 'One Time' && (
+                {/* Deal Summary - Show for non-'One Time' deals that don't have invoices displayed */}
+                {dealsData?.type !== 'One Time' && !(dealsData?.type === 'Subscription' && dealsData?.invoices && dealsData.invoices.length > 0) && (
                   <>
                     {/* Invoice Number */}
                     <div className="flex justify-between items-center py-2 border-b border-border/50" style={{ marginBottom: '0.7rem' }}>
@@ -578,14 +643,37 @@ const PaymentForm = () => {
                   )}
                   
                   {/* Selected Add-ons */}
-                  {dealsData?.add_ons.map(addon => (
-                    formData.addOns[addon.id.toString()] && (
+                  {dealsData?.add_ons.map(addon => {
+                    if (!formData.addOns[addon.id.toString()]) return null;
+                    
+                    // Check if this is a subscription upgrade
+                    const isUpgrade = addon.type === 'Subscription' && 
+                      dealsData?.has_active_subscription && 
+                      parseFloat(addon.amount) > (dealsData?.active_subscription_amount || 0);
+                    
+                    const upgradePrice = isUpgrade 
+                      ? (parseFloat(addon.amount) - (dealsData?.active_subscription_amount || 0)).toFixed(2)
+                      : addon.amount;
+                    
+                    return (
                       <div key={addon.id} className="flex justify-between items-center py-2 border-b border-border/50">
-                        <span className="text-sm">{addon.title}</span>
-                        <span className="font-medium">${addon.amount}</span>
+                        <span className="text-sm">
+                          {addon.title}
+                          {isUpgrade && <span className="text-xs text-muted-foreground ml-1">(upgrade)</span>}
+                        </span>
+                        <span className="font-medium">
+                          {isUpgrade ? (
+                            <>
+                              <span className="line-through text-muted-foreground text-sm mr-1">${addon.amount}</span>
+                              <span>${upgradePrice}</span>
+                            </>
+                          ) : (
+                            `$${addon.amount}`
+                          )}
+                        </span>
                       </div>
-                    )
-                  ))}
+                    );
+                  })}
                   
                   {calculateTotal === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
@@ -595,8 +683,9 @@ const PaymentForm = () => {
                   
                   {calculateTotal > 0 && (
                     <>
-                      {/* Only show processing fee for one-time deals */}
-                      {dealsData?.type === 'One Time' && formData.payment?.method !== 'check' && Object.values(formData.addOns).every(selected => !selected) && (
+                      {/* Show processing fee for one-time deals (without add-ons selected) OR subscription deals with active subscription */}
+                      {((dealsData?.type === 'One Time' && formData.payment?.method !== 'check' && Object.values(formData.addOns).every(selected => !selected)) ||
+                        (dealsData?.type === 'Subscription' && dealsData?.has_active_subscription && formData.payment?.method !== 'check')) && (
                         <div className="flex justify-between items-center py-2 border-b border-border/50">
                           <span className="text-sm">Processing Fee</span>
                           <span className="font-medium">
@@ -608,28 +697,27 @@ const PaymentForm = () => {
                       <div className="flex justify-between items-center pt-3 text-lg font-bold">
                         <span>Total</span>
                         <span className="text-primary">
-                          ${(() => {
-                            if (dealsData?.type !== 'One Time') {
-                              return parseFloat(calculateTotal.toFixed(2)).toFixed(2);
-                            }
-                            if (formData.payment?.method === 'check' || Object.values(formData.addOns).some(selected => selected)) {
-                              return parseFloat(calculateTotal.toFixed(2)).toFixed(2);
-                            }
-                            const processingFeeRate = getProcessingFeeRate(formData.shipping.country || '');
-                            const totalWithFee = calculateTotal * (1 + processingFeeRate);
-                            return parseFloat(totalWithFee.toFixed(2)).toFixed(2);
-                          })()}
+                          ${calculateTotalWithProcessingFee.toFixed(2)}
                         </span>
                       </div>
                       
                       {/* Subscription Notice */}
-                      {dealsData?.type === 'Subscription' && (
+                      {dealsData?.type === 'Subscription' && !dealsData?.has_active_subscription && (
                         <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
                           <p className="text-xs text-muted-foreground">
                             Monthly billing — ${calculateTotal.toFixed(2)}/month. 8 print issues/year; digital content refreshed monthly.
                           </p>
                           <p className="text-xs text-muted-foreground mt-1">
                             First charge today; next charge on {getNextChargeDate()}. Receipts will be emailed to you. 12-month commitment; billed monthly; renews annually.
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Invoice Payment Notice for Active Subscription Users */}
+                      {dealsData?.type === 'Subscription' && dealsData?.has_active_subscription && (
+                        <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-muted">
+                          <p className="text-xs text-muted-foreground">
+                            One-time payment for selected invoices/add-ons. Your monthly subscription of ${dealsData.active_subscription_amount?.toFixed(2)}/month remains unchanged.
                           </p>
                         </div>
                       )}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Star, TrendingUp, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Star, TrendingUp, Zap, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
 import { DealAddOn } from '@/services/api';
 import { AddOnsTypes } from '@/lib/constants';
 import { usePostHog } from 'posthog-js/react';
@@ -15,9 +15,11 @@ interface AddOnsSectionProps {
   availableAddOns: DealAddOn[];
   loading?: boolean;
   dealId?: string;
+  hasActiveSubscription?: boolean;
+  activeSubscriptionAmount?: number | null;
 }
 
-export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns, loading, dealId }: AddOnsSectionProps) => {
+export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns, loading, dealId, hasActiveSubscription, activeSubscriptionAmount }: AddOnsSectionProps) => {
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
   const posthog = usePostHog();
 
@@ -57,6 +59,13 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
     );
   }
 
+  // Check if a subscription add-on is the same price as current subscription (not an upgrade)
+  const isSubscriptionSameAsActive = (addon: DealAddOn): boolean => {
+    if (!hasActiveSubscription || !activeSubscriptionAmount) return false;
+    if (addon.type !== 'Subscription') return false;
+    return parseFloat(addon.amount) <= activeSubscriptionAmount;
+  };
+
   return (
     <Card className="p-6 border-0 bg-card">
       <div className="mb-10">
@@ -68,10 +77,12 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
             letterSpacing: "-0.02rem",
           }}
         >
-          Enhance Your Experience
+          {hasActiveSubscription ? 'Upgrade or Add Services' : 'Enhance Your Experience'}
         </h2>
         <p className="text-muted-foreground">
-          Select premium add-ons to maximize your investment
+          {hasActiveSubscription 
+            ? 'Select an upgrade or add one-time services to your subscription'
+            : 'Select premium add-ons to maximize your investment'}
         </p>
       </div>
 
@@ -81,22 +92,45 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
           const addonKey = addon.id.toString();
           const isSelected = !!data[addonKey];
           const isExpanded = !!expandedDescriptions[addonKey];
+          const isSameSubscription = isSubscriptionSameAsActive(addon);
+          const isUpgrade = addon.type === 'Subscription' && hasActiveSubscription && parseFloat(addon.amount) > (activeSubscriptionAmount || 0);
 
           return (
             <div
               key={addon.id}
               className={`
-                relative p-6 rounded-lg border-2 cursor-pointer transition-all duration-300 group
+                relative p-6 rounded-lg border-2 transition-all duration-300 group
                 ${
-                  isSelected
-                    ? "border-primary bg-gradient-accent"
-                    : "border-primary/20 bg-card hover:border-primary/50"
+                  isSameSubscription
+                    ? "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed"
+                    : isSelected
+                    ? "border-primary bg-gradient-accent cursor-pointer"
+                    : "border-primary/20 bg-card hover:border-primary/50 cursor-pointer"
                 }
               `}
-              onClick={() => toggleAddon(addonKey)}
+              onClick={() => !isSameSubscription && toggleAddon(addonKey)}
             >
-              {/* Popular Badge */}
-              {addon.type === "Subscription" && (
+              {/* Already Subscribed Badge */}
+              {isSameSubscription && (
+                <div className="absolute -top-3 left-6">
+                  <span className="bg-gray-500 text-white text-xs font-medium px-3 py-1 rounded-full">
+                    Current Plan
+                  </span>
+                </div>
+              )}
+              
+              {/* Upgrade Badge - show for subscription add-ons that are higher than current */}
+              {isUpgrade && (
+                <div className="absolute -top-3 left-6">
+                  <span className="bg-primary text-white text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" />
+                    Upgrade
+                  </span>
+                </div>
+              )}
+              
+              {/* Popular Badge - only show for subscription add-ons without active subscription */}
+              {addon.type === "Subscription" && !hasActiveSubscription && (
                 <div className="absolute -top-3 left-6">
                   <span className="bg-foreground text-background px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
                     <Star className="w-3 h-3" />
@@ -118,15 +152,25 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
                     <div>
                       <h3 className="text-lg font-semibold">{addon.title}</h3>
                       <div className="text-sm text-primary font-medium">
-                        ${addon.amount}
-                        {addon.type === AddOnsTypes.Subscription && (
-                          <span>/month</span>
+                        {/* Show crossed out original price + upgrade price for subscription upgrades */}
+                        {isUpgrade ? (
+                          <>
+                            <span className="line-through text-muted-foreground mr-2">${addon.amount}</span>
+                            <span className="text-primary">${(parseFloat(addon.amount) - (activeSubscriptionAmount || 0)).toFixed(2)}</span>
+                            <span>/month upgrade</span>
+                          </>
+                        ) : (
+                          <>
+                            ${addon.amount}
+                            {addon.type === AddOnsTypes.Subscription && (
+                              <span>/month</span>
+                            )}
+                            {addon.type === AddOnsTypes.OneTime && (
+                              <span> one-time</span>
+                            )}
+                          </>
                         )}
-                        {addon.type === AddOnsTypes.OneTime && (
-                          <span> one-time</span>
-                        )}
-                      </div>{" "}
-                      {/* add /month if month other add one-time */}
+                      </div>
                     </div>
                   </div>
 
@@ -159,55 +203,17 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
                       )}
                     </p>
 
-                    {/* Tags - Only show when expanded (to mirror previous file’s style) */}
-                    {isExpanded && (
+                    {/* Tags - Parse from API and show when expanded */}
+                    {isExpanded && addon.tags && (
                       <div className="mt-4 flex flex-wrap gap-2">
-                        {addon.type !== AddOnsTypes.OneTime ? (
-                          <>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              Full-Page Feature
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              8 Issues (Annual)
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              Monthly Refresh
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              Print + Digital
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              Consistent Exposure
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              Brand Recognition
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              Cost Savings
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              &lt;3¢ per Reader
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              5,000+ Targeted Views
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              Local Reach
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              Multi-Platform Exposure
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              Engagement Insights
-                            </span>
-                            <span className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full">
-                              Seller Reporting
-                            </span>
-                          </>
-                        )}
+                        {addon.tags.split(',').map((tag, tagIndex) => (
+                          <span 
+                            key={tagIndex}
+                            className="px-2 py-1 bg-muted/50 text-foreground text-xs rounded-full"
+                          >
+                            {tag.trim()}
+                          </span>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -236,7 +242,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
         })}
       </div>
 
-      {/* Value Proposition (style aligned with previous file) */}
+      {/* Value Proposition */}
       {availableAddOns?.[0]?.type === "Subscription" && data?.[1] === true && (
         <div className="mt-6 p-4 bg-gradient-accent rounded-lg border border-primary/20">
           <div className="flex items-center gap-2 text-primary mb-2">

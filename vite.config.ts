@@ -6,8 +6,7 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
-    allowedHosts:true,
+    port: 8080
   },
   plugins: [
     react(),
@@ -22,11 +21,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          ui: ['lucide-react'],
-        },
+        // Let Vite handle chunking automatically
       },
     },
     chunkSizeWarningLimit: 1000,

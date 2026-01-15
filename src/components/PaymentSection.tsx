@@ -299,7 +299,9 @@ interface PaymentSectionProps {
   dealData?: {
     type: string;
     mailing_address_country: string;
+    processing_fee_exempt?: boolean;
   };
+  hasSubscriptionUpgrade?: boolean;
 }
 
 export const PaymentSection = React.memo(
@@ -315,6 +317,7 @@ export const PaymentSection = React.memo(
     currency,
     dealId,
     dealData,
+    hasSubscriptionUpgrade,
   }: PaymentSectionProps) => {
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isLoading, setIsLoading] = useState(false);
@@ -478,6 +481,10 @@ export const PaymentSection = React.memo(
     };
 
     const getProcessingFeeRate = (country: string) => {
+      // If deal is exempt from processing fees, return 0
+      if (dealData?.processing_fee_exempt) {
+        return 0;
+      }
       const normalizedCountry = country.toLowerCase().trim();
       const usaVariants = [
         "usa",
@@ -573,7 +580,8 @@ export const PaymentSection = React.memo(
     };
 
     const handleSubmit = () => {
-      if (total <= 0) {
+      // Allow $0 total for subscription upgrades (user pays new price from next billing cycle)
+      if (total <= 0 && !hasSubscriptionUpgrade) {
         setErrors((prev) => ({
           ...prev,
           payment:
@@ -639,6 +647,7 @@ export const PaymentSection = React.memo(
             normalizeCountry={normalizeCountry}
             posthog={posthog}
             dealId={dealId}
+            hasSubscriptionUpgrade={hasSubscriptionUpgrade}
           />
 
           <SuccessPopup
@@ -659,7 +668,8 @@ export const PaymentSection = React.memo(
     prevProps.invoices === nextProps.invoices &&
     prevProps.currency === nextProps.currency &&
     prevProps.dealId === nextProps.dealId &&
-    prevProps.dealData === nextProps.dealData
+    prevProps.dealData === nextProps.dealData &&
+    prevProps.hasSubscriptionUpgrade === nextProps.hasSubscriptionUpgrade
 );
 
 const StripePaymentContent = React.memo(
@@ -690,6 +700,7 @@ const StripePaymentContent = React.memo(
     normalizeCountry,
     posthog,
     dealId,
+    hasSubscriptionUpgrade,
   }: {
     data: PaymentFormData;
     onUpdate: (data: Partial<PaymentFormData>) => void;
@@ -725,6 +736,7 @@ const StripePaymentContent = React.memo(
     normalizeCountry: (country: string) => string;
     posthog: PostHog | null;
     dealId: string;
+    hasSubscriptionUpgrade?: boolean;
   }) => {
     const stripe = useStripe();
     const elements = useElements();
@@ -755,11 +767,16 @@ const StripePaymentContent = React.memo(
       if (total > 0) updatePaymentRequest(total);
     }, [total, updatePaymentRequest]);
 
+    const clickedRef = React.useRef(false);
     const handleCardPayment = async () => {
       if (!stripe || !elements) return;
-      if (isLoading) return; // Prevent double submission
+      if (isLoading || clickedRef.current) return; // Prevent double submission
+      clickedRef.current = true;
       const cardElement = elements.getElement(CardElement);
-      if (!cardElement) return;
+      if (!cardElement) {
+        clickedRef.current = false;
+        return;
+      }
 
       setIsLoading(true);
       setErrors({ payment: "", api: "", card: "" });
@@ -779,6 +796,7 @@ const StripePaymentContent = React.memo(
             card: "",
           });
           setIsLoading(false);
+          clickedRef.current = false;
           return;
         }
 
@@ -793,6 +811,8 @@ const StripePaymentContent = React.memo(
             : "Payment processing failed. Please try again.";
         setErrors({ payment: errorMessage, api: "", card: "" });
         setIsLoading(false);
+      } finally {
+        clickedRef.current = false;
       }
     };
 
@@ -1182,7 +1202,7 @@ const StripePaymentContent = React.memo(
               disabled={
                 isLoading ||
                 (data.method !== "check" && (!stripe || !elements)) ||
-                total === 0
+                (total === 0 && !hasSubscriptionUpgrade)
               }
               className="gap-2"
             >

@@ -1,3 +1,4 @@
+// api.ts (API service for fetching deals data)
 
 export interface DealAddOn {
   id: number;
@@ -7,7 +8,14 @@ export interface DealAddOn {
   amount: string;
   description: string;
   pricing_behavior: string;
+  tags?: string; // comma-separated tags
   isPopular?: boolean;
+  // Agreement configuration fields
+  issue_count?: number;
+  total_months?: number;
+  subscription_term?: number;
+  billing_interval?: string;
+  billing_interval_count?: number;
 }
 
 export interface DealProduct {
@@ -67,6 +75,15 @@ export interface Deal {
   add_ons: DealAddOn[];
   deal_products: DealProduct[];
   invoices: Invoice[];
+  // Active subscription info
+  has_active_subscription: boolean;
+  active_subscription_amount: number | null;
+  stripe_subscription_id?: string;
+  // Contact name info
+  contact_first_name: string | null;
+  contact_last_name: string | null;
+  // Processing fee exemption
+  processing_fee_exempt: boolean;
 }
 
 export interface DealsResponse {
@@ -146,103 +163,113 @@ export interface ChequePaymentResponse {
   order_id?: string;
 }
 
-const API_DOMAIN = import.meta.env.VITE_API_DOMAIN;
+/**
+ * Config
+ * - VITE_API_BASE_URL: full base url, e.g. https://xxxx.ngrok-free.app or https://api.yourdomain.com
+ * - VITE_NGROK_BYPASS: "true" to send ngrok-skip-browser-warning header
+ */
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined;
+const NGROK_BYPASS = import.meta.env.VITE_NGROK_BYPASS === 'true';
 
-if (!API_DOMAIN) {
-  throw new Error('VITE_API_DOMAIN environment variable is not set');
+console.log('API_BASE_URL:', API_BASE_URL);
+console.log('NGROK_BYPASS:', NGROK_BYPASS);
+
+if (!API_BASE_URL) {
+  throw new Error('VITE_API_BASE_URL environment variable is not set');
+}
+
+// Normalize base URL (remove trailing slashes)
+const BASE_URL = API_BASE_URL.replace(/\/+$/, '');
+
+const maybeNgrokHeaders = (): HeadersInit =>
+  NGROK_BYPASS ? { 'ngrok-skip-browser-warning': 'true' } : {};
+
+const jsonHeaders = (): HeadersInit => ({
+  'Content-Type': 'application/json',
+  ...maybeNgrokHeaders(),
+});
+
+async function parseJsonSafe<T>(response: Response): Promise<T | object> {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return {};
+  }
+}
+
+function buildError(response: Response, body: unknown, fallbackMessage: string) {
+  const bodyObj = typeof body === 'object' && body !== null ? (body as { message?: string; error?: string }) : {};
+  return new Error(
+    JSON.stringify({
+      message: bodyObj.message || bodyObj.error || fallbackMessage,
+      error: bodyObj.error,
+      status: response.status,
+    })
+  );
 }
 
 export const fetchDealsData = async (dealId: string): Promise<DealsResponse> => {
-  try {
-    const response = await fetch(`https://${API_DOMAIN}/api/deals/${dealId}`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch deal: ${response.status} ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching deals data:', error);
-    throw error;
-  }
-};
-
-export const processPayment = async (paymentData: PaymentData): Promise<PaymentResponse> => {
-  try {
-    const response = await fetch(`https://${API_DOMAIN}/api/payments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(paymentData),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      const errorObj = {
-        message: result.message || result.error || 'Payment failed',
-        error: result.error,
-        status: response.status
-      };
-      throw new Error(JSON.stringify(errorObj));
-    }
-
-    return result;
-  } catch (error) {
-    console.error('Payment API error:', error);
-    throw error;
-  }
-};
-
-export const saveAddress = async (addressData: AddressData): Promise<AddressResponse> => {
-  try {
-    const response = await fetch(`https://${API_DOMAIN}/api/payments/address`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(addressData),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      const errorObj = {
-        message: result.message || result.error || 'Address save failed',
-        error: result.error,
-        status: response.status
-      };
-      throw new Error(JSON.stringify(errorObj));
-    }
-
-    return result;
-  } catch (error) {
-    console.error('Address API error:', error);
-    throw error;
-  }
-};
-
-export const processChequePayment = async (chequeData: ChequePaymentData): Promise<ChequePaymentResponse> => {
-  const response = await fetch(`https://${API_DOMAIN}/api/payments/cheque-payments`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(chequeData),
+  const response = await fetch(`${BASE_URL}/api/deals/${dealId}`, {
+    headers: maybeNgrokHeaders(),
   });
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorObj = {
-      message: errorData.message || errorData.error || `HTTP error! status: ${response.status}`,
-      error: errorData.error,
-      status: response.status
-    };
-    throw new Error(JSON.stringify(errorObj));
+    throw new Error(`Failed to fetch deal: ${response.status} ${response.statusText}`);
   }
 
-  const result = await response.json();
-  return result;
+  return (await response.json()) as DealsResponse;
+};
+
+export const processPayment = async (paymentData: PaymentData): Promise<PaymentResponse> => {
+  const response = await fetch(`${BASE_URL}/api/payments`, {
+    method: 'POST',
+    headers: jsonHeaders(),
+    body: JSON.stringify(paymentData),
+  });
+
+  const result = await parseJsonSafe<PaymentResponse>(response);
+
+  if (!response.ok) {
+    throw buildError(response, result, 'Payment failed');
+  }
+
+  return result as PaymentResponse;
+};
+
+export const saveAddress = async (addressData: AddressData): Promise<AddressResponse> => {
+  const response = await fetch(`${BASE_URL}/api/payments/address`, {
+    method: 'POST',
+    headers: jsonHeaders(),
+    body: JSON.stringify(addressData),
+  });
+
+  const result = await parseJsonSafe<AddressResponse>(response);
+
+  if (!response.ok) {
+    throw buildError(response, result, 'Address save failed');
+  }
+
+  return result as AddressResponse;
+};
+
+export const processChequePayment = async (
+  chequeData: ChequePaymentData
+): Promise<ChequePaymentResponse> => {
+  const response = await fetch(`${BASE_URL}/api/payments/cheque-payments`, {
+    method: 'POST',
+    headers: jsonHeaders(),
+    body: JSON.stringify(chequeData),
+  });
+
+  const result = await parseJsonSafe<ChequePaymentResponse>(response);
+
+  if (!response.ok) {
+    throw buildError(
+      response,
+      result,
+      `HTTP error! status: ${response.status}`
+    );
+  }
+
+  return result as ChequePaymentResponse;
 };

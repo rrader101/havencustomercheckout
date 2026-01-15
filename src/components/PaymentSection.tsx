@@ -299,6 +299,7 @@ interface PaymentSectionProps {
   dealData?: {
     type: string;
     mailing_address_country: string;
+    processing_fee_exempt?: boolean;
   };
   hasSubscriptionUpgrade?: boolean;
 }
@@ -480,6 +481,10 @@ export const PaymentSection = React.memo(
     };
 
     const getProcessingFeeRate = (country: string) => {
+      // If deal is exempt from processing fees, return 0
+      if (dealData?.processing_fee_exempt) {
+        return 0;
+      }
       const normalizedCountry = country.toLowerCase().trim();
       const usaVariants = [
         "usa",

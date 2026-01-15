@@ -70,8 +70,18 @@ const PaymentForm = () => {
 
     setCurrentStep(step);
     setStepStartTime(now);
-    navigate(`?step=${step}`, { replace: true });
+    navigate(`?step=${step}`);
   }, [navigate, currentStep, stepStartTime, posthog, dealId]);
+
+  // Sync step from URL when browser back/forward is pressed
+  useEffect(() => {
+    const stepFromUrl = searchParams.get('step') as 'shipping' | 'addons' | 'payment' | null;
+    const validStep = stepFromUrl && ['shipping', 'addons', 'payment'].includes(stepFromUrl) ? stepFromUrl : 'shipping';
+    if (validStep !== currentStep) {
+      setCurrentStep(validStep);
+      setStepStartTime(new Date());
+    }
+  }, [searchParams]);
 
   const normalizeCountry = (country: string): string => {
     const normalized = country.toLowerCase().trim();
@@ -138,11 +148,16 @@ const PaymentForm = () => {
           initialInvoices[invoice.id.toString()] = true;
         });
         
+        // Build contact name from first and last name
+        const contactFullName = [dealData.contact_first_name, dealData.contact_last_name]
+          .filter(Boolean)
+          .join(' ');
+        
         setFormData(prev => ({
           ...prev,
           shipping: {
             ...prev.shipping,
-            name: dealData.name || '',
+            name: contactFullName || '',
             email: dealData.contact_email || '',
             streetAddress: dealData.mailing_address_street || '',
             city: dealData.mailing_address_city || '',
@@ -197,10 +212,14 @@ const PaymentForm = () => {
   }, [posthog, dealsData, dealId, initialStep]);
 
   const getProcessingFeeRate = useCallback((country: string) => {
+    // If deal is exempt from processing fees, return 0
+    if (dealsData?.processing_fee_exempt) {
+      return 0;
+    }
     const normalizedCountry = country.toLowerCase().trim();
     const usaVariants = ['usa', 'us', 'united states', 'united states of america'];
     return usaVariants.includes(normalizedCountry) ? 0.029 : 0.024;
-  }, []);
+  }, [dealsData?.processing_fee_exempt]);
 
   const updateFormData = useCallback(<K extends keyof FormData>(section: K, data: Partial<FormData[K]>) => {
     setFormData(prev => {
@@ -486,7 +505,9 @@ const PaymentForm = () => {
                 onUpdate={(data) => updateFormData('addOns', data)}
                 onNext={() => handleStepChange('payment')}
                 onBack={() => handleStepChange('shipping')}
-                availableAddOns={dealsData?.add_ons || []}
+                availableAddOns={dealsData?.add_ons?.filter(addon => 
+                  !(dealsData.type=="One Time"  && dealsData?.has_active_subscription && addon.type === 'Subscription')
+                ) || []}
                 loading={loading}
                 dealId={dealId}
                 hasActiveSubscription={dealsData?.has_active_subscription}
@@ -508,7 +529,8 @@ const PaymentForm = () => {
                 dealId={dealId || '006VL00000LCZE1YAP'}
                 dealData={dealsData ? {
                   type: dealsData.type,
-                  mailing_address_country: dealsData.mailing_address_country
+                  mailing_address_country: dealsData.mailing_address_country,
+                  processing_fee_exempt: dealsData.processing_fee_exempt
                 } : undefined}
                 hasSubscriptionUpgrade={dealsData?.has_active_subscription && dealsData?.add_ons?.some(addon => 
                   addon.type === 'Subscription' && formData.addOns[addon.id.toString()]
@@ -524,33 +546,24 @@ const PaymentForm = () => {
               style={{ willChange: 'transform, opacity' }}
             >
               <Card className="p-6 border-0 sticky top-8">
-                {/* For Active Subscription Users - Redesigned Summary */}
-                {dealsData?.has_active_subscription ? (
+                {/* For Active Subscription Users - Minimal Design */}
+                {dealsData?.has_active_subscription && dealsData.type === 'Subscription' ? (
                   <>
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-3 mb-5">
                       <ClipboardList className="w-5 h-5 text-foreground" />
                       <h3 className="text-lg font-semibold text-foreground" style={{ fontWeight: 700, fontSize: '1.4rem', letterSpacing: '-0.02rem' }}>Order Summary</h3>
                     </div>
 
-                    {/* Section 1: Current Subscription */}
-                    <div className="mb-5 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                        <span className="text-sm font-semibold text-foreground">Current Subscription</span>
-                      </div>
-                      <div className="space-y-1 pl-5">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Product</span>
-                          <span className="font-medium">{dealsData.deal_products?.[0]?.name || 'Subscription'}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Monthly Price</span>
-                          <span className="font-medium text-green-600">${dealsData.active_subscription_amount?.toFixed(2)}/mo</span>
-                        </div>
+                    {/* Current Subscription */}
+                    <div className="mb-4 pb-4 border-b border-border/50 pl-3 relative before:absolute before:left-0 before:top-0 before:bottom-4 before:w-0.5 before:bg-primary before:rounded-full bg-gradient-accent rounded-lg">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Current Plan</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">{dealsData.deal_products?.[0]?.name || 'Subscription'}</span>
+                        <span className="text-sm font-semibold">${dealsData.active_subscription_amount?.toFixed(2)}/mo</span>
                       </div>
                     </div>
 
-                    {/* Section 2: Subscription Upgrade (if selected) */}
+                    {/* Subscription Upgrade (if selected) */}
                     {(() => {
                       const selectedUpgrade = dealsData.add_ons?.find(addon => 
                         addon.type === 'Subscription' && formData.addOns[addon.id.toString()]
@@ -558,100 +571,58 @@ const PaymentForm = () => {
                       if (!selectedUpgrade) return null;
                       
                       return (
-                        <div className="mb-5 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                          <div className="flex items-center gap-2 mb-2">
-                            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                            </svg>
-                            <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">Upgrading To</span>
+                        <div className="mb-4 pb-4 border-b border-border/50">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Upgrading To</p>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium">{selectedUpgrade.product_name || selectedUpgrade.title}</span>
+                            <span className="text-sm font-semibold">${parseFloat(selectedUpgrade.amount).toFixed(2)}/mo</span>
                           </div>
-                          <div className="space-y-1 pl-6">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-blue-700 dark:text-blue-400">New Product</span>
-                              <span className="font-medium text-blue-900 dark:text-blue-200">{selectedUpgrade.product_name || selectedUpgrade.title}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-blue-700 dark:text-blue-400">New Monthly Price</span>
-                              <span className="font-bold text-blue-900 dark:text-blue-200">${parseFloat(selectedUpgrade.amount).toFixed(2)}/mo</span>
-                            </div>
-                            {selectedUpgrade.issue_count && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-blue-700 dark:text-blue-400">Issues/Year</span>
-                                <span className="font-medium text-blue-900 dark:text-blue-200">{selectedUpgrade.issue_count}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="mt-3 pt-2 border-t border-blue-200 dark:border-blue-700">
-                            <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                              </svg>
-                              Effective from next billing cycle
-                            </p>
-                          </div>
+                          <p className="text-xs text-muted-foreground">Starts next billing cycle</p>
                         </div>
                       );
                     })()}
 
-                    {/* Section 3: One-Time Add-ons (if any) */}
+                    {/* One-Time Add-ons (if any) */}
                     {(() => {
                       const oneTimeAddOns = dealsData.add_ons?.filter(addon => 
                         addon.type !== 'Subscription' && formData.addOns[addon.id.toString()]
                       );
                       if (!oneTimeAddOns || oneTimeAddOns.length === 0) return null;
                       
-                      const oneTimeTotal = oneTimeAddOns.reduce((sum, addon) => sum + parseFloat(addon.amount), 0);
-                      
                       return (
-                        <div className="mb-5">
-                          <div className="flex items-center gap-2 mb-2">
-                            <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            <span className="text-sm font-semibold text-foreground">One-Time Add-ons</span>
-                          </div>
-                          <div className="space-y-2 pl-6">
+                        <div className="mb-4 pb-4 border-b border-border/50">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Add-ons</p>
+                          <div className="space-y-2">
                             {oneTimeAddOns.map(addon => (
-                              <div key={addon.id} className="flex justify-between items-center text-sm py-1 border-b border-border/30">
+                              <div key={addon.id} className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground">{addon.title}</span>
                                 <span className="font-medium">${parseFloat(addon.amount).toFixed(2)}</span>
                               </div>
                             ))}
-                            <div className="flex justify-between items-center text-sm pt-1">
-                              <span className="font-medium">Add-ons Subtotal</span>
-                              <span className="font-semibold">${oneTimeTotal.toFixed(2)}</span>
-                            </div>
                           </div>
                         </div>
                       );
                     })()}
 
-                    {/* Section 4: Pending Invoices */}
+                    {/* Pending Invoices */}
                     {dealsData.invoices && dealsData.invoices.length > 0 && (
-                      <div className="mb-5">
-                        <div className="flex items-center gap-2 mb-2">
-                          <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          <span className="text-sm font-semibold text-foreground">Pending Invoices</span>
-                        </div>
-                        <div className="pl-6">
-                          <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
-                            <InvoiceSelection
-                              data={formData.invoices}
-                              onUpdate={(data) => updateFormData('invoices', data)}
-                              availableInvoices={dealsData.invoices}
-                              deal={dealsData}
-                              loading={loading}
-                              isOrderSummary={true}
-                            />
-                          </Suspense>
-                        </div>
+                      <div className="mb-4 pb-4 border-b border-border/50">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Invoices</p>
+                        <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-4 w-4 animate-spin" /></div>}>
+                          <InvoiceSelection
+                            data={formData.invoices}
+                            onUpdate={(data) => updateFormData('invoices', data)}
+                            availableInvoices={dealsData.invoices}
+                            deal={dealsData}
+                            loading={loading}
+                            isOrderSummary={true}
+                          />
+                        </Suspense>
                       </div>
                     )}
 
-                    {/* Section 5: Payment Summary */}
-                    <div className="mt-4 pt-4 border-t-2 border-border">
+                    {/* Payment Summary */}
+                    <div className="pt-2">
                       {(() => {
                         const selectedUpgrade = dealsData.add_ons?.find(addon => 
                           addon.type === 'Subscription' && formData.addOns[addon.id.toString()]
@@ -661,7 +632,6 @@ const PaymentForm = () => {
                         ) || [];
                         const oneTimeAddOnTotal = oneTimeAddOns.reduce((sum, addon) => sum + parseFloat(addon.amount), 0);
                         
-                        // Calculate selected invoice total
                         const selectedInvoiceIds = Object.keys(formData.invoices).filter(id => formData.invoices[id]);
                         const selectedInvoices = dealsData.invoices?.filter(invoice => 
                           selectedInvoiceIds.includes(invoice.id.toString()) && invoice.status !== 'Paid'
@@ -676,72 +646,55 @@ const PaymentForm = () => {
                         const totalDueToday = oneTimeCharges + processingFee;
                         
                         return (
-                          <div className="space-y-3">
-                            {/* Upgrade Info */}
-                            {selectedUpgrade && (
+                          <div className="space-y-2">
+                            {/* Line items */}
+                            {/* {selectedUpgrade && (
                               <div className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground">Subscription Upgrade</span>
-                                <span className="text-green-600 font-medium">$0.00 today</span>
+                                <span className="font-medium">$0.00</span>
                               </div>
-                            )}
+                            )} */}
                             
-                            {/* One-time charges breakdown */}
                             {oneTimeAddOnTotal > 0 && (
                               <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">One-Time Add-ons</span>
+                                <span className="text-muted-foreground">Add-ons</span>
                                 <span className="font-medium">${oneTimeAddOnTotal.toFixed(2)}</span>
                               </div>
                             )}
                             
                             {invoiceTotal > 0 && (
                               <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Invoice Payment</span>
+                                <span className="text-muted-foreground">Invoices</span>
                                 <span className="font-medium">${invoiceTotal.toFixed(2)}</span>
                               </div>
                             )}
                             
-                            {/* Processing Fee */}
                             {processingFee > 0 && (
                               <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Processing Fee ({(processingFeeRate * 100).toFixed(1)}%)</span>
+                                <span className="text-muted-foreground">Processing Fee</span>
                                 <span className="font-medium">${processingFee.toFixed(2)}</span>
                               </div>
                             )}
                             
-                            {/* Total Due Today */}
-                            <div className="flex justify-between items-center pt-3 border-t border-border">
-                              <span className="text-lg font-bold">Total Due Today</span>
-                              <span className="text-xl font-bold text-primary">${totalDueToday.toFixed(2)}</span>
+                            {/* Total */}
+                            <div className="flex justify-between items-center pt-3 mt-2 border-t border-border">
+                              <span className="text-base font-bold">Total Due Today</span>
+                              <span className="text-lg font-bold">${totalDueToday.toFixed(2)}</span>
                             </div>
                             
-                            {/* Next Billing Info */}
+                            {/* Upgrade notice */}
                             {selectedUpgrade && (
-                              <div className="mt-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                                <p className="text-xs text-green-700 dark:text-green-400 font-medium mb-1">
-                                  📅 From Next Billing Cycle:
-                                </p>
-                                <p className="text-sm text-green-800 dark:text-green-300 font-bold">
-                                  ${parseFloat(selectedUpgrade.amount).toFixed(2)}/month
-                                </p>
-                                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                  Your subscription will be upgraded immediately. No extra charge today.
-                                </p>
-                              </div>
-                            )}
-                            
-                            {/* Info when only paying invoices/add-ons */}
-                            {!selectedUpgrade && totalDueToday > 0 && (
-                              <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-muted">
+                              <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                                 <p className="text-xs text-muted-foreground">
-                                  One-time payment. Your subscription of ${dealsData.active_subscription_amount?.toFixed(2)}/month continues unchanged.
+                                  <span className="font-medium">Next billing cycle:</span> ${parseFloat(selectedUpgrade.amount).toFixed(2)}/month
                                 </p>
                               </div>
                             )}
                             
-                            {/* No selections made */}
+                            {/* No selections */}
                             {!selectedUpgrade && totalDueToday === 0 && (
-                              <div className="text-center py-4 text-muted-foreground">
-                                <p className="text-sm">Select add-ons or invoices to continue</p>
+                              <div className="text-center py-4">
+                                <p className="text-sm text-muted-foreground">Select add-ons or invoices to continue</p>
                               </div>
                             )}
                           </div>

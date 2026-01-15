@@ -79,6 +79,11 @@ export interface Deal {
   has_active_subscription: boolean;
   active_subscription_amount: number | null;
   stripe_subscription_id?: string;
+  // Contact name info
+  contact_first_name: string | null;
+  contact_last_name: string | null;
+  // Processing fee exemption
+  processing_fee_exempt: boolean;
 }
 
 export interface DealsResponse {

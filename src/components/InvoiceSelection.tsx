@@ -31,8 +31,10 @@ export const InvoiceSelection = ({ data, onUpdate, availableInvoices, deal, load
   const currentlySelectedIds = selectableIds.filter((id) => !!data[id]);
   const isCurrentlySelected = !!data[invoiceId];
 
-  if (isCurrentlySelected && currentlySelectedIds.length === 1) {
-    return; // do nothing (must keep at least one selected)
+  // For Subscription type, allow unselecting all invoices
+  // For other types (One Time), require at least one invoice to be selected
+  if (isCurrentlySelected && currentlySelectedIds.length === 1 && deal?.type !== 'Subscription') {
+    return; // do nothing (must keep at least one selected for non-subscription deals)
   }
 
   onUpdate({ [invoiceId]: !isCurrentlySelected });

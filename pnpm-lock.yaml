@@ -11,9 +11,6 @@ importers:
       '@googlemaps/js-api-loader':
         specifier: ^2.0.1
         version: 2.0.1
-      '@heroicons/react':
-        specifier: ^2.2.0
-        version: 2.2.0(react@19.2.0)
       '@hookform/resolvers':
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.65.0(react@19.2.0))
@@ -68,9 +65,6 @@ importers:
       react-hook-form:
         specifier: ^7.65.0
         version: 7.65.0(react@19.2.0)
-      react-icons:
-        specifier: ^5.5.0
-        version: 5.5.0(react@19.2.0)
       react-router-dom:
         specifier: ^7.9.4
         version: 7.9.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -517,11 +511,6 @@ packages:
 
   '@googlemaps/js-api-loader@2.0.1':
     resolution: {integrity: sha512-YUtKJSWH6FiE/6Ii+NP+WfkvoZ55DLwyqthKmVYxZZwn/ny310dvz9Zw3cO1besEhGxA9lW7Ctjmzae1putjXQ==}
-
-  '@heroicons/react@2.2.0':
-    resolution: {integrity: sha512-LMcepvRaS9LYHJGsF0zzmgKCUim/X3N/DQKc4jepAXJ7l8QxJ1PmxJzqplF2Z3FE4PqBAIGyJAQ/w4B5dsqbtQ==}
-    peerDependencies:
-      react: '>= 16 || ^19.0.0-rc'
 
   '@hookform/resolvers@3.10.0':
     resolution: {integrity: sha512-79Dv+3mDF7i+2ajj7SkypSKHhl1cbln1OGavqrsF7p6mbUv11xpqpacPsGDCTRvCSjEEIez2ef1NveSVL3b0Ag==}
@@ -1854,11 +1843,6 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
 
-  react-icons@5.5.0:
-    resolution: {integrity: sha512-MEFcXdkP3dLo8uumGI5xN3lDFNsRtrjbOEKDLD7yv76v4wpnEq2Lt2qeHaQOr34I/wPN3s3+N08WkQ+CW37Xiw==}
-    peerDependencies:
-      react: '*'
-
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
@@ -2394,10 +2378,6 @@ snapshots:
   '@googlemaps/js-api-loader@2.0.1':
     dependencies:
       '@types/google.maps': 3.58.1
-
-  '@heroicons/react@2.2.0(react@19.2.0)':
-    dependencies:
-      react: 19.2.0
 
   '@hookform/resolvers@3.10.0(react-hook-form@7.65.0(react@19.2.0))':
     dependencies:
@@ -3667,10 +3647,6 @@ snapshots:
       scheduler: 0.27.0
 
   react-hook-form@7.65.0(react@19.2.0):
-    dependencies:
-      react: 19.2.0
-
-  react-icons@5.5.0(react@19.2.0):
     dependencies:
       react: 19.2.0
 

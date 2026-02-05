@@ -661,7 +661,7 @@ All colors MUST be HSL.
 
 /* Google Places Autocomplete Dropdown Styling */
 .pac-container {
-  background-color: hsl(var(--background)) !important;
+  background-color: #F7F7F7 !important;
   border: 1px solid hsl(var(--input)) !important;
   border-radius: 0.5rem !important;
   box-shadow: none !important;

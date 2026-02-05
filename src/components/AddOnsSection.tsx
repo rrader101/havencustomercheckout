@@ -86,7 +86,7 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-8">
         {/* Dynamic Add-ons from API */}
         {availableAddOns.map((addon, index) => {
           const addonKey = addon.id.toString();

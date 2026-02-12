@@ -36,8 +36,42 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const styleRef = useRef<HTMLStyleElement | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [inputValue, setInputValue] = useState(value);
+
+  // Detect P.O. Box patterns to suppress autocomplete suggestions
+  const isPOBox = (text: string): boolean => {
+    const poBoxPattern = /^\s*p\.?\s*o\.?\s*box/i;
+    return poBoxPattern.test(text);
+  };
+
+  // Inject / remove a global CSS rule to forcibly hide the Google pac-container
+  const setPacContainerHidden = (hidden: boolean) => {
+    if (hidden) {
+      if (!styleRef.current) {
+        const style = document.createElement('style');
+        style.textContent = '.pac-container { display: none !important; }';
+        document.head.appendChild(style);
+        styleRef.current = style;
+      }
+    } else {
+      if (styleRef.current) {
+        styleRef.current.remove();
+        styleRef.current = null;
+      }
+    }
+  };
+
+  // Clean up injected style on unmount
+  useEffect(() => {
+    return () => {
+      if (styleRef.current) {
+        styleRef.current.remove();
+        styleRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setInputValue(value);
@@ -136,6 +170,9 @@ export const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
     const newValue = e.target.value;
     setInputValue(newValue);
     onChange(newValue);
+
+    // Toggle Google autocomplete dropdown visibility based on P.O. Box detection
+    setPacContainerHidden(isPOBox(newValue));
   };
 
   return (

@@ -11,7 +11,9 @@ import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/ana
 
 import { PaymentSection } from './PaymentSection';
 import { AddOnsSection } from './AddOnsSection';
+import { AddOnsSectionTwoStep } from './AddOnsSectionTwoStep';
 import { ShippingDetails } from './ShippingDetails';
+import { getAddOnsVariant, type AddOnsVariant } from '@/lib/ab-test';
 
 const InvoiceSelection = lazy(() => import('./InvoiceSelection').then(module => ({ default: module.InvoiceSelection })));
 
@@ -52,6 +54,19 @@ const PaymentForm = () => {
   const [stepStartTime, setStepStartTime] = useState<Date>(new Date());
   const posthog = usePostHog();
   const hasLoadedData = useRef(false);
+  const [addOnsVariant] = useState<AddOnsVariant>(() => getAddOnsVariant());
+
+  // Track AB test variant assignment once
+  useEffect(() => {
+    if (posthog) {
+      posthog.capture(CheckoutEvents.AB_TEST_VARIANT_ASSIGNED, {
+        [CheckoutEventProperties.AB_TEST_NAME]: 'addons_two_step',
+        [CheckoutEventProperties.AB_TEST_VARIANT]: addOnsVariant,
+        [CheckoutEventProperties.DEAL_ID]: dealId,
+        [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
+      });
+    }
+  }, [posthog, addOnsVariant, dealId]);
 
   const handleStepChange = useCallback((step: 'shipping' | 'addons' | 'payment') => {
     const now = new Date();
@@ -499,8 +514,24 @@ const PaymentForm = () => {
               />
             )}
             
-            {currentStep === 'addons' && (
+            {currentStep === 'addons' && addOnsVariant === 'control' && (
               <AddOnsSection
+                data={formData.addOns}
+                onUpdate={(data) => updateFormData('addOns', data)}
+                onNext={() => handleStepChange('payment')}
+                onBack={() => handleStepChange('shipping')}
+                availableAddOns={dealsData?.add_ons?.filter(addon => 
+                  !(dealsData.type=="One Time"  && dealsData?.has_active_subscription && addon.type === 'Subscription')
+                ) || []}
+                loading={loading}
+                dealId={dealId}
+                hasActiveSubscription={dealsData?.has_active_subscription}
+                activeSubscriptionAmount={dealsData?.active_subscription_amount}
+              />
+            )}
+
+            {currentStep === 'addons' && addOnsVariant === 'two-step' && (
+              <AddOnsSectionTwoStep
                 data={formData.addOns}
                 onUpdate={(data) => updateFormData('addOns', data)}
                 onNext={() => handleStepChange('payment')}

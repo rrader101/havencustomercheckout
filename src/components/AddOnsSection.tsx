@@ -38,7 +38,24 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
   }, [posthog, availableAddOns, dealId]);
 
   const toggleAddon = (addonId: string) => {
-    onUpdate({ [addonId]: !data[addonId] });
+    const newValue = !data[addonId];
+    onUpdate({ [addonId]: newValue });
+
+    if (posthog) {
+      const addon = availableAddOns.find(a => a.id.toString() === addonId);
+      posthog.capture(
+        newValue ? CheckoutEvents.ADDON_SELECTED : CheckoutEvents.ADDON_DESELECTED,
+        {
+          [CheckoutEventProperties.AB_TEST_NAME]: 'addons_two_step',
+          [CheckoutEventProperties.AB_TEST_VARIANT]: 'control',
+          [CheckoutEventProperties.ADDON_ID]: addonId,
+          [CheckoutEventProperties.ADDON_TITLE]: addon?.title,
+          [CheckoutEventProperties.ADDON_AMOUNT]: addon?.amount,
+          [CheckoutEventProperties.DEAL_ID]: dealId,
+          [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
+        }
+      );
+    }
   };
 
   const toggleDescription = (addonId: string, e: React.MouseEvent) => {
@@ -279,7 +296,23 @@ export const AddOnsSection = ({ data, onUpdate, onNext, onBack, availableAddOns,
             Back
           </Button>
 
-          <Button onClick={onNext} className="gap-2">
+          <Button onClick={() => {
+            const hasSelectedAddons = Object.values(data).some(Boolean);
+            if (posthog) {
+              posthog.capture(
+                hasSelectedAddons
+                  ? CheckoutEvents.AB_ADDON_YES_CLICKED
+                  : CheckoutEvents.AB_ADDON_NO_THANKS_CLICKED,
+                {
+                  [CheckoutEventProperties.AB_TEST_NAME]: 'addons_two_step',
+                  [CheckoutEventProperties.AB_TEST_VARIANT]: 'control',
+                  [CheckoutEventProperties.DEAL_ID]: dealId,
+                  [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
+                }
+              );
+            }
+            onNext();
+          }} className="gap-2">
             {Object.values(data).some(Boolean) ? "Payment" : "No thanks"}
             <ArrowRight className="w-4 h-4" />
           </Button>

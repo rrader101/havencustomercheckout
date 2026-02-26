@@ -37,6 +37,12 @@ export enum CheckoutEvents {
   BUTTON_CLICKED = 'button_clicked',
   FORM_FIELD_FOCUSED = 'form_field_focused',
   FORM_FIELD_BLURRED = 'form_field_blurred',
+
+  // AB Test events
+  AB_TEST_VARIANT_ASSIGNED = 'ab_test_variant_assigned',
+  AB_ADDON_YES_CLICKED = 'ab_addon_yes_clicked',
+  AB_ADDON_NO_THANKS_CLICKED = 'ab_addon_no_thanks_clicked',
+  AB_ADDON_STEP_VIEWED = 'ab_addon_step_viewed',
 }
 
 /**
@@ -65,6 +71,10 @@ export const CheckoutEventProperties = {
   ERROR_MESSAGE: 'error_message',
   BUTTON_NAME: 'button_name',
   FIELD_NAME: 'field_name',
+  AB_TEST_NAME: 'ab_test_name',
+  AB_TEST_VARIANT: 'ab_test_variant',
+  AB_ADDON_STEP_INDEX: 'ab_addon_step_index',
+  AB_ADDON_TOTAL_STEPS: 'ab_addon_total_steps',
 } as const;
 
 /**

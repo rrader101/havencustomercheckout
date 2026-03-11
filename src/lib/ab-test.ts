@@ -5,15 +5,18 @@
 
 const STORAGE_KEY = 'haven_ab_addons_variant';
 
-export type AddOnsVariant = 'control' | 'two-step';
+export type AddOnsVariant = 'control' | 'carousel';
 
 export function getAddOnsVariant(): AddOnsVariant {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === 'control' || stored === 'two-step') {
+  if (stored === 'control' || stored === 'carousel') {
     return stored;
   }
 
-  const variant: AddOnsVariant = Math.random() < 0.5 ? 'control' : 'two-step';
+  // Clear stale values (e.g. old "two-step" variant)
+  localStorage.removeItem(STORAGE_KEY);
+
+  const variant: AddOnsVariant = Math.random() < 0.5 ? 'control' : 'carousel';
   localStorage.setItem(STORAGE_KEY, variant);
   return variant;
 }

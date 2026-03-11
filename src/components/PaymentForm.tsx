@@ -11,7 +11,7 @@ import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/ana
 
 import { PaymentSection } from './PaymentSection';
 import { AddOnsSection } from './AddOnsSection';
-import { AddOnsSectionTwoStep } from './AddOnsSectionTwoStep';
+import { AddOnsSectionCarousel } from './AddOnsSectionCarousel';
 import { ShippingDetails } from './ShippingDetails';
 import { getAddOnsVariant, type AddOnsVariant } from '@/lib/ab-test';
 
@@ -530,8 +530,8 @@ const PaymentForm = () => {
               />
             )}
 
-            {currentStep === 'addons' && addOnsVariant === 'two-step' && (
-              <AddOnsSectionTwoStep
+            {currentStep === 'addons' && addOnsVariant === 'carousel' && (
+              <AddOnsSectionCarousel
                 data={formData.addOns}
                 onUpdate={(data) => updateFormData('addOns', data)}
                 onNext={() => handleStepChange('payment')}

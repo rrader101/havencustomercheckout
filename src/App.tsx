@@ -97,7 +97,7 @@ function CheckoutRouter() {
 
   const { layout } = resolution;
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div></div>}>
       <RedesignedPaymentForm
         // RedesignedPaymentForm itself reads ?layout from the URL; this default
         // only kicks in when the URL has no layout param (the common case here).
@@ -111,12 +111,27 @@ function CheckoutRouter() {
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
+/**
+ * Stripe Elements render inside a same-origin iframe that doesn't inherit
+ * fonts from the parent document. To make the card input render in DM Sans
+ * (matching the other form inputs in the redesigned checkout), we have to
+ * load the font *into* the iframe via Elements.options.fonts.
+ */
+const stripeElementsOptions = {
+  fonts: [
+    {
+      cssSrc:
+        "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap",
+    },
+  ],
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Elements stripe={stripePromise}>
+      <Elements stripe={stripePromise} options={stripeElementsOptions}>
         <PaymentRequestProvider>
           <Toaster />
           <Sonner />

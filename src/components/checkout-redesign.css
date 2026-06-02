@@ -1887,3 +1887,259 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* RedesignedPaymentForm (new-checkout/RedesignedPaymentForm.tsx)            */
+/* Ported from haven-checkout-new. All rules are scoped under .rpf so they  */
+/* don't collide with the existing .hc-* payment-section styles.            */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+.rpf {
+  --rpf-radius: 10px;
+  --rpf-radius-lg: 14px;
+}
+
+.rpf-pay-methods {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.rpf-pay-methods .rpf-wallet-cell {
+  grid-column: span 2;
+}
+
+.rpf-pay-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 18px;
+  color: var(--hc-ink-3, #6b6967);
+  font-size: 12px;
+}
+.rpf-pay-divider::before,
+.rpf-pay-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--hc-rule, #e5e2dd);
+}
+
+.rpf-pay-tabs {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--hc-accent-soft, #f4f1ec);
+  padding: 4px;
+  border-radius: var(--rpf-radius);
+  margin-bottom: 22px;
+}
+.rpf-pay-tabs .rpf-tab {
+  padding: 7px 14px;
+  font-size: 12.5px;
+  color: var(--hc-ink-2, #4a4845);
+  border-radius: calc(var(--rpf-radius) - 2px);
+  cursor: pointer;
+  font-weight: 500;
+  background: transparent;
+  border: 0;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.rpf-pay-tabs .rpf-tab:hover {
+  color: var(--hc-ink, #1c1b1a);
+}
+.rpf-pay-tabs .rpf-tab.active {
+  background: var(--hc-paper, #fff);
+  color: var(--hc-ink, #1c1b1a);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+.rpf-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 560px;
+}
+
+.rpf-card-field {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--hc-rule-2, #d8d4cd);
+  padding: 6px 2px 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 17px;
+  color: var(--hc-ink-3, #6b6967);
+  transition: border-color 0.15s ease;
+}
+.rpf-card-field.focused,
+.rpf-card-field:focus-within {
+  border-bottom-color: var(--hc-ink, #1c1b1a);
+}
+.rpf-card-field.has-error {
+  border-bottom-color: #a73535;
+}
+.rpf-card-field .rpf-card-input {
+  flex: 1;
+  min-width: 0;
+}
+.rpf-card-field .rpf-brands {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.rpf-card-field .rpf-brands span {
+  font-size: 10px;
+  padding: 2px 6px;
+  border: 1px solid var(--hc-rule-2, #d8d4cd);
+  border-radius: 3px;
+  color: var(--hc-ink-3, #6b6967);
+  letter-spacing: 0.02em;
+}
+
+.rpf-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  color: var(--hc-ink-2, #4a4845);
+  align-self: flex-start;
+}
+.rpf-checkbox-row .rpf-cb {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--hc-rule-2, #d8d4cd);
+  background: var(--hc-paper, #fff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.rpf-checkbox-row.on .rpf-cb {
+  background: var(--hc-ink, #1c1b1a);
+  border-color: var(--hc-ink, #1c1b1a);
+}
+.rpf-checkbox-row.on .rpf-cb::after {
+  content: '';
+  width: 4px;
+  height: 7px;
+  border-right: 1.5px solid var(--hc-paper, #fff);
+  border-bottom: 1.5px solid var(--hc-paper, #fff);
+  transform: rotate(45deg) translate(0, -1px);
+}
+
+.rpf-billing {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.rpf-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 18px;
+}
+@media (max-width: 640px) {
+  .rpf-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rpf-check-instructions {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--hc-ink-2, #4a4845);
+  background: var(--hc-accent-soft, #f4f1ec);
+  border: 1px solid var(--hc-rule, #e5e2dd);
+  border-radius: var(--rpf-radius);
+  padding: 18px 20px;
+  max-width: 560px;
+}
+.rpf-check-instructions .rpf-check-lead {
+  margin-bottom: 10px;
+}
+.rpf-check-instructions .rpf-check-address {
+  font-style: normal;
+  color: var(--hc-ink, #1c1b1a);
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+.rpf-check-instructions .rpf-check-payable {
+  font-size: 13px;
+  color: var(--hc-ink-3, #6b6967);
+  padding-top: 12px;
+  border-top: 1px solid var(--hc-rule, #e5e2dd);
+}
+.rpf-check-instructions .rpf-check-payable strong {
+  color: var(--hc-ink, #1c1b1a);
+  font-weight: 600;
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* Order Confirmed page ("You're in.") — ported from haven-checkout-new     */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+.hc-confirm {
+  max-width: 600px;
+  margin: 60px auto;
+  padding: 60px 56px;
+  background: var(--hc-paper, #fff);
+  border: 1px solid var(--hc-rule, #e5e2dd);
+  border-radius: var(--hc-radius-lg, 12px);
+  text-align: center;
+}
+.hc-confirm-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--hc-ink, #1c1b1a);
+  color: var(--hc-paper, #fff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+.hc-confirm-mark svg {
+  width: 20px;
+  height: 20px;
+}
+.hc-confirm .hc-section-title {
+  text-align: center;
+}
+.hc-confirm-sub {
+  margin: 12px auto 0;
+  text-align: center;
+}
+.hc-confirm-sub + .hc-confirm-sub {
+  margin-top: 6px;
+}
+.hc-confirm-link {
+  color: var(--hc-ink, #1c1b1a);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--hc-rule-2, #d8d4cd);
+  transition: text-decoration-color 0.15s ease;
+}
+.hc-confirm-link:hover {
+  text-decoration-color: var(--hc-ink, #1c1b1a);
+}
+.hc-confirm-order {
+  margin-top: 28px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--hc-ink-3, #6b6967);
+}
+
+@media (max-width: 640px) {
+  .hc-confirm {
+    margin: 24px 16px;
+    padding: 40px 24px;
+  }
+}

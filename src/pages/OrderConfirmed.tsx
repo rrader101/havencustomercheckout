@@ -1,10 +1,18 @@
 import React, { useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
-import { CheckCircle, Package, Mail, Calendar } from 'lucide-react';
 import { usePostHog } from 'posthog-js/react';
 import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
+import { Icon } from '@/components/new-checkout/shared';
+import '@/components/checkout-redesign.css';
 
+/**
+ * Order-confirmed page.
+ *
+ * UI ported from haven-checkout-new (the "You're in." confirmation screen):
+ * a centered card with a black check-mark medallion, a serif headline,
+ * a one-line receipt note, and a newsletter subscribe link. The existing
+ * analytics + localStorage cleanup logic is preserved.
+ */
 export const OrderConfirmed: React.FC = () => {
   const { orderID } = useParams<{ orderID: string }>();
   const [searchParams] = useSearchParams();
@@ -15,85 +23,45 @@ export const OrderConfirmed: React.FC = () => {
     if (posthog && orderID) {
       posthog.capture(CheckoutEvents.CHECKOUT_COMPLETED, {
         order_id: orderID,
-        [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
+        [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
       });
     }
 
     if (dealId) {
-      const localStorageKey = `checkout_addons_${dealId}`;
-      localStorage.removeItem(localStorageKey);
+      localStorage.removeItem(`checkout_addons_${dealId}`);
     }
   }, [posthog, orderID, dealId]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4">
-        <Card className="bg-white p-8 rounded-lg shadow-sm">
-          <div className="text-center space-y-6">
-            {/* Success Icon */}
-            <div className="flex justify-center">
-              <CheckCircle className="w-20 h-20 text-green-500" />
-            </div>
-            
-            {/* Main Heading */}
-            <div className="space-y-2">
-              <h1 className="text-2xl font-semibold text-foreground">
-                Order Confirmed!
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Thank you for your purchase. Your order has been successfully placed.
-              </p>
-            </div>
-            
-            {/* Order ID */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center justify-center space-x-2">
-                <Package className="w-5 h-5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Order ID:</span>
-                <span className="font-medium text-foreground">{orderID}</span>
-              </div>
-            </div>
-            
-            {/* Information Cards */}
-            <div className="grid md:grid-cols-2 gap-4 mt-8">
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="flex items-center space-x-3">
-                  <Mail className="w-5 h-5 text-blue-600" />
-                  <div className="text-left">
-                    <h3 className="font-medium text-foreground text-sm">
-                      Confirmation Email
-                    </h3>
-                    <p className="text-muted-foreground text-xs">
-                      Check your email for order details
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="flex items-center space-x-3">
-                  <Calendar className="w-5 h-5 text-green-600" />
-                  <div className="text-left">
-                    <h3 className="font-medium text-foreground text-sm">
-                      Processing Time
-                    </h3>
-                    <p className="text-muted-foreground text-xs">
-                      We'll process your order within 1-2 business days
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Additional Information */}
-            <div className="mt-8 pt-6 border-t border-border/50">
-              <p className="text-muted-foreground text-xs">
-                If you have any questions about your order, please contact our support team.
-              </p>
-            </div>
-          </div>
-        </Card>
+    <div className="hc-redesign">
+      <div className="hc-topbar">
+        <img className="hc-wordmark" src="/logo-final.png" alt="Haven Lifestyles" />
+        <div className="hc-meta">
+          <Icon.Lock /> Secure checkout
+        </div>
+      </div>
+
+      <div className="hc-confirm hc-fade-in" data-screen-label="04 Confirmation">
+        <div className="hc-confirm-mark">
+          <Icon.Check />
+        </div>
+        <h1 className="hc-section-title">You're in.</h1>
+        <p className="hc-section-sub hc-confirm-sub">Your receipt is on its way.</p>
+        <p className="hc-section-sub hc-confirm-sub">
+          <a
+            className="hc-confirm-link"
+            href="https://www.havenlifestyles.com/emailsubscribe/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Subscribe
+          </a>{' '}
+          to the HAVEN newsletter for market features and new issues.
+        </p>
+        {orderID && <p className="hc-confirm-order">Order ID · {orderID}</p>}
       </div>
     </div>
   );
 };
+
+export default OrderConfirmed;

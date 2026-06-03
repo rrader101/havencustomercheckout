@@ -1338,6 +1338,27 @@
   border-color: var(--hc-ink);
 }
 
+/* Checked state for the "Pay it all upfront" toggle. */
+.hc-annual-switch.checked {
+  background: color-mix(in oklch, var(--hc-positive) 12%, var(--hc-paper));
+  border-color: var(--hc-positive);
+}
+
+.hc-annual-switch.checked .hc-cb {
+  background: var(--hc-positive);
+  border-color: var(--hc-positive);
+}
+
+.hc-annual-switch.checked .hc-cb::after {
+  content: '';
+  width: 4px;
+  height: 7px;
+  border-right: 1.5px solid var(--hc-paper);
+  border-bottom: 1.5px solid var(--hc-paper);
+  transform: rotate(45deg) translate(0, -1px);
+  animation: hc-check-draw 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .hc-annual-switch-body,
 .hc-annual-switch-checks {
   display: flex;

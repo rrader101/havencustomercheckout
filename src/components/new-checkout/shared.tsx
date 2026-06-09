@@ -121,7 +121,7 @@ export const ADDON_COPY: Record<EnrichedAddon['kind'], Omit<EnrichedAddon, 'id' 
     tag: 'Most chosen',
     anchor: null,
     saveLabel: null,
-    socialProof: '87% of returning agents choose this',
+    // socialProof: '87% of returning agents choose this',
     placementPhrase: 'ad',
     pitchBullets: ['120,000+ readers per year', 'Post-issue distribution reports', 'Priority placement in the layout queue'],
     stats: [
@@ -141,7 +141,7 @@ export const ADDON_COPY: Record<EnrichedAddon['kind'], Omit<EnrichedAddon, 'id' 
     image: `${ASSET_BASE}/enhanced-digital.jpg`,
     anchor: null,
     saveLabel: null,
-    socialProof: 'Avg. 5x more property views',
+    // socialProof: 'Avg. 5x more property views',
     stats: [
       { value: '6', label: 'Digital Placements' },
       { value: '200K', label: 'Monthly Readers' },
@@ -178,6 +178,18 @@ export const ADDON_COPY: Record<EnrichedAddon['kind'], Omit<EnrichedAddon, 'id' 
     socialProof: null,
   },
 };
+
+// ─── Annual "pay upfront" pricing ─────────────────────────────────────────
+
+// Flat discount applied when an annual/subscription add-on is paid for the
+// full term in one charge instead of billed monthly. Keep in sync with the
+// backend (PaymentController) — both must agree on the discount amount.
+export const ANNUAL_UPFRONT_DISCOUNT = 100;
+
+// Total charged when paying the whole subscription term upfront:
+// monthly price × term months − the flat discount (never below zero).
+export const annualUpfrontTotal = (monthlyPrice: number, months: number): number =>
+  Math.max(0, monthlyPrice * (months > 0 ? months : 12) - ANNUAL_UPFRONT_DISCOUNT);
 
 // ─── Formatting / math helpers ────────────────────────────────────────────
 

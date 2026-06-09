@@ -22,6 +22,8 @@ import {
   Icon,
   PaymentFields,
   ShippingData,
+  ANNUAL_UPFRONT_DISCOUNT,
+  annualUpfrontTotal,
   enrichAddon,
   fmt,
   money,
@@ -111,8 +113,10 @@ function OrderSummary({
   currency,
   summaryNudge,
   isPayStep,
+  payUpfront,
   onAddNudge,
   onToggleAnnual,
+  onToggleUpfront,
   onRemove,
 }: {
   deal: Deal;
@@ -126,13 +130,16 @@ function OrderSummary({
   currency: string;
   summaryNudge: boolean;
   isPayStep: boolean;
+  payUpfront: boolean;
   onAddNudge: (id: string) => void;
   onToggleAnnual: () => void;
+  onToggleUpfront: () => void;
   onRemove: (id: string) => void;
 }) {
   const selectedAddons = addons.filter((addon) => selected[addon.id]);
   const annual = addons.find((addon) => addon.subscription);
   const annualSelected = !!annual && !!selected[annual.id];
+  const annualMonths = annual?.source.total_months ?? 12;
   const processingFee = Math.max(0, total - subtotal);
   const [dollars, cents] = splitCents(total);
   const productName = deal.deal_products?.[0]?.name || deal.name || 'Placement';
@@ -172,19 +179,25 @@ function OrderSummary({
         </div>
       )}
 
-      {selectedAddons.map((addon) => (
+      {selectedAddons.map((addon) => {
+        const months = addon.source.total_months ?? 12;
+        const upfront = addon.subscription && payUpfront;
+        const lineAmount = upfront ? annualUpfrontTotal(addon.price, months) : addon.price;
+        return (
         <div key={addon.id} className="hc-summary-addon">
           <div className="hc-line add-on">
             <span className="hc-lbl">
               {addon.title}
-              {addon.subscription && <span className="hc-line-sub">billed monthly</span>}
+              {addon.subscription && (
+                <span className="hc-line-sub">{upfront ? `billed once · ${months} months` : 'billed monthly'}</span>
+              )}
               <button className="hc-line-remove" onClick={() => onRemove(addon.id)}>
                 Remove
               </button>
             </span>
             <span>
-              {money(addon.price, currency)}
-              {addon.subscription && <span className="hc-per-mo">/mo</span>}
+              {money(lineAmount, currency)}
+              {addon.subscription && !upfront && <span className="hc-per-mo">/mo</span>}
             </span>
           </div>
           {addon.tags.length > 0 && (
@@ -200,7 +213,8 @@ function OrderSummary({
             </ul>
           )}
         </div>
-      ))}
+        );
+      })}
 
       {!annualSelected && isPayStep && annual && (
         <button type="button" className="hc-annual-switch" onClick={onToggleAnnual} aria-pressed="false">
@@ -222,6 +236,25 @@ function OrderSummary({
                 ))}
               </span>
             )}
+          </span>
+        </button>
+      )}
+
+      {annualSelected && isPayStep && annual && (
+        <button
+          type="button"
+          className={`hc-annual-switch hc-upfront-toggle ${payUpfront ? 'checked' : ''}`}
+          onClick={onToggleUpfront}
+          aria-pressed={payUpfront}
+        >
+          <span className="hc-cb" />
+          <span className="hc-annual-switch-body">
+            <strong>Pay it all upfront for {money(ANNUAL_UPFRONT_DISCOUNT, currency)} off</strong>
+            <span className="hc-annual-switch-sub">
+              {payUpfront
+                ? `One charge of ${money(annualUpfrontTotal(annual.price, annualMonths), currency)} for all ${annualMonths} months.`
+                : `Pay ${money(annualUpfrontTotal(annual.price, annualMonths), currency)} once instead of ${money(annual.price, currency)}/mo for ${annualMonths} months.`}
+            </span>
           </span>
         </button>
       )}
@@ -329,6 +362,7 @@ export default function RedesignedPaymentForm({
   const [loading, setLoading] = useState(true);
   const [savingAddress, setSavingAddress] = useState(false);
   const [showNotFound, setShowNotFound] = useState(false);
+  const [payUpfront, setPayUpfront] = useState(false);
   const [stepStartTime, setStepStartTime] = useState<Date>(new Date());
   const hasLoadedData = useRef(false);
   const initialShipping = useRef<ShippingData | null>(null);
@@ -564,6 +598,12 @@ export default function RedesignedPaymentForm({
 
     if (dealsData.add_ons) {
       const selectedAddOns = dealsData.add_ons.filter((addon) => formData.addOns[addon.id.toString()]);
+      // A subscription add-on paid upfront contributes its full term
+      // (monthly × months − discount) instead of a single month's price.
+      const addonAmount = (addon: (typeof selectedAddOns)[number]) =>
+        payUpfront && addon.type === 'Subscription'
+          ? annualUpfrontTotal(parseNumber(addon.amount), addon.total_months ?? 12)
+          : parseNumber(addon.amount);
       if (selectedAddOns.length > 0) {
         if (dealsData.has_active_subscription) {
           transactionAmount += selectedAddOns.reduce((sum, addon) => {
@@ -571,20 +611,20 @@ export default function RedesignedPaymentForm({
             return sum + parseNumber(addon.amount);
           }, 0);
         } else if (selectedAddOns.length > 1) {
-          transactionAmount = selectedAddOns.reduce((sum, addon) => sum + parseNumber(addon.amount), 0);
+          transactionAmount = selectedAddOns.reduce((sum, addon) => sum + addonAmount(addon), 0);
         } else {
           const addon = selectedAddOns[0];
           if (addon.pricing_behavior?.toLowerCase() === 'add') {
-            transactionAmount += parseNumber(addon.amount);
+            transactionAmount += addonAmount(addon);
           } else {
-            transactionAmount = parseNumber(addon.amount);
+            transactionAmount = addonAmount(addon);
           }
         }
       }
     }
 
     return transactionAmount;
-  }, [dealsData, formData.addOns, formData.invoices]);
+  }, [dealsData, formData.addOns, formData.invoices, payUpfront]);
 
   const total = useMemo(() => {
     if (!dealsData || subtotal <= 0) return 0;
@@ -646,6 +686,12 @@ export default function RedesignedPaymentForm({
   const showSummary = currentStep !== 'shipping';
   const currency = (dealsData.currency as 'USD' | 'CAD') || 'USD';
 
+  // "Pay upfront" only applies when a subscription add-on is actually selected.
+  const annualAddon = availableAddOns.find((addon) => addon.subscription);
+  const annualSelected = !!annualAddon && !!formData.addOns[annualAddon.id];
+  const effectiveUpfront = payUpfront && annualSelected;
+  const billingOption: 'monthly' | 'annual_upfront' = effectiveUpfront ? 'annual_upfront' : 'monthly';
+
   return (
     <div className="hc-redesign" data-theme={theme}>
       <Topbar />
@@ -689,6 +735,7 @@ export default function RedesignedPaymentForm({
               deal={dealsData}
               dealId={dealId || ''}
               hasSubscriptionUpgrade={hasSubscriptionUpgrade}
+              billingOption={billingOption}
             />
           )}
         </main>
@@ -706,11 +753,13 @@ export default function RedesignedPaymentForm({
             currency={currency}
             summaryNudge={summaryNudge}
             isPayStep={isPaymentStep}
+            payUpfront={effectiveUpfront}
             onAddNudge={toggleAddon}
             onToggleAnnual={() => {
               const annual = availableAddOns.find((addon) => addon.subscription);
               if (annual) toggleAddon(annual.id);
             }}
+            onToggleUpfront={() => setPayUpfront((value) => !value)}
             onRemove={toggleAddon}
           />
         )}

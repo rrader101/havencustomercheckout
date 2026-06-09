@@ -57,6 +57,7 @@ export default function PaymentStep({
   deal,
   dealId,
   hasSubscriptionUpgrade,
+  billingOption,
 }: {
   data: PaymentFields;
   onUpdate: (data: Partial<PaymentFields>) => void;
@@ -69,6 +70,7 @@ export default function PaymentStep({
   deal: Deal;
   dealId: string;
   hasSubscriptionUpgrade: boolean;
+  billingOption: 'monthly' | 'annual_upfront';
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -129,6 +131,7 @@ export default function PaymentStep({
             billing_country: data.useDifferentBilling ? data.billing_country || null : shippingData.country || null,
             add_ons: selectedAddOns,
             invoice_ids: selectedInvoices,
+            billing_option: billingOption,
           };
           result = await processChequePayment(chequeData);
         } else {
@@ -152,6 +155,7 @@ export default function PaymentStep({
             billing_country: data.useDifferentBilling ? data.billing_country || null : shippingData.country || null,
             add_ons: selectedAddOns,
             invoice_ids: selectedInvoices,
+            billing_option: billingOption,
           };
           result = await processPayment(paymentData);
         }
@@ -190,7 +194,7 @@ export default function PaymentStep({
         setIsLoading(false);
       }
     },
-    [currency, data, dealId, posthog, selectedAddOns, selectedInvoices, shippingData, total],
+    [billingOption, currency, data, dealId, posthog, selectedAddOns, selectedInvoices, shippingData, total],
   );
 
   useEffect(() => {

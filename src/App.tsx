@@ -2,18 +2,23 @@ import { Suspense, lazy, useEffect, useMemo } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useSearchParams } from "react-router-dom";
 import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { PaymentRequestProvider } from "./contexts/PaymentRequestContext";
-import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import { OrderConfirmed } from "./pages/OrderConfirmed";
 
+// Route-level code splitting: keep the heavy legacy checkout (Index ->
+// PaymentForm -> PaymentSection, ~2,000 lines plus their deps) and the
+// confirmation page out of the initial/critical bundle. They load on demand.
+const Index = lazy(() => import("./pages/Index"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const RedesignedPaymentForm = lazy(() => import("./components/RedesignedPaymentForm"));
+const OrderConfirmed = lazy(() =>
+  import("./pages/OrderConfirmed").then((m) => ({ default: m.OrderConfirmed }))
+);
 
 /**
  * /checkout/:dealId — A/B test between two redesigned layouts.
@@ -126,16 +131,17 @@ const stripeElementsOptions = {
   ],
 };
 
-const queryClient = new QueryClient();
+// const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  // <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Elements stripe={stripePromise} options={stripeElementsOptions}>
         <PaymentRequestProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <Suspense fallback={<div></div>}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/checkout/:dealId" element={<CheckoutRouter />} />
@@ -191,11 +197,12 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </PaymentRequestProvider>
       </Elements>
     </TooltipProvider>
-  </QueryClientProvider>
+  // </QueryClientProvider>
 );
 
 export default App;

@@ -146,6 +146,10 @@ function OrderSummary({
   const issueLine = deal.invoices?.[0]?.invoice_num || deal.issue || deal.type;
   const nudgeAddon = addons.find((addon) => !addon.subscription && !selected[addon.id]);
   const visibleInvoices = invoices?.filter((invoice) => invoice.status !== 'Paid') || [];
+  // Products the customer is subscribing to — their invoice line is replaced by the subscription.
+  const subscribedNames = addons
+    .filter((a) => a.subscription && selected[a.id] && a.source.product_name)
+    .map((a) => a.source.product_name.toLowerCase().trim());
 
   return (
     <aside className="hc-summary" data-screen-label="Order Summary">
@@ -161,6 +165,11 @@ function OrderSummary({
           {visibleInvoices.map((invoice) => {
             const id = invoice.id.toString();
             const checked = !!invoiceSelection[id];
+            const products = invoice.invoice_products || [];
+            // Only break the invoice down per product when it has more than one.
+            const showBreakdown = products.length > 1;
+            const adjusted = adjustedInvoiceAmount(invoice, subscribedNames);
+            const reduced = adjusted < parseNumber(invoice.amount);
             return (
               <div key={invoice.id} className="hc-summary-invoice">
                 <Checkbox
@@ -171,8 +180,27 @@ function OrderSummary({
                 <span>
                   <strong>{invoice.invoice_num || 'Invoice'}</strong>
                   <small>{invoice.status}</small>
+                  {showBreakdown && (
+                    <ul className="hc-invoice-products">
+                      {products.map((product, idx) => {
+                        const replaced = invoiceProductIsSubscribed(product.name, subscribedNames);
+                        return (
+                          <li key={`${id}-${idx}`} className={replaced ? 'replaced' : undefined}>
+                            <span>{product.name}</span>
+                            <span>
+                              {money(parseNumber(product.price), currency)}
+                              {replaced && <em> · in subscription</em>}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </span>
-                <b>{money(parseNumber(invoice.amount), currency)}</b>
+                <b>
+                  {reduced && <s className="hc-invoice-was">{money(parseNumber(invoice.amount), currency)}</s>}
+                  {money(adjusted, currency)}
+                </b>
               </div>
             );
           })}
@@ -324,11 +352,40 @@ const emptyFormData: CheckoutFormData = {
   },
 };
 
-const getSelectedInvoiceTotal = (deal: Deal, invoices: Record<string, boolean>) => {
+// Product names the customer is subscribing to (selected Subscription add-ons).
+// Matched against invoice line-items so the subscribed product's price can be
+// excluded from the invoice charge — it's billed as the subscription instead.
+const getSubscribedProductNames = (deal: Deal, addOns: Record<string, boolean>): string[] =>
+  (deal.add_ons || [])
+    .filter((a) => addOns[a.id.toString()] && a.type === 'Subscription' && a.product_name)
+    .map((a) => a.product_name.toLowerCase().trim());
+
+export const invoiceProductIsSubscribed = (productName: string, subscribedNames: string[]): boolean => {
+  const p = (productName || '').toLowerCase().trim();
+  return subscribedNames.some((n) => n !== '' && (p.includes(n) || n.includes(p)));
+};
+
+// An invoice's billable amount once any product the customer is subscribing to is
+// removed. Single-product invoice → 0 when that product is the subscribed one;
+// multi-product invoice → only the subscribed product's price is subtracted.
+const adjustedInvoiceAmount = (invoice: Deal['invoices'][number], subscribedNames: string[]): number => {
+  const amount = parseNumber(invoice.amount);
+  if (!subscribedNames.length || !invoice.invoice_products?.length) return amount;
+  const removed = invoice.invoice_products
+    .filter((p) => invoiceProductIsSubscribed(p.name, subscribedNames))
+    .reduce((sum, p) => sum + parseNumber(p.price), 0);
+  return Math.max(0, amount - removed);
+};
+
+const getSelectedInvoiceTotal = (
+  deal: Deal,
+  invoices: Record<string, boolean>,
+  subscribedNames: string[] = [],
+) => {
   if (!deal.invoices?.length) return 0;
   return deal.invoices
     .filter((invoice) => invoices[invoice.id.toString()] && invoice.status !== 'Paid')
-    .reduce((sum, invoice) => sum + parseNumber(invoice.amount), 0);
+    .reduce((sum, invoice) => sum + adjustedInvoiceAmount(invoice, subscribedNames), 0);
 };
 
 // ─── Main component ──────────────────────────────────────────────────────
@@ -583,12 +640,16 @@ export default function RedesignedPaymentForm({
     if (!dealsData) return 0;
     let transactionAmount = 0;
 
+    // Invoice total with any product the customer is subscribing to removed
+    // (single-product invoice → 0, multi-product → that one line subtracted).
+    const subscribedNames = getSubscribedProductNames(dealsData, formData.addOns);
+    const adjustedInvoiceTotal = getSelectedInvoiceTotal(dealsData, formData.invoices, subscribedNames);
+
     if (dealsData.type === 'One Time') {
-      const invoiceTotal = getSelectedInvoiceTotal(dealsData, formData.invoices);
-      transactionAmount = invoiceTotal > 0 ? invoiceTotal : dealsData.invoices?.length ? 0 : dealsData.amount || 0;
+      transactionAmount = adjustedInvoiceTotal > 0 ? adjustedInvoiceTotal : dealsData.invoices?.length ? 0 : dealsData.amount || 0;
     } else if (dealsData.type === 'Subscription') {
       if (dealsData.has_active_subscription) {
-        transactionAmount = getSelectedInvoiceTotal(dealsData, formData.invoices);
+        transactionAmount = adjustedInvoiceTotal;
       } else {
         transactionAmount = dealsData.monthly_subscription_price || 0;
       }
@@ -611,13 +672,16 @@ export default function RedesignedPaymentForm({
             return sum + parseNumber(addon.amount);
           }, 0);
         } else if (selectedAddOns.length > 1) {
-          transactionAmount = selectedAddOns.reduce((sum, addon) => sum + addonAmount(addon), 0);
+          // Add-ons + whatever invoice products remain after removing the subscribed one.
+          transactionAmount = adjustedInvoiceTotal + selectedAddOns.reduce((sum, addon) => sum + addonAmount(addon), 0);
         } else {
           const addon = selectedAddOns[0];
           if (addon.pricing_behavior?.toLowerCase() === 'add') {
             transactionAmount += addonAmount(addon);
           } else {
-            transactionAmount = addonAmount(addon);
+            // Replace: the subscribed product is already excluded from the invoice
+            // total above, so the add-on amount is added to the remaining products.
+            transactionAmount = adjustedInvoiceTotal + addonAmount(addon);
           }
         }
       }

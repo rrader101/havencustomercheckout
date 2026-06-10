@@ -7,7 +7,7 @@
  * circular import back to RedesignedPaymentForm.tsx.
  */
 import React, { useEffect, useRef } from 'react';
-import { ArrowLeft, ArrowRight, Check, Lock, Plus, TrendingUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Lock, Plus, Receipt, TrendingUp } from 'lucide-react';
 import { DealAddOn } from '@/services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -378,6 +378,7 @@ export const Icon = {
   Check: () => <Check size={14} strokeWidth={3} />,
   Plus: () => <Plus size={12} strokeWidth={3} />,
   Trend: () => <TrendingUp size={14} strokeWidth={1.5} />,
+  Receipt: () => <Receipt size={28} strokeWidth={1.4} />,
 };
 
 // ─── Shared <Field /> primitive ───────────────────────────────────────────

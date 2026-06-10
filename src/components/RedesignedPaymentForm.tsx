@@ -151,6 +151,12 @@ function OrderSummary({
     .filter((a) => a.subscription && selected[a.id] && a.source.product_name)
     .map((a) => a.source.product_name.toLowerCase().trim());
 
+  // New-subscription deals (no active sub yet) carry plan details from
+  // Salesforce — monthly price, contract length, term, agreement status.
+  // The legacy checkout surfaced these in its order summary; mirror them here
+  // so the customer can see what they're subscribing to before paying.
+  const isNewSubscription = deal.type === 'Subscription' && !deal.has_active_subscription;
+
   return (
     <aside className="hc-summary" data-screen-label="Order Summary">
       <h3>Order summary</h3>
@@ -159,6 +165,48 @@ function OrderSummary({
         <div className="hc-product-name">{productName}</div>
         {issueLine && <div className="hc-product-issue">{issueLine}</div>}
       </div>
+
+      {isNewSubscription && (
+        <div className="hc-sub-details">
+          <div className="hc-line muted">
+            <span className="hc-lbl">Deal type</span>
+            <span>{deal.type}</span>
+          </div>
+          <div className="hc-line muted">
+            <span className="hc-lbl">Monthly payment</span>
+            <span>
+              {money(parseNumber(deal.monthly_subscription_price), currency)}
+              <span className="hc-per-mo">/mo</span>
+            </span>
+          </div>
+          {deal.contract_length && (
+            <div className="hc-line muted">
+              <span className="hc-lbl">Contract length</span>
+              <span>{deal.contract_length}</span>
+            </div>
+          )}
+          {deal.subscription_term && (
+            <div className="hc-line muted">
+              <span className="hc-lbl">Subscription term</span>
+              <span>{deal.subscription_term}</span>
+            </div>
+          )}
+          {deal.agreement_status && (
+            <div className="hc-line muted">
+              <span className="hc-lbl">Agreement status</span>
+              <span>{deal.agreement_status}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {visibleInvoices.length === 0 && !isNewSubscription && (
+        <div className="hc-summary-empty" data-screen-label="No invoices">
+          <span className="hc-summary-empty-icon"><Icon.Receipt /></span>
+          <p className="hc-summary-empty-title">No invoices available</p>
+          <p className="hc-summary-empty-sub">Check back later for new invoices</p>
+        </div>
+      )}
 
       {visibleInvoices.length > 0 && (
         <div className="hc-invoice-list">
@@ -293,25 +341,34 @@ function OrderSummary({
        * .hc-product-head (or .hc-invoice-list) already separates the totals,
        * and adding a second rule below it creates an empty gap.
        */}
-      {(selectedAddons.length > 0 || (!annualSelected && isPayStep && annual)) && (
-        <div className="hc-divider" />
-      )}
-      <div className="hc-line muted">
-        <span className="hc-lbl">Subtotal</span>
-        <span>{money(subtotal, currency)}</span>
-      </div>
-      <div className="hc-line muted">
-        <span className="hc-lbl">Processing</span>
-        <span>{processingFee > 0 ? money(processingFee, currency) : '$0'}</span>
-      </div>
+      {subtotal > 0 ? (
+        <>
+          {(selectedAddons.length > 0 || (!annualSelected && isPayStep && annual)) && (
+            <div className="hc-divider" />
+          )}
+          <div className="hc-line muted">
+            <span className="hc-lbl">Subtotal</span>
+            <span>{money(subtotal, currency)}</span>
+          </div>
+          <div className="hc-line muted">
+            <span className="hc-lbl">Processing</span>
+            <span>{processingFee > 0 ? money(processingFee, currency) : '$0'}</span>
+          </div>
 
-      <div className="hc-total">
-        <span className="hc-lbl">Total</span>
-        <span className="hc-amount">
-          ${fmt(dollars)}
-          <span className="hc-cents">.{cents}</span>
-        </span>
-      </div>
+          <div className="hc-total">
+            <span className="hc-lbl">Total</span>
+            <span className="hc-amount">
+              ${fmt(dollars)}
+              <span className="hc-cents">.{cents}</span>
+            </span>
+          </div>
+        </>
+      ) : (
+        // Nothing payable yet (no unpaid invoices and no add-ons selected) —
+        // mirror the old PaymentForm, which hid the totals and prompted for add-ons
+        // instead of showing a phantom price.
+        <p className="hc-summary-hint">Select add-ons to see pricing</p>
+      )}
 
       {summaryNudge && nudgeAddon && (
         <div className="hc-nudge">
@@ -652,7 +709,11 @@ export default function RedesignedPaymentForm({
     const adjustedInvoiceTotal = getSelectedInvoiceTotal(dealsData, formData.invoices, subscribedNames);
 
     if (dealsData.type === 'One Time') {
-      transactionAmount = adjustedInvoiceTotal > 0 ? adjustedInvoiceTotal : dealsData.invoices?.length ? 0 : dealsData.amount || 0;
+      // One Time deals are paid via invoices only. When there are no (unpaid)
+      // invoices the customer owes nothing up front — do NOT fall back to the
+      // raw deal amount (the old PaymentForm never did, which is why a
+      // no-invoice deal must read $0, not the placement price). Add-ons add below.
+      transactionAmount = adjustedInvoiceTotal;
     } else if (dealsData.type === 'Subscription') {
       if (dealsData.has_active_subscription) {
         transactionAmount = adjustedInvoiceTotal;
@@ -677,6 +738,12 @@ export default function RedesignedPaymentForm({
             if (addon.type === 'Subscription') return sum;
             return sum + parseNumber(addon.amount);
           }, 0);
+        } else if (dealsData.type === 'Subscription') {
+          // New subscription: the monthly_subscription_price is the recurring
+          // base, so add-ons always stack on top of it (never replace it).
+          // The invoice-replace logic below only applies to deal types whose
+          // base IS an invoice/deal amount that an add-on can stand in for.
+          transactionAmount += selectedAddOns.reduce((sum, addon) => sum + addonAmount(addon), 0);
         } else if (selectedAddOns.length > 1) {
           // Add-ons + whatever invoice products remain after removing the subscribed one.
           transactionAmount = adjustedInvoiceTotal + selectedAddOns.reduce((sum, addon) => sum + addonAmount(addon), 0);

@@ -58,6 +58,7 @@ export default function PaymentStep({
   dealId,
   hasSubscriptionUpgrade,
   billingOption,
+  hideBack = false,
 }: {
   data: PaymentFields;
   onUpdate: (data: Partial<PaymentFields>) => void;
@@ -71,6 +72,7 @@ export default function PaymentStep({
   dealId: string;
   hasSubscriptionUpgrade: boolean;
   billingOption: 'monthly' | 'annual_upfront';
+  hideBack?: boolean;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -311,8 +313,14 @@ export default function PaymentStep({
       noValidate
     >
       <div className="hc-section-head">
-        <h1 className="hc-section-title">One last step.</h1>
-        <p className="hc-section-sub">Charged when you confirm. Receipts go to {data.userEmail || shippingData.email || 'your email'}.</p>
+        {/* hideBack is only true in the express (invoice-only) flow, where there was
+            no prior step — so "One last step" doesn't fit. */}
+        <h1 className="hc-section-title">{hideBack ? "Let's settle up." : 'One last step.'}</h1>
+        <p className="hc-section-sub">
+          {hideBack
+            ? `One tap and you're all square. Receipts go to ${data.userEmail || shippingData.email || 'your email'}.`
+            : `Charged when you confirm. Receipts go to ${data.userEmail || shippingData.email || 'your email'}.`}
+        </p>
       </div>
 
       {paymentRequest && canMakePayment && total > 0 && (
@@ -487,9 +495,13 @@ export default function PaymentStep({
       {(errors.payment || errors.api || errors.card) && <div className="hc-payment-error">{errors.payment || errors.api || errors.card}</div>}
 
       <div className="hc-step-footer">
-        <button type="button" className="hc-link-btn" onClick={onBack}>
-          <Icon.Back /> Back
-        </button>
+        {hideBack ? (
+          <span />
+        ) : (
+          <button type="button" className="hc-link-btn" onClick={onBack}>
+            <Icon.Back /> Back
+          </button>
+        )}
         <button
           type="submit"
           className="hc-btn accent lg"

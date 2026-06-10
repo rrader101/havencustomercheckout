@@ -177,6 +177,14 @@ const App = () => (
                   </Suspense>
                 }
               />
+              <Route
+                path="/express/:dealId"
+                element={
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <RedesignedPaymentForm express defaultTheme="modern" />
+                  </Suspense>
+                }
+              />
               <Route path="/order-confirmed/:orderID" element={<OrderConfirmed />} />
               <Route
                 path="/terms"

@@ -395,6 +395,9 @@ interface RedesignedPaymentFormProps {
   defaultTheme?: CheckoutTheme;
   defaultSocialProof?: boolean;
   defaultSummaryNudge?: boolean;
+  // Express mode: a single-step, invoice-only checkout. No Details/Customize
+  // steps, no add-ons — just pay the outstanding one-time invoices and done.
+  express?: boolean;
 }
 
 export default function RedesignedPaymentForm({
@@ -402,6 +405,7 @@ export default function RedesignedPaymentForm({
   defaultTheme = 'modern',
   defaultSocialProof = false,
   defaultSummaryNudge = true,
+  express = false,
 }: RedesignedPaymentFormProps = {}) {
   const { dealId } = useParams<{ dealId: string }>();
   const navigate = useNavigate();
@@ -411,7 +415,8 @@ export default function RedesignedPaymentForm({
   const anchorPricing = searchParams.get('anchorPricing') !== 'false';
   const socialProof = searchParams.has('socialProof') ? searchParams.get('socialProof') === 'true' : defaultSocialProof;
   const summaryNudge = searchParams.has('summaryNudge') ? searchParams.get('summaryNudge') !== 'false' : defaultSummaryNudge;
-  const canonicalStep = validStep(searchParams.get('step'));
+  // Express mode is locked to the payment step regardless of the URL ?step param.
+  const canonicalStep = express ? 'payment' : validStep(searchParams.get('step'));
 
   const [currentStep, setCurrentStep] = useState<CheckoutStep>(canonicalStep);
   const [dealsData, setDealsData] = useState<Deal | null>(null);
@@ -447,7 +452,8 @@ export default function RedesignedPaymentForm({
         deal.add_ons.forEach((addon) => {
           initialAddOns[addon.id.toString()] = false;
         });
-        const savedAddOns = localStorage.getItem(`checkout_addons_${dealId}`);
+        // Express checkout never carries add-ons — keep them all unselected.
+        const savedAddOns = express ? null : localStorage.getItem(`checkout_addons_${dealId}`);
         if (savedAddOns) {
           try {
             const parsed = JSON.parse(savedAddOns) as Record<string, boolean>;
@@ -756,10 +762,25 @@ export default function RedesignedPaymentForm({
   const effectiveUpfront = payUpfront && annualSelected;
   const billingOption: 'monthly' | 'annual_upfront' = effectiveUpfront ? 'annual_upfront' : 'monthly';
 
+  // Express checkout pays outstanding one-time invoices only. If there are none,
+  // there's nothing to charge — show a clear message instead of a $0 form.
+  const hasUnpaidInvoices = (dealsData.invoices || []).some((invoice) => invoice.status !== 'Paid');
+  if (express && !hasUnpaidInvoices) {
+    return (
+      <div className="hc-redesign" data-theme={theme}>
+        <Topbar />
+        <div className="hc-express-empty">
+          <h2>You're all set</h2>
+          <p>There are no outstanding invoices to pay on this account right now.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="hc-redesign" data-theme={theme}>
       <Topbar />
-      <Stepper currentStep={currentStep} onJump={handleStepChange} />
+      {!express && <Stepper currentStep={currentStep} onJump={handleStepChange} />}
 
       <div className={`hc-layout ${currentStep === 'shipping' ? 'solo' : ''}`}>
         <main className="hc-main-pane">
@@ -800,6 +821,7 @@ export default function RedesignedPaymentForm({
               dealId={dealId || ''}
               hasSubscriptionUpgrade={hasSubscriptionUpgrade}
               billingOption={billingOption}
+              hideBack={express}
             />
           )}
         </main>
@@ -807,7 +829,7 @@ export default function RedesignedPaymentForm({
         {showSummary && (
           <OrderSummary
             deal={dealsData}
-            addons={availableAddOns}
+            addons={express ? [] : availableAddOns}
             selected={formData.addOns}
             invoices={dealsData.invoices}
             invoiceSelection={formData.invoices}
@@ -815,7 +837,7 @@ export default function RedesignedPaymentForm({
             subtotal={subtotal}
             total={total}
             currency={currency}
-            summaryNudge={summaryNudge}
+            summaryNudge={express ? false : summaryNudge}
             isPayStep={isPaymentStep}
             payUpfront={effectiveUpfront}
             onAddNudge={toggleAddon}

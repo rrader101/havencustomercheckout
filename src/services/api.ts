@@ -110,6 +110,9 @@ export interface PaymentData {
   billing_country: string | null;
   add_ons: string[];
   invoice_ids: string[];
+  // 'annual_upfront' => charge the full subscription term in one payment
+  // (minus the upfront discount) instead of starting a monthly Stripe plan.
+  billing_option?: 'monthly' | 'annual_upfront';
 }
 
 export interface PaymentResponse {
@@ -153,6 +156,7 @@ export interface ChequePaymentData {
   billing_country: string | null;
   add_ons: string[];
   invoice_ids: string[];
+  billing_option?: 'monthly' | 'annual_upfront';
 }
 
 export interface ChequePaymentResponse {

@@ -888,6 +888,7 @@ export default function RedesignedPaymentForm({
               dealId={dealId || ''}
               hasSubscriptionUpgrade={hasSubscriptionUpgrade}
               billingOption={billingOption}
+              addonLayout={layout}
               hideBack={express}
             />
           )}

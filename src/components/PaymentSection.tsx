@@ -227,7 +227,7 @@ import StripeProvider from "./StripeProvider";
 ]
 import { usePostHog } from 'posthog-js/react';
 import type { PostHog } from 'posthog-js';
-import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
+import { CheckoutEvents, CheckoutEventProperties, buildAddonProperties, getTimestamp } from '@/lib/analytics';
 
 const getCountryDisplayName = (countryCode: string): string => {
   switch (countryCode) {
@@ -443,6 +443,21 @@ export const PaymentSection = React.memo(
           setOrderId(result.order_id);
           setShowSuccessPopup(true);
 
+          // Order-level add-on summary. The legacy flow doesn't carry the add-on
+          // catalog here, so only the ID-based fields (has_addon, addon_ids,
+          // addon_count) are emitted — enough to answer "did they buy an add-on".
+          const addonProperties = buildAddonProperties({
+            selectedIds: selectedAddOns,
+            layout: 'legacy',
+          });
+
+          // Stash for the checkout_completed event on the order-confirmed page.
+          try {
+            localStorage.setItem(`checkout_summary_${result.order_id}`, JSON.stringify(addonProperties));
+          } catch {
+            // Non-fatal — localStorage may be unavailable in private mode.
+          }
+
           if (posthog) {
             posthog.capture(CheckoutEvents.PAYMENT_SUCCEEDED, {
               [CheckoutEventProperties.PAYMENT_METHOD]: method,
@@ -451,6 +466,7 @@ export const PaymentSection = React.memo(
               [CheckoutEventProperties.DEAL_ID]: dealId,
               [CheckoutEventProperties.CURRENT_STEP]: 'payment',
               order_id: result.order_id,
+              ...addonProperties,
               [CheckoutEventProperties.TIMESTAMP]: getTimestamp()
             });
           }

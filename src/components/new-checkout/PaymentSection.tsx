@@ -25,9 +25,10 @@ import {
   processPayment,
 } from '@/services/api';
 import { usePaymentRequest } from '@/contexts/usePaymentRequest';
-import { CheckoutEventProperties, CheckoutEvents, getTimestamp } from '@/lib/analytics';
+import { CheckoutEventProperties, CheckoutEvents, buildAddonProperties, getTimestamp } from '@/lib/analytics';
 
 import {
+  AddonLayout,
   COUNTRIES,
   Field,
   Icon,
@@ -58,6 +59,7 @@ export default function PaymentStep({
   dealId,
   hasSubscriptionUpgrade,
   billingOption,
+  addonLayout,
   hideBack = false,
 }: {
   data: PaymentFields;
@@ -72,6 +74,8 @@ export default function PaymentStep({
   dealId: string;
   hasSubscriptionUpgrade: boolean;
   billingOption: 'monthly' | 'annual_upfront';
+  /** The add-on UI variant the customer was shown ('bundle' | 'carousel'). */
+  addonLayout: AddonLayout;
   hideBack?: boolean;
 }) {
   const stripe = useStripe();
@@ -98,6 +102,13 @@ export default function PaymentStep({
   const selectedAddOns = useMemo(() => Object.keys(addOns || {}).filter((key) => addOns[key]), [addOns]);
   const selectedInvoices = useMemo(() => Object.keys(invoices || {}).filter((key) => invoices[key]), [invoices]);
 
+  // Order-level add-on summary for analytics: has_addon, addon_ids, addon_count,
+  // addon_titles, addon_types, addon_revenue, and the bundle/carousel UI variant.
+  const addonProperties = useMemo(
+    () => buildAddonProperties({ catalog: deal.add_ons, selectedIds: selectedAddOns, layout: addonLayout }),
+    [deal.add_ons, selectedAddOns, addonLayout],
+  );
+
   const submitToApi = useCallback(
     async (paymentMethodId: string, method: string) => {
       if (posthog) {
@@ -107,6 +118,7 @@ export default function PaymentStep({
           [CheckoutEventProperties.CURRENCY]: currency,
           [CheckoutEventProperties.DEAL_ID]: dealId,
           [CheckoutEventProperties.CURRENT_STEP]: 'payment',
+          ...addonProperties,
           [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
         });
       }
@@ -165,6 +177,14 @@ export default function PaymentStep({
         if (result?.order_id) {
           setOrderId(result.order_id);
           setShowSuccessPopup(true);
+          // Stash the add-on summary so the checkout_completed event on the
+          // order-confirmed page (a fresh navigation without the deal data) can
+          // report the same has_addon / addon_ids / addon_revenue / layout.
+          try {
+            localStorage.setItem(`checkout_summary_${result.order_id}`, JSON.stringify(addonProperties));
+          } catch {
+            // localStorage can throw in private mode — non-fatal for analytics.
+          }
           if (posthog) {
             posthog.capture(CheckoutEvents.PAYMENT_SUCCEEDED, {
               [CheckoutEventProperties.PAYMENT_METHOD]: method,
@@ -173,6 +193,7 @@ export default function PaymentStep({
               [CheckoutEventProperties.DEAL_ID]: dealId,
               [CheckoutEventProperties.CURRENT_STEP]: 'payment',
               order_id: result.order_id,
+              ...addonProperties,
               [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
             });
           }
@@ -196,7 +217,7 @@ export default function PaymentStep({
         setIsLoading(false);
       }
     },
-    [billingOption, currency, data, dealId, posthog, selectedAddOns, selectedInvoices, shippingData, total],
+    [addonProperties, billingOption, currency, data, dealId, posthog, selectedAddOns, selectedInvoices, shippingData, total],
   );
 
   useEffect(() => {

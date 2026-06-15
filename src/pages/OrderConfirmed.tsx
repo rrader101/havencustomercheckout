@@ -21,10 +21,29 @@ export const OrderConfirmed: React.FC = () => {
 
   useEffect(() => {
     if (posthog && orderID) {
+      // The payment step stashed the order's add-on summary (has_addon,
+      // addon_ids, addon_revenue, addon_layout, …) keyed by order id, since
+      // this page is a fresh navigation without the deal data. Attach it here
+      // so checkout_completed carries the same add-on context as payment_succeeded.
+      let addonSummary: Record<string, unknown> = {};
+      try {
+        const stored = localStorage.getItem(`checkout_summary_${orderID}`);
+        if (stored) addonSummary = JSON.parse(stored) as Record<string, unknown>;
+      } catch {
+        // Ignore malformed/unavailable storage — checkout_completed still fires.
+      }
+
       posthog.capture(CheckoutEvents.CHECKOUT_COMPLETED, {
         order_id: orderID,
+        ...addonSummary,
         [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
       });
+
+      try {
+        localStorage.removeItem(`checkout_summary_${orderID}`);
+      } catch {
+        // Non-fatal.
+      }
     }
 
     if (dealId) {

@@ -222,7 +222,7 @@ export default function PaymentStep({
         // (that risks a double charge); tell them to check for a receipt first.
         // (The raw technical message still goes to analytics below.)
         const displayMessage = networkError
-          ? "Your connection dropped before we could confirm your payment. Check your email for a receipt before retrying — if you were charged, don't resubmit. Contact us if you're unsure."
+          ? "Your connection dropped before we could confirm your payment. Check your email for a receipt before retrying, if you were charged, don't resubmit. Contact us if you're unsure."
           : error instanceof Error
             ? error.message
             : 'Payment processing failed. Please try again.';

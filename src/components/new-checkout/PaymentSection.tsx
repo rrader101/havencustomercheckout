@@ -20,6 +20,7 @@ import {
 import {
   ChequePaymentData,
   Deal,
+  isNetworkError,
   PaymentData as ApiPaymentData,
   processChequePayment,
   processPayment,
@@ -39,6 +40,17 @@ import {
   normalizeCountry,
   usePrimarySubmitOnEnter,
 } from './shared';
+
+/**
+ * A key that stays stable across manual retries within one checkout so the
+ * backend can de-duplicate charges. If a payment "Load failed" after the server
+ * already charged the card, resubmitting with the same key must not charge
+ * again. Regenerated per component mount (i.e. per fresh checkout visit).
+ */
+const newIdempotencyKey = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `idem_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
 
 /**
  * Step 03 — "Pay". Handles the Stripe Card flow, an alternative Check flow,
@@ -89,6 +101,7 @@ export default function PaymentStep({
   const [isOtherBillingCountry, setIsOtherBillingCountry] = useState(false);
   const [orderId, setOrderId] = useState('');
   const clickedRef = useRef(false);
+  const idempotencyKeyRef = useRef(newIdempotencyKey());
   const country = deal.mailing_address_country || shippingData.country || 'US';
 
   const {
@@ -146,6 +159,7 @@ export default function PaymentStep({
             add_ons: selectedAddOns,
             invoice_ids: selectedInvoices,
             billing_option: billingOption,
+            idempotency_key: idempotencyKeyRef.current,
           };
           result = await processChequePayment(chequeData);
         } else {
@@ -170,6 +184,7 @@ export default function PaymentStep({
             add_ons: selectedAddOns,
             invoice_ids: selectedInvoices,
             billing_option: billingOption,
+            idempotency_key: idempotencyKeyRef.current,
           };
           result = await processPayment(paymentData);
         }
@@ -199,8 +214,19 @@ export default function PaymentStep({
           }
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Payment processing failed. Please try again.';
-        setErrors({ payment: message });
+        const networkError = isNetworkError(error);
+        const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+        const rawMessage = error instanceof Error ? error.message : 'Unknown error';
+        // A network reject on a payment POST is ambiguous — the charge may have
+        // gone through while the response was lost. Don't nudge "try again"
+        // (that risks a double charge); tell them to check for a receipt first.
+        // (The raw technical message still goes to analytics below.)
+        const displayMessage = networkError
+          ? "Your connection dropped before we could confirm your payment. Check your email for a receipt before retrying — if you were charged, don't resubmit. Contact us if you're unsure."
+          : error instanceof Error
+            ? error.message
+            : 'Payment processing failed. Please try again.';
+        setErrors({ payment: displayMessage });
         if (posthog) {
           posthog.capture(CheckoutEvents.PAYMENT_FAILED, {
             [CheckoutEventProperties.PAYMENT_METHOD]: method,
@@ -208,8 +234,10 @@ export default function PaymentStep({
             [CheckoutEventProperties.CURRENCY]: currency,
             [CheckoutEventProperties.DEAL_ID]: dealId,
             [CheckoutEventProperties.CURRENT_STEP]: 'payment',
-            [CheckoutEventProperties.ERROR_TYPE]: 'payment_processing_failed',
-            [CheckoutEventProperties.ERROR_MESSAGE]: message,
+            [CheckoutEventProperties.ERROR_TYPE]: networkError ? 'payment_network_unconfirmed' : 'payment_processing_failed',
+            [CheckoutEventProperties.ERROR_MESSAGE]: rawMessage,
+            [CheckoutEventProperties.IS_NETWORK_ERROR]: networkError,
+            [CheckoutEventProperties.WAS_OFFLINE]: offline,
             [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
           });
         }

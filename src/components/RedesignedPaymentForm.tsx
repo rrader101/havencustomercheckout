@@ -5,6 +5,8 @@ import NotFound from '@/pages/NotFound';
 import {
   Deal,
   fetchDealsData,
+  isNetworkError,
+  NetworkError,
   saveAddress,
 } from '@/services/api';
 import { CheckoutEventProperties, CheckoutEvents, getTimestamp } from '@/lib/analytics';
@@ -571,9 +573,23 @@ export default function RedesignedPaymentForm({
         console.error('API Error:', error);
         setShowNotFound(true);
         if (posthog) {
-          posthog.capture(CheckoutEvents.API_ERROR, {
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          const networkError = isNetworkError(error);
+          const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+          const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+          const attempts = error instanceof NetworkError ? error.attempts : 1;
+          // Offline, or a network reject while the tab is backgrounded, is a
+          // client-side condition (Safari killed the request) — not a server
+          // outage. Emit it as checkout_load_aborted so it stays in analytics
+          // but doesn't page the team via the api_error → Slack alert.
+          const isClientAbort = offline || (networkError && hidden);
+          posthog.capture(isClientAbort ? CheckoutEvents.CHECKOUT_LOAD_ABORTED : CheckoutEvents.API_ERROR, {
             [CheckoutEventProperties.ERROR_TYPE]: 'deals_data_load_failed',
-            [CheckoutEventProperties.ERROR_MESSAGE]: error instanceof Error ? error.message : 'Unknown error',
+            [CheckoutEventProperties.ERROR_MESSAGE]: message,
+            [CheckoutEventProperties.IS_NETWORK_ERROR]: networkError,
+            [CheckoutEventProperties.WAS_OFFLINE]: offline,
+            [CheckoutEventProperties.TAB_HIDDEN]: hidden,
+            [CheckoutEventProperties.ATTEMPTS]: attempts,
             [CheckoutEventProperties.DEAL_ID]: dealId,
             [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
           });

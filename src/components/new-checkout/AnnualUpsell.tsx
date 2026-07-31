@@ -81,7 +81,9 @@ export default function AnnualUpsell({
           <h1 className="yr-title">
             <span className="yr-title-lead">
               <span className="yr-title-l1">Drop your payment</span>{' '}
-              <span className="yr-title-l2">to ${fmt(toPrice)}/mo.</span>
+              <span className="yr-title-l2">
+                to <span className="yr-price-hl">${fmt(toPrice)}/mo</span>.
+              </span>
             </span>
             <span className="yr-title-sub">Be in every issue.</span>
           </h1>

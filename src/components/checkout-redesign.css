@@ -2343,6 +2343,39 @@
   color: var(--hc-ink);
 }
 
+/* Underline on the price — sits a bit lower than a standard underline and draws
+   itself in left-to-right after a short delay, pulling the eye to the rate. */
+.yr-price-hl {
+  position: relative;
+}
+
+.yr-price-hl::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.05em; /* sits just under the price, close to the text */
+  height: 1px;
+  border-radius: 0.5px;
+  background: var(--hc-ink-3);
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: yr-underline-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.75s both;
+}
+
+@keyframes yr-underline-in {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yr-price-hl::after {
+    animation: none;
+    transform: scaleX(1);
+  }
+}
+
 /* Space between headline and body. Selector is intentionally specific enough to
    beat the `.hc-redesign h1 { margin: 0 }` reset. */
 .yr-hero-head .yr-title {

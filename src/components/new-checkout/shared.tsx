@@ -227,24 +227,6 @@ const firstParagraph = (text: string, maxLength = 170) => {
   return paragraph.length > maxLength ? `${paragraph.slice(0, maxLength - 3).trim()}...` : paragraph;
 };
 
-// Trim to whole sentences up to ~maxLength so card copy reads as finished prose
-// rather than a hard cut-off — never appends an ellipsis. Used by the compact
-// (thumbnail) add-on rows, which don't expand. A terminator only ends a sentence
-// when followed by whitespace/end, so "havenlifestyles.com" isn't split. Falls
-// back to the first sentence (or the whole paragraph) if the first one is long.
-export const sentenceClamp = (text: string, maxLength = 160) => {
-  const paragraph = (text || '').split(/\n\s*\n/)[0]?.trim() || '';
-  if (paragraph.length <= maxLength) return paragraph;
-  const sentences = paragraph.match(/[^.!?]+[.!?]+(?=\s|$)/g);
-  if (!sentences) return paragraph;
-  let result = '';
-  for (const sentence of sentences) {
-    if (result && (result + sentence).trim().length > maxLength) break;
-    result += sentence;
-  }
-  return result.trim() || sentences[0].trim();
-};
-
 const classifyAddon = (addon: DealAddOn): EnrichedAddon['kind'] => {
   const text = `${addon.title || ''} ${addon.product_name || ''} ${addon.description || ''} ${addon.tags || ''}`.toLowerCase();
   if (text.includes('cover wrap') || text.includes('signature cover') || text.includes('cwo')) return 'cwo';

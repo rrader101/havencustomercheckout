@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/check-box';
 import DetailsStep from './new-checkout/ShippingDetails';
 import AddonsStep from './new-checkout/AddOnsSection';
 import PaymentStep from './new-checkout/PaymentSection';
+import AnnualUpsell from './new-checkout/AnnualUpsell';
 import {
   AddonLayout,
   CheckoutFormData,
@@ -690,6 +691,35 @@ export default function RedesignedPaymentForm({
     return [...subscriptions, ...others];
   }, [dealsData]);
 
+  // The "Year-Round" annual upsell interstitial. Shows only for one-time deals
+  // whose placement is a Full Page or Two-Page Spread and that carry an annual
+  // (Subscription) add-on. Pricing is read straight off the deal: `fromPrice`
+  // is the invoice amount, `toPrice` is the annual add-on's monthly amount
+  // (195 full page / 250 two-page / whatever Salesforce sets).
+  const annualUpsell = useMemo(() => {
+    if (!dealsData || dealsData.type !== 'One Time') return null;
+    const addon = availableAddOns.find((a) => a.subscription && a.kind === 'annual');
+    if (!addon) return null;
+    const label = `${addon.title || ''} ${addon.source?.product_name || ''}`.toLowerCase();
+    const isTwoPage = /two[- ]?page/.test(label);
+    const isFullPage = /full[- ]?page/.test(label);
+    if (!isTwoPage && !isFullPage) return null; // exclude half-page / anything else
+    return {
+      addon,
+      placementPhrase: isTwoPage ? 'two-page spread' : 'full page',
+      fromPrice: parseNumber(dealsData.amount),
+      toPrice: addon.price,
+    };
+  }, [dealsData, availableAddOns]);
+
+  // If we land on the annual step but the deal isn't eligible (e.g. a shared
+  // ?step=annual link on a non-eligible deal), fall through to the add-ons step.
+  useEffect(() => {
+    if (!express && currentStep === 'annual' && dealsData && !annualUpsell) {
+      handleStepChange('addons');
+    }
+  }, [express, currentStep, dealsData, annualUpsell, handleStepChange]);
+
   const getProcessingFeeRate = useCallback(
     (country: string) => {
       if (dealsData?.processing_fee_exempt) return 0;
@@ -798,7 +828,9 @@ export default function RedesignedPaymentForm({
         setSavingAddress(false);
       }
     }
-    handleStepChange('addons');
+    // Eligible one-time full/two-page deals get the annual upsell interstitial
+    // in the middle of the flow; everyone else goes straight to Customize.
+    handleStepChange(annualUpsell ? 'annual' : 'addons');
   };
 
   const toggleAddon = (id: string) => updateFormData('addOns', { [id]: !formData.addOns[id] });
@@ -841,6 +873,28 @@ export default function RedesignedPaymentForm({
           <p>There are no outstanding invoices to pay on this account right now.</p>
         </div>
       </div>
+    );
+  }
+
+  // Full-screen annual upsell interstitial — takes over the whole screen (its own
+  // header/footer), then both CTAs continue to Pay.
+  if (!express && currentStep === 'annual' && annualUpsell) {
+    return (
+      <AnnualUpsell
+        firstName={dealsData.contact_first_name?.trim() || dealsData.name?.trim().split(/\s+/)[0] || ''}
+        invoiceNum={dealsData.invoices?.[0]?.invoice_num || ''}
+        fromPrice={annualUpsell.fromPrice}
+        toPrice={annualUpsell.toPrice}
+        placementPhrase={annualUpsell.placementPhrase}
+        onUpgrade={() => {
+          updateFormData('addOns', { [annualUpsell.addon.id]: true });
+          handleStepChange('payment');
+        }}
+        onDecline={() => {
+          updateFormData('addOns', { [annualUpsell.addon.id]: false });
+          handleStepChange('payment');
+        }}
+      />
     );
   }
 

@@ -12,7 +12,7 @@ import { DealAddOn } from '@/services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
-export type CheckoutStep = 'shipping' | 'addons' | 'payment';
+export type CheckoutStep = 'shipping' | 'addons' | 'annual' | 'payment';
 export type AddonLayout = 'bundle' | 'carousel';
 export type CheckoutTheme = 'modern' | 'editorial' | 'linen' | 'noir';
 
@@ -296,7 +296,7 @@ export const getCountryDisplayName = (country: string): string =>
   country === 'Other' ? 'Other Country' : country;
 
 export const validStep = (step: string | null): CheckoutStep =>
-  step === 'addons' || step === 'payment' || step === 'shipping' ? step : 'shipping';
+  step === 'addons' || step === 'annual' || step === 'payment' || step === 'shipping' ? step : 'shipping';
 
 export const readLayout = (value: string | null, fallback: AddonLayout = 'bundle'): AddonLayout =>
   value === 'bundle' || value === 'carousel' ? value : fallback;

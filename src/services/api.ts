@@ -113,6 +113,11 @@ export interface PaymentData {
   // 'annual_upfront' => charge the full subscription term in one payment
   // (minus the upfront discount) instead of starting a monthly Stripe plan.
   billing_option?: 'monthly' | 'annual_upfront';
+  // Client-generated key that stays stable across manual retries of the same
+  // payment. The backend MUST use it to de-duplicate charges so a network blip
+  // ("Load failed") that hides a succeeded charge can't turn into a double
+  // charge on retry. Harmlessly ignored until the backend honors it.
+  idempotency_key?: string;
 }
 
 export interface PaymentResponse {
@@ -157,6 +162,8 @@ export interface ChequePaymentData {
   add_ons: string[];
   invoice_ids: string[];
   billing_option?: 'monthly' | 'annual_upfront';
+  // See PaymentData.idempotency_key.
+  idempotency_key?: string;
 }
 
 export interface ChequePaymentResponse {
@@ -212,8 +219,110 @@ function buildError(response: Response, body: unknown, fallbackMessage: string) 
   );
 }
 
+/**
+ * Thrown when a request never got a usable HTTP response — the browser rejected
+ * the fetch (Safari's "Load failed" / Chrome's "Failed to fetch") or our own
+ * timeout aborted it. This is distinct from an HTTP error status: on iOS Safari
+ * a request that is interrupted (weak signal, backgrounded tab, in-app browser)
+ * surfaces here, NOT as `response.ok === false`.
+ */
+export class NetworkError extends Error {
+  readonly isNetwork = true;
+  readonly attempts: number;
+  constructor(message: string, attempts: number, options?: { cause?: unknown }) {
+    super(message);
+    this.name = 'NetworkError';
+    this.attempts = attempts;
+    if (options?.cause !== undefined) {
+      (this as { cause?: unknown }).cause = options.cause;
+    }
+  }
+}
+
+/** True for any failure where the request didn't complete (vs. a real HTTP status). */
+export const isNetworkError = (error: unknown): boolean => {
+  if (error instanceof NetworkError) return true;
+  if (error instanceof Error) {
+    return /load failed|failed to fetch|networkerror|network request failed|timed out|operation was aborted/i.test(
+      error.message,
+    );
+  }
+  return false;
+};
+
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+// 300ms, 600ms, 1200ms … capped at 2s, plus jitter to avoid a retry thundering herd.
+const backoffDelay = (attempt: number) => Math.min(2000, 300 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 200);
+
+// Transient server responses worth another attempt (idempotent requests only).
+const isRetriableStatus = (status: number) =>
+  status === 408 || status === 425 || status === 429 || (status >= 500 && status <= 599);
+
+const normalizeFetchError = (error: unknown): Error =>
+  error instanceof DOMException && error.name === 'AbortError'
+    ? new Error('Request timed out')
+    : error instanceof Error
+      ? error
+      : new Error('Network request failed');
+
+/**
+ * fetch() for IDEMPOTENT requests (GET): adds a per-attempt timeout and retries
+ * transient failures — network rejects, timeouts, and 5xx/429 — with backoff.
+ * Returns the final Response (which may still carry a non-2xx status; the caller
+ * decides). Throws NetworkError only when every attempt failed to complete.
+ * NEVER use for non-idempotent writes (POST) — a retry could double-submit.
+ */
+async function fetchIdempotentWithRetry(
+  url: string,
+  init: RequestInit = {},
+  { timeoutMs = 12000, maxAttempts = 3 }: { timeoutMs?: number; maxAttempts?: number } = {},
+): Promise<Response> {
+  let lastError: Error = new Error('Network request failed');
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { ...init, signal: controller.signal });
+      clearTimeout(timer);
+      if (isRetriableStatus(response.status) && attempt < maxAttempts) {
+        await wait(backoffDelay(attempt));
+        continue;
+      }
+      return response;
+    } catch (error) {
+      clearTimeout(timer);
+      lastError = normalizeFetchError(error);
+      if (attempt < maxAttempts) {
+        await wait(backoffDelay(attempt));
+        continue;
+      }
+    }
+  }
+  throw new NetworkError(lastError.message, maxAttempts, { cause: lastError });
+}
+
+/**
+ * fetch() with a timeout but NO retry — for non-idempotent writes (payments).
+ * A dropped connection here is ambiguous (the server may have processed the
+ * request while the response was lost), so we surface it as a NetworkError and
+ * let the caller warn the user rather than silently resubmitting.
+ */
+async function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 45000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    const normalized = normalizeFetchError(error);
+    throw new NetworkError(normalized.message, 1, { cause: normalized });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const fetchDealsData = async (dealId: string): Promise<DealsResponse> => {
-  const response = await fetch(`${BASE_URL}/api/deals/${dealId}`, {
+  const response = await fetchIdempotentWithRetry(`${BASE_URL}/api/deals/${dealId}`, {
     headers: maybeNgrokHeaders(),
   });
 
@@ -225,7 +334,7 @@ export const fetchDealsData = async (dealId: string): Promise<DealsResponse> => 
 };
 
 export const processPayment = async (paymentData: PaymentData): Promise<PaymentResponse> => {
-  const response = await fetch(`${BASE_URL}/api/payments`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/api/payments`, {
     method: 'POST',
     headers: jsonHeaders(),
     body: JSON.stringify(paymentData),
@@ -259,7 +368,7 @@ export const saveAddress = async (addressData: AddressData): Promise<AddressResp
 export const processChequePayment = async (
   chequeData: ChequePaymentData
 ): Promise<ChequePaymentResponse> => {
-  const response = await fetch(`${BASE_URL}/api/payments/cheque-payments`, {
+  const response = await fetchWithTimeout(`${BASE_URL}/api/payments/cheque-payments`, {
     method: 'POST',
     headers: jsonHeaders(),
     body: JSON.stringify(chequeData),

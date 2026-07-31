@@ -33,6 +33,10 @@ export enum CheckoutEvents {
 
   FORM_VALIDATION_ERROR = 'form_validation_error',
   API_ERROR = 'api_error',
+  // A deal load that failed for a purely client-side reason (visitor offline, or
+  // backgrounded the tab so Safari killed the in-flight request). Split out from
+  // api_error so the api_error → Slack alert only fires on actionable failures.
+  CHECKOUT_LOAD_ABORTED = 'checkout_load_aborted',
   STRIPE_ERROR = 'stripe_error',
 
   BUTTON_CLICKED = 'button_clicked',
@@ -72,6 +76,12 @@ export const CheckoutEventProperties = {
   INVOICE_AMOUNT: 'invoice_amount',
   ERROR_TYPE: 'error_type',
   ERROR_MESSAGE: 'error_message',
+  // Failure diagnostics — let an alert tell "server is down" apart from
+  // "customer's phone dropped the request" without opening a session replay.
+  IS_NETWORK_ERROR: 'is_network_error',
+  WAS_OFFLINE: 'was_offline',
+  TAB_HIDDEN: 'tab_hidden',
+  ATTEMPTS: 'attempts',
   BUTTON_NAME: 'button_name',
   FIELD_NAME: 'field_name',
 } as const;

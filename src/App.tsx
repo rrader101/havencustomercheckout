@@ -13,6 +13,8 @@ import NotFound from "./pages/NotFound";
 // PaymentForm -> PaymentSection, ~2,000 lines plus their deps) and the
 // confirmation page out of the initial/critical bundle. They load on demand.
 const Index = lazy(() => import("./pages/Index"));
+const InvoiceSwitch = lazy(() => import("./pages/InvoiceSwitch"));
+const YearRoundReach = lazy(() => import("./pages/YearRoundReach"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const RedesignedPaymentForm = lazy(() => import("./components/RedesignedPaymentForm"));
@@ -145,6 +147,22 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/checkout/:dealId" element={<CheckoutRouter />} />
+              <Route
+                path="/switch/:dealId"
+                element={
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <InvoiceSwitch />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/year-round/:dealId"
+                element={
+                  <Suspense fallback={<div>Loading...</div>}>
+                    <YearRoundReach />
+                  </Suspense>
+                }
+              />
               <Route
                 path="/checkout-redesign/:dealId"
                 element={

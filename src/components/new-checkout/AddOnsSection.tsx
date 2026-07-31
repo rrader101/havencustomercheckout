@@ -5,6 +5,7 @@ import {
   Icon,
   fmt,
   renderRich,
+  sentenceClamp,
   usePrimarySubmitOnEnter,
 } from './shared';
 
@@ -144,12 +145,60 @@ function AddonCard({
     </span>
   );
 
+  // Featured (full-width hero) card only: show a truncated first paragraph with
+  // a "See more" that reveals every paragraph. It has the width to absorb the
+  // expanded copy; the compact thumbnail rows below use a fixed blurb instead.
+  // Toggling stops propagation so it never also selects the card.
+  const [expanded, setExpanded] = useState(false);
+  const paragraphs = addon.desc.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const hasMore = addon.desc.trim() !== addon.shortDesc.trim();
+
+  const descBlock = (
+    <span className="hc-desc">
+      {expanded
+        ? paragraphs.map((paragraph, index) => (
+            <span key={index} className="hc-desc-para">
+              {renderRich(paragraph)}
+            </span>
+          ))
+        : renderRich(addon.shortDesc)}
+      {hasMore && (
+        <>
+          {' '}
+          <button
+            type="button"
+            className="hc-see-more"
+            aria-expanded={expanded}
+            onClick={(event) => {
+              event.stopPropagation();
+              setExpanded((value) => !value);
+            }}
+          >
+            {expanded ? 'See less' : 'See more'}
+          </button>
+        </>
+      )}
+    </span>
+  );
+
+  // The card is a div (not a <button>) so it can legally contain the nested
+  // "See more" button and any links renderRich emits. Space toggles selection;
+  // Enter is left to the form-level submit handler, matching CarouselLayout.
+  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === ' ') {
+      event.preventDefault();
+      onToggle();
+    }
+  };
+
   if (featured) {
     return (
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         className={`hc-addon featured ${selected ? 'selected' : ''}`}
         onClick={onToggle}
+        onKeyDown={handleCardKeyDown}
         aria-pressed={selected}
       >
         {addon.tag && <span className="hc-badge">{addon.tag}</span>}
@@ -157,7 +206,7 @@ function AddonCard({
         <span className="hc-feat-inner">
           <span className="hc-addon-body">
             <span className="hc-addon-title">{addon.title}</span>
-            <span className="hc-desc">{renderRich(addon.shortDesc)}</span>
+            {descBlock}
             {addon.detailLine && <span className="hc-desc-detail">{addon.detailLine}</span>}
             {socialProof && addon.socialProof && (
               <span className="hc-social-proof">
@@ -169,21 +218,25 @@ function AddonCard({
           <PriceColumn addon={addon} anchorPricing={anchorPricing} />
           {checkVisual}
         </span>
-      </button>
+      </div>
     );
   }
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       className={`hc-addon ${selected ? 'selected' : ''}`}
       onClick={onToggle}
+      onKeyDown={handleCardKeyDown}
       aria-pressed={selected}
     >
       <img className="hc-thumb" src={addon.image} alt="" loading="lazy" />
       <span className="hc-addon-body">
         <span className="hc-addon-title">{addon.title}</span>
-        <span className="hc-desc">{renderRich(addon.shortDesc)}</span>
+        {/* Compact rows use a fixed, sentence-complete blurb (no expand) so the
+            thumbnail never ends up dwarfed by a wall of expanded text. */}
+        <span className="hc-desc">{renderRich(sentenceClamp(addon.desc))}</span>
         {addon.detailLine && <span className="hc-desc-detail">{addon.detailLine}</span>}
         {socialProof && addon.socialProof && (
           <span className="hc-social-proof">
@@ -194,7 +247,7 @@ function AddonCard({
       </span>
       <PriceColumn addon={addon} anchorPricing={anchorPricing} />
       {checkVisual}
-    </button>
+    </div>
   );
 }
 

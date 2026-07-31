@@ -669,6 +669,15 @@
   margin-top: 5px;
 }
 
+/* Expanded description paragraphs (revealed by "See more" on bundle cards). */
+.hc-desc-para {
+  display: block;
+}
+
+.hc-desc-para + .hc-desc-para {
+  margin-top: 8px;
+}
+
 .hc-desc-detail {
   color: var(--hc-ink-3);
   font-size: 12.5px;
@@ -2265,4 +2274,849 @@
   color: var(--hc-ink-2);
   font-size: 14px;
   margin: 0;
+}
+
+/* ─── Invoice "make the switch" upsell (route: /switch/:dealId) ──────────── */
+
+.hc-switch {
+  background: var(--hc-paper);
+  border: 1px solid var(--hc-rule);
+  border-radius: var(--hc-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--hc-shadow);
+}
+
+.hc-switch-hero {
+  position: relative;
+}
+
+.hc-switch-hero img {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  display: block;
+  background: linear-gradient(135deg, oklch(0.88 0.01 70), oklch(0.8 0.01 70));
+}
+
+.hc-switch-hero .hc-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+}
+
+.hc-switch-body {
+  padding: 26px 30px 30px;
+}
+
+.hc-switch-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--hc-ink-3);
+  margin-bottom: 12px;
+}
+
+.hc-switch .hc-section-title {
+  font-size: 30px;
+}
+
+.hc-switch-lede {
+  color: var(--hc-ink-2);
+  font-size: 15px;
+  line-height: 1.6;
+  margin-top: 14px;
+  max-width: 58ch;
+}
+
+.hc-switch-lede strong {
+  color: var(--hc-ink);
+  font-weight: 600;
+}
+
+/* Price comparison: invoice today → monthly plan */
+.hc-switch-compare {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  margin-top: 24px;
+  padding: 20px;
+  border: 1px solid var(--hc-rule);
+  border-radius: var(--hc-radius-lg);
+  background: var(--hc-accent-soft);
+}
+
+.hc-switch-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+}
+
+.hc-switch-cap {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--hc-ink-3);
+}
+
+.hc-switch-amt {
+  font-family: var(--hc-serif);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--hc-ink);
+}
+
+.hc-switch-col.was .hc-switch-amt {
+  color: var(--hc-ink-3);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+.hc-switch-amt em {
+  font-family: var(--hc-sans);
+  font-style: normal;
+  font-size: 14px;
+  color: var(--hc-ink-2);
+  margin-left: 2px;
+}
+
+.hc-switch-sub {
+  font-size: 12px;
+  color: var(--hc-ink-2);
+}
+
+.hc-switch-sep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--hc-accent);
+  color: var(--hc-paper);
+}
+
+/* Plan chooser */
+.hc-switch-plans {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.hc-switch-plan {
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--hc-rule);
+  border-radius: var(--hc-radius-lg);
+  background: var(--hc-paper);
+  color: var(--hc-ink);
+  transition: border-color 0.15s ease, box-shadow 0.2s ease;
+}
+
+.hc-switch-plan:hover {
+  border-color: var(--hc-rule-2);
+}
+
+.hc-switch-plan.selected {
+  border-color: var(--hc-ink);
+  box-shadow: 0 0 0 1px var(--hc-ink) inset;
+}
+
+.hc-switch-plan-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--hc-rule-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hc-paper);
+  flex: none;
+}
+
+.hc-switch-plan.selected .hc-switch-plan-mark {
+  background: var(--hc-accent);
+  border-color: var(--hc-accent);
+}
+
+.hc-switch-plan-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.hc-switch-plan-label {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.hc-switch-plan-blurb {
+  font-size: 12.5px;
+  color: var(--hc-ink-2);
+}
+
+.hc-switch-plan-price {
+  font-weight: 700;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.hc-switch-plan-price em {
+  font-style: normal;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--hc-ink-2);
+}
+
+/* Perks */
+.hc-switch-perks {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 20px;
+}
+
+.hc-switch-perks li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--hc-ink-2);
+}
+
+.hc-switch-perks svg {
+  color: var(--hc-positive);
+  flex: none;
+}
+
+/* CTA */
+.hc-switch-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.hc-switch-cta .hc-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.hc-switch-cta .hc-link-btn {
+  align-self: center;
+}
+
+@media (max-width: 640px) {
+  .hc-switch-body {
+    padding: 22px 20px 26px;
+  }
+
+  .hc-switch-perks {
+    grid-template-columns: 1fr;
+  }
+
+  .hc-switch-amt {
+    font-size: 24px;
+  }
+}
+
+/* ─── "Year-Round Reach" editorial upsell (route: /year-round/:dealId) ───── */
+
+.yr {
+  position: relative;
+  padding-bottom: 132px; /* room for the sticky footer */
+}
+
+.yr-nav {
+  /* Absolute (not fixed) so it scrolls away with the page — it has no background,
+     so a fixed nav would let content slide under and overlap it. */
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 32px;
+}
+
+.yr-wordmark {
+  height: 22px;
+  width: auto;
+}
+
+.yr-nav-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--hc-ink-3);
+}
+
+.yr-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--hc-rule-2);
+}
+
+/* Hero */
+.yr-hero {
+  padding: 128px 24px 56px;
+}
+
+.yr-hero-head {
+  max-width: 900px;
+  margin: 0 auto 24px;
+  text-align: center;
+}
+
+.yr-title {
+  font-family: var(--hc-serif);
+  font-weight: 400;
+  font-size: clamp(32px, 4.4vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  color: var(--hc-ink);
+  text-wrap: balance;
+}
+
+/* Each sentence on its own line; the price line leads, the promise steps back.
+   Only direct children break — the inner l1/l2 flow inline (one line) on desktop
+   and are forced to two lines on mobile (see the mobile query). */
+.yr-title > span {
+  display: block;
+}
+
+.yr-title-sub {
+  color: var(--hc-ink);
+}
+
+/* Space between headline and body. Selector is intentionally specific enough to
+   beat the `.hc-redesign h1 { margin: 0 }` reset. */
+.yr-hero-head .yr-title {
+  margin-bottom: 30px;
+}
+
+.yr-title i {
+  font-style: italic;
+}
+
+.yr-lede {
+  display: inline-block; /* parent is text-align:center, so this recenters reliably */
+  margin-top: 0;
+  max-width: 50ch;
+  font-size: clamp(15px, 1.35vw, 17px);
+  line-height: 1.55;
+  font-weight: 400;
+  color: var(--hc-ink);
+  text-wrap: balance; /* even out line lengths so the last line isn't a short orphan */
+  /* The rest of the hero paints instantly; this personalized copy holds its
+     space but stays hidden until the deal resolves, then fades in with the name
+     already in place — so there's no name pop-in / reflow, and no slow gate. */
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.yr-lede.is-in {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yr-lede {
+    transition: none;
+  }
+}
+
+/* Space between the two body paragraphs (selector beats the h1/p margin reset). */
+.yr-lede p + p {
+  margin-top: 16px;
+}
+
+/* Closing hook — a touch stronger than the body it follows. */
+.yr-lede-kicker {
+  color: var(--hc-ink);
+  font-weight: 600;
+}
+
+/* Fanned magazine covers */
+.yr-covers {
+  position: relative;
+  width: 100%;
+  max-width: 820px;
+  margin: 36px auto 0;
+  aspect-ratio: 16 / 9;
+}
+
+.yr-covers-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.yr-cover {
+  position: absolute;
+  width: 284px;
+  /* Match the source cover ratio so object-fit: cover never crops the wordmark. */
+  aspect-ratio: 2303 / 2990;
+  border-radius: 4px;
+  /* Layered so depth reads around the whole silhouette — including the tops,
+     which are all that's visible before the user scrolls — not only underneath.
+     1) tight contact  2) even ambient halo (top + sides)  3) deep grounding. */
+  box-shadow:
+    0 3px 6px rgb(0 0 0 / 0.2),
+    0 0 30px -2px rgb(0 0 0 / 0.24),
+    0 24px 50px -16px rgb(0 0 0 / 0.45);
+  animation: yr-stack-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.yr-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+  /* Hairline edge so the cover reads as a printed object, not a raw photo. */
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
+}
+
+/* Glossy sheen across the cover. */
+.yr-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    rgb(255 255 255 / 0.24) 0%,
+    rgb(255 255 255 / 0) 24%,
+    rgb(255 255 255 / 0) 78%,
+    rgb(0 0 0 / 0.09) 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Page-block thickness peeking out along the right edge. */
+.yr-cover::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  right: -4px;
+  width: 6px;
+  border-radius: 0 2px 2px 0;
+  background: repeating-linear-gradient(
+    to right,
+    rgb(246 244 240 / 0.95),
+    rgb(0 0 0 / 0.14) 1px,
+    rgb(246 244 240 / 0.8) 2px
+  );
+  box-shadow: 1px 0 2px rgb(0 0 0 / 0.18);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.yr-cover.a { transform: rotate(-9deg) translate(-198px, 26px); z-index: 1; }
+.yr-cover.b { transform: rotate(-3deg) translate(-66px, 4px); z-index: 2; }
+.yr-cover.c { transform: rotate(3deg) translate(66px, 4px); z-index: 3; }
+.yr-cover.d { transform: rotate(9deg) translate(198px, 26px); z-index: 4; }
+
+@keyframes yr-stack-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) rotate(0deg);
+  }
+}
+
+/* "See everything that's included" expander holding the single-issue vs. Annual
+   comparison. Sits under the hero paragraph; opening pushes the covers down.
+   NB: class names avoid the substring "card" so the global `[class*="card"]`
+   border rule in index.css can't box them. */
+.yr-compare {
+  padding: 0 24px;
+  text-align: center;
+}
+
+.yr-compare-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--hc-sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--hc-ink-3);
+  transition: color 0.15s ease;
+}
+
+.yr-compare-toggle:hover {
+  color: var(--hc-ink);
+}
+
+.yr-compare-toggle-label {
+  text-decoration: underline;
+  text-decoration-color: var(--hc-rule-2);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.yr-compare-chev {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+}
+
+.yr-compare-chev.open {
+  transform: rotate(180deg);
+}
+
+.yr-compare-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.yr-compare-wrap.open {
+  grid-template-rows: 1fr;
+}
+
+.yr-compare-inner {
+  overflow: hidden;
+}
+
+.yr-compare-body {
+  padding-top: 30px; /* clearance for the "Make the switch" badge */
+}
+
+.yr-compare-grid {
+  max-width: 760px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+  text-align: left;
+}
+
+.yr-compare-col {
+  position: relative;
+  background: transparent;
+  border: 1px solid var(--hc-rule);
+  border-radius: 10px;
+  padding: 28px 26px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.yr-compare-col:hover:not(.selected) {
+  border-color: var(--hc-rule-2);
+}
+
+.yr-compare-col:focus-visible {
+  outline: 2px solid var(--hc-ink);
+  outline-offset: 2px;
+}
+
+/* Whichever card is selected takes the black highlight. */
+.yr-compare-col.selected {
+  border-color: var(--hc-ink);
+}
+
+.yr-compare-badge {
+  position: absolute;
+  top: -13px;
+  left: 24px;
+  display: inline-flex;
+  align-items: center;
+  background: var(--hc-ink);
+  color: var(--hc-paper);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 12px;
+  border-radius: 999px;
+}
+
+.yr-compare-eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--hc-ink-3);
+}
+
+.yr-compare-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.yr-compare-amt {
+  font-family: var(--hc-serif);
+  font-size: 46px;
+  line-height: 1;
+  color: var(--hc-ink-3); /* gray until this card is selected */
+}
+
+.yr-compare-col.selected .yr-compare-amt {
+  color: var(--hc-ink);
+}
+
+.yr-compare-amt em {
+  font-family: var(--hc-sans);
+  font-style: normal;
+  font-size: 17px;
+  color: var(--hc-ink-2);
+  margin-left: 1px;
+}
+
+.yr-compare-per {
+  font-size: 15px;
+  color: var(--hc-ink-3);
+}
+
+.yr-compare .yr-compare-sub {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--hc-ink-2);
+}
+
+.yr-compare-list {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--hc-rule);
+}
+
+.yr-compare-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--hc-rule);
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--hc-ink-2); /* darkens when this card is selected */
+}
+
+.yr-compare-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.yr-compare-col.selected .yr-compare-list li {
+  color: var(--hc-ink);
+}
+
+.yr-compare-ic {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-top: 2px;
+}
+
+.yr-compare-ic.neutral {
+  color: var(--hc-ink-3);
+}
+
+.yr-compare-ic.positive {
+  color: var(--hc-positive);
+}
+
+/* Sticky footer */
+.yr-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  width: 100%;
+  border-top: 1px solid var(--hc-rule);
+  background: color-mix(in oklch, var(--hc-bg), transparent 15%);
+  backdrop-filter: blur(10px);
+  padding: 16px 32px;
+}
+
+/* Full-bleed row: fine print pinned bottom-left, buttons pinned bottom-right,
+   aligned under the nav's wordmark / "Checkout" meta. */
+.yr-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.yr-footer-fine {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  color: var(--hc-ink-3);
+}
+
+.yr-footer-cta {
+  display: flex;
+  gap: 12px;
+  flex: none;
+}
+
+.yr-btn {
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 22px;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.yr-btn.ghost {
+  background: transparent;
+  border: 1px solid var(--hc-rule-2);
+  color: var(--hc-ink);
+}
+
+.yr-btn.ghost:hover {
+  background: var(--hc-accent-soft);
+}
+
+.yr-btn-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--hc-ink-3);
+}
+
+.yr-btn.primary {
+  background: var(--hc-ink);
+  color: var(--hc-bg);
+  border: 1px solid var(--hc-ink);
+}
+
+.yr-btn.primary:hover {
+  background: var(--hc-accent);
+  border-color: var(--hc-accent);
+}
+
+.yr-btn-icon {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.15s ease;
+}
+
+.yr-btn.primary:hover .yr-btn-icon {
+  transform: translate(1px, -1px);
+}
+
+@media (max-width: 640px) {
+  .yr {
+    padding-bottom: 168px; /* clears the taller stacked-button footer */
+  }
+
+  .yr-nav {
+    padding: 18px 20px;
+  }
+
+  /* Mobile: keep "Checkout" on the right, drop the long invoice number. */
+  .yr-nav-invoice,
+  .yr-nav-meta .yr-dot {
+    display: none;
+  }
+
+  .yr-hero {
+    padding: 92px 20px 36px;
+  }
+
+  .yr-title {
+    font-size: 30px;
+  }
+
+  /* Force a consistent wrap on every phone (incl. Pro Max): "Drop your payment"
+     on line 1, "to $X/mo." on line 2, "Be in every issue." on line 3. */
+  .yr-title-l1,
+  .yr-title-l2 {
+    display: block;
+  }
+
+  .yr-covers {
+    margin-top: 26px;
+  }
+
+  /* Tighter fan so the outer covers stay fully on-screen with a margin. */
+  .yr-cover {
+    width: 150px;
+  }
+
+  .yr-cover.a { transform: rotate(-9deg) translate(-74px, 16px); }
+  .yr-cover.b { transform: rotate(-3deg) translate(-25px, 4px); }
+  .yr-cover.c { transform: rotate(3deg) translate(25px, 4px); }
+  .yr-cover.d { transform: rotate(9deg) translate(74px, 16px); }
+
+  .yr-compare {
+    padding: 0 18px;
+  }
+
+  .yr-compare-grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .yr-compare-col {
+    padding: 24px 22px;
+  }
+
+  .yr-footer {
+    padding: 14px 18px;
+  }
+
+  .yr-footer-cta {
+    flex-direction: column-reverse;
+    flex: 1;
+  }
+
+  .yr-btn {
+    width: 100%;
+  }
+
+  .yr-footer-fine {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yr-cover {
+    animation: none;
+  }
 }

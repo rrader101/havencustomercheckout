@@ -23,6 +23,7 @@ import {
   PaymentData as ApiPaymentData,
   processChequePayment,
   ChequePaymentData,
+  confirmPaymentActions,
 } from "@/services/api";
 import { SuccessPopup } from "./SuccessPopup";
 import { useNavigate } from "react-router-dom";
@@ -325,6 +326,10 @@ export const PaymentSection = React.memo(
     const [orderId, setOrderId] = useState<string>("");
     const navigate = useNavigate();
     const posthog = usePostHog();
+    // Card entry lives in the nested <StripePaymentContent>, but the checkout
+    // POST (and therefore the 3-D Secure follow-up) happens here in the parent,
+    // so we need our own Stripe handle to complete SCA authentication.
+    const stripe = useStripe();
 
     const handlePaymentSuccess = async (
       paymentMethodId: string,
@@ -437,6 +442,19 @@ export const PaymentSection = React.memo(
           };
 
           result = await processPayment(paymentData);
+        }
+
+        // 3-D Secure (SCA) card: the backend deferred the charge and handed back
+        // PaymentIntent client_secret(s) to authenticate in the browser. Complete
+        // them before treating the order as done; a failed/abandoned challenge
+        // throws and is surfaced as a payment error below (no false success).
+        if (result && result.requires_action) {
+          if (!stripe) {
+            throw new Error(
+              "Payment verification is unavailable right now. Please refresh the page and try again.",
+            );
+          }
+          await confirmPaymentActions(stripe, result);
         }
 
         if (result && result.order_id) {

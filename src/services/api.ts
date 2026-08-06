@@ -1,5 +1,7 @@
 // api.ts (API service for fetching deals data)
 
+import type { Stripe } from '@stripe/stripe-js';
+
 export interface DealAddOn {
   id: number;
   type: string;
@@ -120,12 +122,26 @@ export interface PaymentData {
   idempotency_key?: string;
 }
 
+export interface PaymentAction {
+  /** Which charge this authenticates: 'subscription' | 'one_time'. */
+  kind: string;
+  client_secret: string;
+  payment_intent_id?: string;
+}
+
 export interface PaymentResponse {
   success: boolean;
   error?: string;
   data?: Record<string, unknown>;
   message?: string;
   order_id?: string;
+  /**
+   * True when the backend created the subscription/charge in a state that needs
+   * 3-D Secure (SCA). The shopper must authenticate each `payment_actions` entry
+   * in the browser (see confirmPaymentActions) before the money actually moves.
+   */
+  requires_action?: boolean;
+  payment_actions?: PaymentAction[];
 }
 
 export interface AddressData {
@@ -348,6 +364,30 @@ export const processPayment = async (paymentData: PaymentData): Promise<PaymentR
 
   return result as PaymentResponse;
 };
+
+/**
+ * Complete any 3-D Secure (SCA) steps a payment response asked for.
+ *
+ * When a card's bank requires authentication, the backend returns HTTP 200 with
+ * `requires_action: true` and one PaymentIntent client_secret per charge that
+ * still needs it (the subscription's first invoice, and/or a one-time upgrade
+ * charge) rather than charging server-side. We confirm them in sequence in the
+ * browser; once they succeed the backend's Stripe webhooks finalize activation.
+ * Any failure (declined card, failed challenge) throws so the caller surfaces a
+ * card error and does NOT treat the checkout as successful.
+ */
+export async function confirmPaymentActions(stripe: Stripe, result: PaymentResponse): Promise<void> {
+  if (!result?.requires_action || !Array.isArray(result.payment_actions)) return;
+  for (const action of result.payment_actions) {
+    if (!action?.client_secret) continue;
+    const { error } = await stripe.confirmCardPayment(action.client_secret);
+    if (error) {
+      throw new Error(
+        error.message || 'We could not verify your card with your bank. Please try again or use a different card.',
+      );
+    }
+  }
+}
 
 export const saveAddress = async (addressData: AddressData): Promise<AddressResponse> => {
   const response = await fetch(`${BASE_URL}/api/payments/address`, {

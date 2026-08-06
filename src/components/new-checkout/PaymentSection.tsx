@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/select';
 import {
   ChequePaymentData,
+  confirmPaymentActions,
   Deal,
   isNetworkError,
   PaymentData as ApiPaymentData,
@@ -189,6 +190,17 @@ export default function PaymentStep({
           result = await processPayment(paymentData);
         }
 
+        // Some cards (typically outside the US) require the shopper to complete
+        // 3-D Secure. In that case the backend hasn't charged yet — it returns
+        // the PaymentIntent(s) to authenticate here. Run them before treating the
+        // order as done; a failed/abandoned challenge throws into the catch below.
+        if (result?.requires_action) {
+          if (!stripe) {
+            throw new Error('Payment verification is unavailable right now. Please refresh the page and try again.');
+          }
+          await confirmPaymentActions(stripe, result);
+        }
+
         if (result?.order_id) {
           setOrderId(result.order_id);
           setShowSuccessPopup(true);
@@ -245,7 +257,7 @@ export default function PaymentStep({
         setIsLoading(false);
       }
     },
-    [addonProperties, billingOption, currency, data, dealId, posthog, selectedAddOns, selectedInvoices, shippingData, total],
+    [addonProperties, billingOption, currency, data, dealId, posthog, selectedAddOns, selectedInvoices, shippingData, stripe, total],
   );
 
   useEffect(() => {

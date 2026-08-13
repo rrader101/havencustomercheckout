@@ -37,6 +37,10 @@ export enum CheckoutEvents {
   // backgrounded the tab so Safari killed the in-flight request). Split out from
   // api_error so the api_error → Slack alert only fires on actionable failures.
   CHECKOUT_LOAD_ABORTED = 'checkout_load_aborted',
+  // The checkout page mounted several times in quick succession within one tab
+  // — the signature of a browser crash silently reloading the page. Fired on
+  // the load AFTER the crash, since the crashed process can't report anything.
+  CHECKOUT_CRASH_RELOAD_SUSPECTED = 'checkout_crash_reload_suspected',
   STRIPE_ERROR = 'stripe_error',
 
   BUTTON_CLICKED = 'button_clicked',
@@ -82,6 +86,12 @@ export const CheckoutEventProperties = {
   WAS_OFFLINE: 'was_offline',
   TAB_HIDDEN: 'tab_hidden',
   ATTEMPTS: 'attempts',
+  // Crash-reload diagnostics
+  MOUNT_COUNT: 'mount_count',
+  WINDOW_SECONDS: 'window_seconds',
+  SECONDS_SINCE_PREVIOUS_MOUNT: 'seconds_since_previous_mount',
+  GAP_SECONDS: 'gap_seconds',
+  NAVIGATION_TYPE: 'navigation_type',
   BUTTON_NAME: 'button_name',
   FIELD_NAME: 'field_name',
 } as const;

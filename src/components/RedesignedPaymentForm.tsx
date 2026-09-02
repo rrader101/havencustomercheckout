@@ -10,6 +10,7 @@ import {
   saveAddress,
 } from '@/services/api';
 import { CheckoutEventProperties, CheckoutEvents, getTimestamp } from '@/lib/analytics';
+import { recordCheckoutMount, type CrashLoopSignal } from '@/lib/crashReloadDetector';
 import { Checkbox } from '@/components/ui/check-box';
 
 import DetailsStep from './new-checkout/ShippingDetails';
@@ -496,6 +497,40 @@ export default function RedesignedPaymentForm({
       setStepStartTime(new Date());
     }
   }, [canonicalStep, currentStep]);
+
+  // ── Crash-reload detection ──────────────────────────────────────────────
+  // Record this page load once, then report it if the tab looks like it is
+  // reloading itself (see lib/crashReloadDetector.ts). Recording is split from
+  // reporting because PostHog may not be ready at mount, and a crash landing in
+  // between would otherwise lose the record entirely.
+  const [crashSignal, setCrashSignal] = useState<CrashLoopSignal | null>(null);
+  const mountRecorded = useRef(false);
+  const crashReported = useRef(false);
+
+  useEffect(() => {
+    if (mountRecorded.current) return;
+    mountRecorded.current = true;
+    setCrashSignal(recordCheckoutMount({ step: canonicalStep }));
+    // Mount-only: `canonicalStep` is read once, on purpose — we want the step
+    // the browser landed on, not every step the customer walks through after.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!crashSignal || !posthog || crashReported.current) return;
+    crashReported.current = true;
+    posthog.capture(CheckoutEvents.CHECKOUT_CRASH_RELOAD_SUSPECTED, {
+      [CheckoutEventProperties.DEAL_ID]: dealId,
+      [CheckoutEventProperties.CURRENT_STEP]: crashSignal.step,
+      [CheckoutEventProperties.MOUNT_COUNT]: crashSignal.mountCount,
+      [CheckoutEventProperties.WINDOW_SECONDS]: crashSignal.windowSeconds,
+      [CheckoutEventProperties.SECONDS_SINCE_PREVIOUS_MOUNT]: crashSignal.secondsSincePreviousMount,
+      [CheckoutEventProperties.GAP_SECONDS]: crashSignal.gapSeconds,
+      [CheckoutEventProperties.NAVIGATION_TYPE]: crashSignal.navigationType,
+      ...crashSignal.environment,
+      [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
+    });
+  }, [crashSignal, posthog, dealId]);
 
   useEffect(() => {
     if (hasLoadedData.current) return;

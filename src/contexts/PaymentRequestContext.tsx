@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import React, { useState, useEffect, ReactNode, useCallback, useMemo, useRef } from 'react';
 import { PaymentRequest } from '@stripe/stripe-js';
 import { useStripe } from '@stripe/react-stripe-js';
 import { PaymentRequestContext, type PaymentRequestContextType } from './PaymentRequestContextBase';
@@ -14,12 +14,17 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
   const [canMakePayment, setCanMakePayment] = useState<{applePay?: boolean; googlePay?: boolean; link?: boolean} | null>(null);
   const paymentMethodHandlerRef = useRef<((paymentMethodId: string, method: string) => void | Promise<void>) | null>(null);
   const errorHandlerRef = useRef<((error: string) => void) | null>(null);
+  // Exactly one PaymentRequest per (country, currency). Each stripe.paymentRequest()
+  // registers its own 'paymentmethod' listener and is retained by Stripe, so
+  // building them repeatedly leaks — see the note in usePaymentRequest.ts.
+  const builtKeyRef = useRef<string | null>(null);
+  const paymentRequestRef = useRef<PaymentRequest | null>(null);
 
   const initializePaymentRequest = useCallback((currency: 'USD' | 'CAD', country: string) => {
     if (!stripe) return;
 
     const stripeCurrency = currency.toLowerCase();
-    
+
     let stripeCountry;
     if (currency === 'CAD') {
       stripeCountry = 'CA'; // Canadian dollars require Canada
@@ -27,6 +32,11 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
       stripeCountry = 'US'; // US dollars require United States
     }
 
+    // Already built for this pair — reuse it. Callers may invoke this on every
+    // mount/param change; only an actual currency/country switch rebuilds.
+    const key = `${stripeCountry}:${stripeCurrency}`;
+    if (builtKeyRef.current === key) return;
+    builtKeyRef.current = key;
 
     const pr = stripe.paymentRequest({
       country: stripeCountry,
@@ -38,8 +48,12 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
       requestPayerName: true,
       requestPayerEmail: true,
     });
+    paymentRequestRef.current = pr;
 
     pr.canMakePayment().then(result => {
+      // A currency/country switch may have superseded this request while
+      // canMakePayment() was in flight — don't let a stale answer win.
+      if (paymentRequestRef.current !== pr) return;
       if (result) {
         setPaymentRequest(pr);
         setCanMakePayment(result);
@@ -89,21 +103,27 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
     if (!stripe) return;
 
     return () => {
+      // Drop the cached PaymentRequest too, so a new Stripe instance rebuilds
+      // one instead of reusing an object bound to the old instance.
+      builtKeyRef.current = null;
+      paymentRequestRef.current = null;
       setPaymentRequest(null);
       setCanMakePayment(null);
     };
   }, [stripe]);
 
-  const updatePaymentRequest = (total: number) => {
-    if (paymentRequest && total > 0) {
-      paymentRequest.update({
-        total: {
-          label: 'Total',
-          amount: Math.floor(total * 100),
-        },
-      });
-    }
-  };
+  const updatePaymentRequest = useCallback((total: number) => {
+    const pr = paymentRequestRef.current;
+    if (!pr || total <= 0) return;
+    pr.update({
+      total: {
+        label: 'Total',
+        // Math.round, not Math.floor: 74.99 * 100 is 7498.999…, so flooring
+        // showed the wallet a cent less than the card path charged.
+        amount: Math.round(total * 100),
+      },
+    });
+  }, []);
 
   const setPaymentMethodHandlerWrapper = useCallback((handler: (paymentMethodId: string, method: string) => Promise<void>) => {
     paymentMethodHandlerRef.current = handler;
@@ -113,14 +133,26 @@ export const PaymentRequestProvider: React.FC<PaymentRequestProviderProps> = ({ 
     errorHandlerRef.current = handler;
   }, []);
 
-  const value = {
-    paymentRequest,
-    canMakePayment,
-    updatePaymentRequest,
-    initializePaymentRequest,
-    setPaymentMethodHandler: setPaymentMethodHandlerWrapper,
-    setErrorHandler: setErrorHandlerWrapper,
-  };
+  // Memoized so provider re-renders don't hand every consumer a new context
+  // object (and, with the old inline initialize call, restart the loop).
+  const value = useMemo<PaymentRequestContextType>(
+    () => ({
+      paymentRequest,
+      canMakePayment,
+      updatePaymentRequest,
+      initializePaymentRequest,
+      setPaymentMethodHandler: setPaymentMethodHandlerWrapper,
+      setErrorHandler: setErrorHandlerWrapper,
+    }),
+    [
+      paymentRequest,
+      canMakePayment,
+      updatePaymentRequest,
+      initializePaymentRequest,
+      setPaymentMethodHandlerWrapper,
+      setErrorHandlerWrapper,
+    ],
+  );
 
   return (
     <PaymentRequestContext.Provider value={value}>

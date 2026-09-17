@@ -8,6 +8,7 @@ import { fetchDealsData, DealsResponse, DealAddOn, Deal } from '@/services/api';
 import NotFound from '@/pages/NotFound';
 import { usePostHog } from 'posthog-js/react';
 import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
+import { isAddonOffered } from '@/lib/addons';
 
 import { PaymentSection } from './PaymentSection';
 import { AddOnsSection } from './AddOnsSection';
@@ -123,8 +124,11 @@ const PaymentForm = () => {
         const dealData = response.deal;
         setDealsData(dealData);
         
+        // Only add-ons this deal is actually offered are keyed here, so a
+        // selection saved on an earlier visit can't revive a withheld one.
         const initialAddOns: Record<string, boolean> = {};
         dealData.add_ons.forEach(addon => {
+          if (!isAddonOffered(dealData, addon)) return;
           initialAddOns[addon.id.toString()] = false;
         });
 
@@ -505,9 +509,7 @@ const PaymentForm = () => {
                 onUpdate={(data) => updateFormData('addOns', data)}
                 onNext={() => handleStepChange('payment')}
                 onBack={() => handleStepChange('shipping')}
-                availableAddOns={dealsData?.add_ons?.filter(addon => 
-                  !(dealsData.type=="One Time"  && dealsData?.has_active_subscription && addon.type === 'Subscription')
-                ) || []}
+                availableAddOns={dealsData?.add_ons?.filter(addon => isAddonOffered(dealsData, addon)) || []}
                 loading={loading}
                 dealId={dealId}
                 hasActiveSubscription={dealsData?.has_active_subscription}

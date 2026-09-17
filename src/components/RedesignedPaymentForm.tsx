@@ -11,6 +11,7 @@ import {
 } from '@/services/api';
 import { CheckoutEventProperties, CheckoutEvents, getTimestamp } from '@/lib/analytics';
 import { recordCheckoutMount, type CrashLoopSignal } from '@/lib/crashReloadDetector';
+import { isAddonOffered } from '@/lib/addons';
 import { Checkbox } from '@/components/ui/check-box';
 
 import DetailsStep from './new-checkout/ShippingDetails';
@@ -543,8 +544,12 @@ export default function RedesignedPaymentForm({
         const deal = response.deal;
         setDealsData(deal);
 
+        // Only add-ons this deal is actually offered are keyed here, so a
+        // selection saved on an earlier visit can't revive one that is now
+        // withheld (and get priced into the total / POSTed with the payment).
         const initialAddOns: Record<string, boolean> = {};
         deal.add_ons.forEach((addon) => {
+          if (!isAddonOffered(deal, addon)) return;
           initialAddOns[addon.id.toString()] = false;
         });
         // Express checkout never carries add-ons — keep them all unselected.
@@ -730,7 +735,7 @@ export default function RedesignedPaymentForm({
   const availableAddOns = useMemo(() => {
     if (!dealsData?.add_ons) return [];
     const enriched = dealsData.add_ons
-      .filter((addon) => !(dealsData.type === 'One Time' && dealsData.has_active_subscription && addon.type === 'Subscription'))
+      .filter((addon) => isAddonOffered(dealsData, addon))
       .map(enrichAddon);
 
     // Surface the monthly/annual plan first — it becomes the hero in the

@@ -468,6 +468,12 @@ const adjustedInvoiceAmount = (invoice: Deal['invoices'][number], swap: InvoiceS
   return Math.max(0, amount - parseNumber(invoice.invoice_products[index].price));
 };
 
+// The processing fee exactly as the backend computes it: round(amount × rate, 2)
+// in PHP. PHP pre-rounds to 15 significant digits, so 275 × 0.029 (7.9749999… in
+// floating point) becomes 7.98 there; plain JS rounding would show 7.97.
+const backendProcessingFee = (amount: number, rate: number): number =>
+  Math.round(Number((amount * rate * 100).toPrecision(15))) / 100;
+
 const getSelectedInvoiceTotal = (deal: Deal, invoices: Record<string, boolean>, swap: InvoiceSwap) => {
   if (!deal.invoices?.length) return 0;
   return deal.invoices
@@ -884,14 +890,15 @@ export default function RedesignedPaymentForm({
       if (formData.payment.method === 'check' || invoicePart <= 0 || Object.values(formData.addOns).some(Boolean)) {
         return parseFloat(subtotal.toFixed(2));
       }
-      // Rounded like PHP's round(): 305 × 0.029 is 8.8449999… in floating point,
-      // which the backend rounds to 8.85, so pre-round to 15 digits first.
-      const fee = Math.round(Number((invoicePart * getProcessingFeeRate(formData.shipping.country || '') * 100).toPrecision(15))) / 100;
+      const fee = backendProcessingFee(invoicePart, getProcessingFeeRate(formData.shipping.country || ''));
       return parseFloat((subtotal + fee).toFixed(2));
     }
     if (dealsData.type === 'Subscription' && dealsData.has_active_subscription) {
-      if (formData.payment.method === 'check') return parseFloat(subtotal.toFixed(2));
-      return parseFloat((subtotal * (1 + getProcessingFeeRate(formData.shipping.country || ''))).toFixed(2));
+      // Already subscribed: the invoices are charged on their own. Like the
+      // backend, no fee when an add-on is selected.
+      if (formData.payment.method === 'check' || Object.values(formData.addOns).some(Boolean)) return parseFloat(subtotal.toFixed(2));
+      const fee = backendProcessingFee(subtotal, getProcessingFeeRate(formData.shipping.country || ''));
+      return parseFloat((subtotal + fee).toFixed(2));
     }
     if (dealsData.type === 'One Time') {
       if (formData.payment.method === 'check' || Object.values(formData.addOns).some(Boolean)) return parseFloat(subtotal.toFixed(2));

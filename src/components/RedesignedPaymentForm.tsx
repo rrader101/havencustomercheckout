@@ -151,10 +151,8 @@ function OrderSummary({
   const issueLine = deal.invoices?.[0]?.invoice_num || deal.issue || deal.type;
   const nudgeAddon = addons.find((addon) => !addon.subscription && !selected[addon.id]);
   const visibleInvoices = invoices?.filter((invoice) => invoice.status !== 'Paid') || [];
-  // Products the customer is subscribing to — their invoice line is replaced by the subscription.
-  const subscribedNames = addons
-    .filter((a) => a.subscription && selected[a.id] && a.source.product_name)
-    .map((a) => a.source.product_name.toLowerCase().trim());
+  // The invoice line the subscription pays for — shown as "in subscription".
+  const swap = getInvoiceSwap(deal, selected);
 
   // New-subscription deals (no active sub yet) carry plan details from
   // Salesforce — monthly price, contract length, term, agreement status.
@@ -221,7 +219,8 @@ function OrderSummary({
             const products = invoice.invoice_products || [];
             // Only break the invoice down per product when it has more than one.
             const showBreakdown = products.length > 1;
-            const adjusted = adjustedInvoiceAmount(invoice, subscribedNames);
+            const adjusted = adjustedInvoiceAmount(invoice, swap);
+            const swappedIndex = swappedLineIndex(invoice, swap);
             const reduced = adjusted < parseNumber(invoice.amount);
             return (
               <div key={invoice.id} className="hc-summary-invoice">
@@ -236,7 +235,7 @@ function OrderSummary({
                   {showBreakdown && (
                     <ul className="hc-invoice-products">
                       {products.map((product, idx) => {
-                        const replaced = invoiceProductIsSubscribed(product.name, subscribedNames);
+                        const replaced = idx === swappedIndex;
                         return (
                           <li key={`${id}-${idx}`} className={replaced ? 'replaced' : undefined}>
                             <span>{product.name}</span>
@@ -427,27 +426,53 @@ export const invoiceProductIsSubscribed = (productName: string, subscribedNames:
   return subscribedNames.some((n) => n !== '' && (p.includes(n) || n.includes(p)));
 };
 
-// An invoice's billable amount once any product the customer is subscribing to is
-// removed. Single-product invoice → 0 when that product is the subscribed one;
-// multi-product invoice → only the subscribed product's price is subtracted.
-const adjustedInvoiceAmount = (invoice: Deal['invoices'][number], subscribedNames: string[]): number => {
-  const amount = parseNumber(invoice.amount);
-  if (!subscribedNames.length || !invoice.invoice_products?.length) return amount;
-  const removed = invoice.invoice_products
-    .filter((p) => invoiceProductIsSubscribed(p.name, subscribedNames))
-    .reduce((sum, p) => sum + parseNumber(p.price), 0);
-  return Math.max(0, amount - removed);
+// Salesforce "Manually Created Invoice" quotes carry an "MCI" suffix on their number
+// (e.g. LA-091426Y143770MCI). They bill extras sales added on top of the placement.
+const isManuallyCreatedInvoice = (invoice: Deal['invoices'][number]): boolean =>
+  (invoice.invoice_num || '').toUpperCase().endsWith('MCI');
+
+// The invoice line the subscription pays for instead, so it isn't charged twice.
+// Mirrors PaymentController::createSubscription, so the page shows what the card
+// is actually charged:
+//  - switching a product to monthly (subscription add-on) → that product's line;
+//  - a Subscription deal starting its subscription → the deal's own placement
+//    (its first product), but never on a manually created invoice, whose lines
+//    are extras billed in full.
+interface InvoiceSwap {
+  names: string[];
+  keepManualInvoices: boolean;
+}
+
+const getInvoiceSwap = (deal: Deal, addOns: Record<string, boolean>): InvoiceSwap => {
+  if (deal.type === 'Subscription' && !deal.has_active_subscription) {
+    const placement = (deal.deal_products?.[0]?.name || '').toLowerCase().trim();
+    return { names: placement ? [placement] : [], keepManualInvoices: true };
+  }
+  return { names: getSubscribedProductNames(deal, addOns), keepManualInvoices: false };
 };
 
-const getSelectedInvoiceTotal = (
-  deal: Deal,
-  invoices: Record<string, boolean>,
-  subscribedNames: string[] = [],
-) => {
+// Index of the line that comes off this invoice, or -1. Like the backend, only the
+// first matching line comes off.
+const swappedLineIndex = (invoice: Deal['invoices'][number], swap: InvoiceSwap): number => {
+  if (!swap.names.length || (swap.keepManualInvoices && isManuallyCreatedInvoice(invoice))) return -1;
+  return (invoice.invoice_products || []).findIndex((p) => invoiceProductIsSubscribed(p.name, swap.names));
+};
+
+// An invoice's billable amount once the line the subscription pays for is removed.
+// Single-product invoice → 0 when that product is the subscribed one;
+// multi-product invoice → only that product's price is subtracted.
+const adjustedInvoiceAmount = (invoice: Deal['invoices'][number], swap: InvoiceSwap): number => {
+  const amount = parseNumber(invoice.amount);
+  const index = swappedLineIndex(invoice, swap);
+  if (index < 0) return amount;
+  return Math.max(0, amount - parseNumber(invoice.invoice_products[index].price));
+};
+
+const getSelectedInvoiceTotal = (deal: Deal, invoices: Record<string, boolean>, swap: InvoiceSwap) => {
   if (!deal.invoices?.length) return 0;
   return deal.invoices
     .filter((invoice) => invoices[invoice.id.toString()] && invoice.status !== 'Paid')
-    .reduce((sum, invoice) => sum + adjustedInvoiceAmount(invoice, subscribedNames), 0);
+    .reduce((sum, invoice) => sum + adjustedInvoiceAmount(invoice, swap), 0);
 };
 
 // ─── Main component ──────────────────────────────────────────────────────
@@ -789,10 +814,9 @@ export default function RedesignedPaymentForm({
     if (!dealsData) return 0;
     let transactionAmount = 0;
 
-    // Invoice total with any product the customer is subscribing to removed
+    // Invoice total with the line the subscription pays for removed
     // (single-product invoice → 0, multi-product → that one line subtracted).
-    const subscribedNames = getSubscribedProductNames(dealsData, formData.addOns);
-    const adjustedInvoiceTotal = getSelectedInvoiceTotal(dealsData, formData.invoices, subscribedNames);
+    const adjustedInvoiceTotal = getSelectedInvoiceTotal(dealsData, formData.invoices, getInvoiceSwap(dealsData, formData.addOns));
 
     if (dealsData.type === 'One Time') {
       // One Time deals are paid via invoices only. When there are no (unpaid)
@@ -804,7 +828,9 @@ export default function RedesignedPaymentForm({
       if (dealsData.has_active_subscription) {
         transactionAmount = adjustedInvoiceTotal;
       } else {
-        transactionAmount = dealsData.monthly_subscription_price || 0;
+        // Starting the subscription charges its first month plus whatever is
+        // left on the selected invoices — both go on the card today.
+        transactionAmount = parseNumber(dealsData.monthly_subscription_price) + adjustedInvoiceTotal;
       }
     } else {
       transactionAmount = dealsData.amount || 0;
@@ -851,7 +877,18 @@ export default function RedesignedPaymentForm({
 
   const total = useMemo(() => {
     if (!dealsData || subtotal <= 0) return 0;
-    if (dealsData.type === 'Subscription' && !dealsData.has_active_subscription) return parseFloat(subtotal.toFixed(2));
+    if (dealsData.type === 'Subscription' && !dealsData.has_active_subscription) {
+      // The processing fee covers only the invoice part — never the subscription
+      // month — and is waived when an add-on is selected, as on the backend.
+      const invoicePart = getSelectedInvoiceTotal(dealsData, formData.invoices, getInvoiceSwap(dealsData, formData.addOns));
+      if (formData.payment.method === 'check' || invoicePart <= 0 || Object.values(formData.addOns).some(Boolean)) {
+        return parseFloat(subtotal.toFixed(2));
+      }
+      // Rounded like PHP's round(): 305 × 0.029 is 8.8449999… in floating point,
+      // which the backend rounds to 8.85, so pre-round to 15 digits first.
+      const fee = Math.round(Number((invoicePart * getProcessingFeeRate(formData.shipping.country || '') * 100).toPrecision(15))) / 100;
+      return parseFloat((subtotal + fee).toFixed(2));
+    }
     if (dealsData.type === 'Subscription' && dealsData.has_active_subscription) {
       if (formData.payment.method === 'check') return parseFloat(subtotal.toFixed(2));
       return parseFloat((subtotal * (1 + getProcessingFeeRate(formData.shipping.country || ''))).toFixed(2));
@@ -861,7 +898,7 @@ export default function RedesignedPaymentForm({
       return parseFloat((subtotal * (1 + getProcessingFeeRate(formData.shipping.country || ''))).toFixed(2));
     }
     return parseFloat(subtotal.toFixed(2));
-  }, [dealsData, formData.addOns, formData.payment.method, formData.shipping.country, getProcessingFeeRate, subtotal]);
+  }, [dealsData, formData.addOns, formData.invoices, formData.payment.method, formData.shipping.country, getProcessingFeeRate, subtotal]);
 
   const handleShippingNext = async () => {
     if (!dealId) return;

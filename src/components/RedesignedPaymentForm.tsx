@@ -444,11 +444,16 @@ interface InvoiceSwap {
 }
 
 const getInvoiceSwap = (deal: Deal, addOns: Record<string, boolean>): InvoiceSwap => {
-  if (deal.type === 'Subscription' && !deal.has_active_subscription) {
+  const subscribedNames = getSubscribedProductNames(deal, addOns);
+  if (deal.type === 'Subscription') {
+    // Starting the subscription, or changing its plan (one page → two page):
+    // the backend takes the deal's own placement off its auto invoices. Already
+    // subscribed and just paying invoices: they're charged as they are.
+    const startingOrUpgrading = !deal.has_active_subscription || subscribedNames.length > 0;
     const placement = (deal.deal_products?.[0]?.name || '').toLowerCase().trim();
-    return { names: placement ? [placement] : [], keepManualInvoices: true };
+    return { names: startingOrUpgrading && placement ? [placement] : [], keepManualInvoices: true };
   }
-  return { names: getSubscribedProductNames(deal, addOns), keepManualInvoices: false };
+  return { names: subscribedNames, keepManualInvoices: false };
 };
 
 // Index of the line that comes off this invoice, or -1. Like the backend, only the

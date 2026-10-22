@@ -473,6 +473,11 @@ const adjustedInvoiceAmount = (invoice: Deal['invoices'][number], swap: InvoiceS
   return Math.max(0, amount - parseNumber(invoice.invoice_products[index].price));
 };
 
+// Deal types the backend charges as a plain invoice payment (createOneTimePayment):
+// everything except a Subscription deal. BOGO and Contract used to fall through to
+// the deal amount with no processing fee, so the page showed less than the charge.
+const paysByInvoice = (type: string): boolean => type === 'One Time' || type === 'BOGO' || type === 'Contract';
+
 // The processing fee exactly as the backend computes it: round(amount × rate, 2)
 // in PHP. PHP pre-rounds to 15 significant digits, so 275 × 0.029 (7.9749999… in
 // floating point) becomes 7.98 there; plain JS rounding would show 7.97.
@@ -829,10 +834,10 @@ export default function RedesignedPaymentForm({
     // (single-product invoice → 0, multi-product → that one line subtracted).
     const adjustedInvoiceTotal = getSelectedInvoiceTotal(dealsData, formData.invoices, getInvoiceSwap(dealsData, formData.addOns));
 
-    if (dealsData.type === 'One Time') {
-      // One Time deals are paid via invoices only. When there are no (unpaid)
-      // invoices the customer owes nothing up front — do NOT fall back to the
-      // raw deal amount (the old PaymentForm never did, which is why a
+    if (paysByInvoice(dealsData.type)) {
+      // One Time, BOGO and Contract deals are paid via invoices only. When there
+      // are no (unpaid) invoices the customer owes nothing up front — do NOT fall
+      // back to the raw deal amount (the old PaymentForm never did, which is why a
       // no-invoice deal must read $0, not the placement price). Add-ons add below.
       transactionAmount = adjustedInvoiceTotal;
     } else if (dealsData.type === 'Subscription') {
@@ -905,9 +910,10 @@ export default function RedesignedPaymentForm({
       const fee = backendProcessingFee(subtotal, getProcessingFeeRate(formData.shipping.country || ''));
       return parseFloat((subtotal + fee).toFixed(2));
     }
-    if (dealsData.type === 'One Time') {
+    if (paysByInvoice(dealsData.type)) {
       if (formData.payment.method === 'check' || Object.values(formData.addOns).some(Boolean)) return parseFloat(subtotal.toFixed(2));
-      return parseFloat((subtotal * (1 + getProcessingFeeRate(formData.shipping.country || ''))).toFixed(2));
+      const fee = backendProcessingFee(subtotal, getProcessingFeeRate(formData.shipping.country || ''));
+      return parseFloat((subtotal + fee).toFixed(2));
     }
     return parseFloat(subtotal.toFixed(2));
   }, [dealsData, formData.addOns, formData.invoices, formData.payment.method, formData.shipping.country, getProcessingFeeRate, subtotal]);

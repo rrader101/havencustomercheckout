@@ -9,6 +9,7 @@ import NotFound from '@/pages/NotFound';
 import { usePostHog } from 'posthog-js/react';
 import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
 import { isAddonOffered } from '@/lib/addons';
+import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 
 import { PaymentSection } from './PaymentSection';
 import { AddOnsSection } from './AddOnsSection';
@@ -133,7 +134,7 @@ const PaymentForm = () => {
         });
 
         const localStorageKey = `checkout_addons_${currentDealId}`;
-        const savedAddOns = localStorage.getItem(localStorageKey);
+        const savedAddOns = safeGetItem(localStorageKey);
         if (savedAddOns) {
           try {
             const parsedAddOns = JSON.parse(savedAddOns);
@@ -237,7 +238,7 @@ const PaymentForm = () => {
         const updatedAddOns = typeof currentSection === 'object' && currentSection !== null
           ? { ...currentSection, ...data }
           : data;
-        localStorage.setItem(localStorageKey, JSON.stringify(updatedAddOns));
+        safeSetItem(localStorageKey, JSON.stringify(updatedAddOns));
       }
 
       if (posthog && dealsData) {

@@ -12,6 +12,7 @@ import {
 import { CheckoutEventProperties, CheckoutEvents, getTimestamp } from '@/lib/analytics';
 import { recordCheckoutMount, type CrashLoopSignal } from '@/lib/crashReloadDetector';
 import { isAddonOffered } from '@/lib/addons';
+import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 import { Checkbox } from '@/components/ui/check-box';
 
 import DetailsStep from './new-checkout/ShippingDetails';
@@ -594,7 +595,7 @@ export default function RedesignedPaymentForm({
           initialAddOns[addon.id.toString()] = false;
         });
         // Express checkout never carries add-ons — keep them all unselected.
-        const savedAddOns = express ? null : localStorage.getItem(`checkout_addons_${dealId}`);
+        const savedAddOns = express ? null : safeGetItem(`checkout_addons_${dealId}`);
         if (savedAddOns) {
           try {
             const parsed = JSON.parse(savedAddOns) as Record<string, boolean>;
@@ -720,7 +721,7 @@ export default function RedesignedPaymentForm({
         } as CheckoutFormData;
 
         if (section === 'addOns' && dealId) {
-          localStorage.setItem(`checkout_addons_${dealId}`, JSON.stringify(nextFormData.addOns));
+          safeSetItem(`checkout_addons_${dealId}`, JSON.stringify(nextFormData.addOns));
         }
 
         if (posthog && dealsData) {

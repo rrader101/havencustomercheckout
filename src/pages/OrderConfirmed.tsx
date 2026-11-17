@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { usePostHog } from 'posthog-js/react';
 import { CheckoutEvents, CheckoutEventProperties, getTimestamp } from '@/lib/analytics';
+import { safeRemoveItem } from '@/lib/safeStorage';
 import { Icon } from '@/components/new-checkout/shared';
 import '@/components/checkout-redesign.css';
 
@@ -47,7 +48,7 @@ export const OrderConfirmed: React.FC = () => {
     }
 
     if (dealId) {
-      localStorage.removeItem(`checkout_addons_${dealId}`);
+      safeRemoveItem(`checkout_addons_${dealId}`);
     }
   }, [posthog, orderID, dealId]);
 

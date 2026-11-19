@@ -11,6 +11,10 @@ export enum CheckoutEvents {
 
   CHECKOUT_STEP_TRANSITION = 'checkout_step_transition',
 
+  // Annual-upsell comparison A/B test (see lib/annualCompareTest.ts).
+  ANNUAL_COMPARE_EXPOSED = 'annual_compare_exposed',
+  ANNUAL_COMPARE_TOGGLED = 'annual_compare_toggled',
+
   SHIPPING_INFO_UPDATED = 'shipping_info_updated',
   SHIPPING_ADDRESS_AUTOCOMPLETE_USED = 'shipping_address_autocomplete_used',
 

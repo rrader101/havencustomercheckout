@@ -2888,3 +2888,125 @@
     animation: none;
   }
 }
+
+/* ─── A/B arm "open": comparison open on arrival, tighter layout ─────────────
+   (AnnualUpsell compareOpen, lib/annualCompareTest.ts). Everything here is
+   scoped to .yr--compare-open so the control arm renders exactly as before.
+   Goal: on a 1366×768 laptop both cards sit fully above the fixed footer; on a
+   phone the annual card comes first and its price is in view on arrival. */
+.yr--compare-open .yr-hero {
+  padding: 72px 24px 32px;
+}
+
+.yr--compare-open .yr-title {
+  font-size: clamp(30px, 3.6vw, 44px);
+}
+
+.yr--compare-open .yr-hero-head {
+  margin-bottom: 4px;
+}
+
+.yr--compare-open .yr-hero-head .yr-title {
+  margin-bottom: 10px;
+}
+
+.yr--compare-open .yr-lede {
+  line-height: 1.5;
+}
+
+/* The kicker repeats what the comparison now shows; drop it in this arm. */
+.yr--compare-open .yr-lede-kicker {
+  display: none;
+}
+
+.yr--compare-open .yr-compare-toggle {
+  padding: 2px 6px;
+}
+
+.yr--compare-open .yr-compare-body {
+  padding-top: 16px;
+}
+
+.yr--compare-open .yr-compare-col {
+  padding: 28px 24px 20px; /* extra top room under the badge */
+}
+
+.yr--compare-open .yr-compare-price {
+  margin-top: 10px;
+}
+
+/* Desktop: badge sits top-right, clear of the "Annual Partnership" eyebrow. */
+@media (min-width: 641px) {
+  .yr--compare-open .yr-compare-badge {
+    left: auto;
+    right: 24px;
+  }
+}
+
+.yr--compare-open .yr-compare-amt {
+  font-size: 38px;
+}
+
+.yr--compare-open .yr-compare-list {
+  margin-top: 16px;
+}
+
+.yr--compare-open .yr-compare-list li {
+  padding: 7px 0;
+}
+
+.yr--compare-open .yr-covers {
+  margin-top: 28px;
+}
+
+@media (max-width: 640px) {
+  .yr--compare-open .yr-hero {
+    padding: 76px 18px 28px;
+  }
+
+  .yr--compare-open .yr-title {
+    font-size: 28px;
+  }
+
+  .yr--compare-open .yr-lede {
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .yr--compare-open .yr-compare {
+    padding: 0 2px;
+  }
+
+  /* Annual card first; the single-issue card shrinks to its price line. */
+  .yr--compare-open .yr-compare-grid {
+    gap: 14px;
+  }
+
+  .yr--compare-open .yr-compare-col.annual {
+    order: -1;
+  }
+
+  .yr--compare-open .yr-compare-col {
+    padding: 28px 18px 16px; /* badge stays top-left on phones; room beneath it */
+  }
+
+  .yr--compare-open .yr-compare-col:not(.annual) {
+    padding: 14px 18px;
+  }
+
+  .yr--compare-open .yr-compare-col:not(.annual) .yr-compare-list {
+    display: none;
+  }
+
+  .yr--compare-open .yr-compare-col:not(.annual) .yr-compare-price {
+    margin-top: 4px;
+  }
+
+  .yr--compare-open .yr-compare-col:not(.annual) .yr-compare-amt {
+    font-size: 28px;
+  }
+
+  .yr--compare-open .yr-compare-amt {
+    font-size: 34px;
+  }
+}

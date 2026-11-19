@@ -19,6 +19,7 @@ import DetailsStep from './new-checkout/ShippingDetails';
 import AddonsStep from './new-checkout/AddOnsSection';
 import PaymentStep from './new-checkout/PaymentSection';
 import AnnualUpsell from './new-checkout/AnnualUpsell';
+import { ANNUAL_COMPARE_TEST, annualCompareArm } from '@/lib/annualCompareTest';
 import {
   AddonLayout,
   CheckoutFormData,
@@ -810,6 +811,34 @@ export default function RedesignedPaymentForm({
     };
   }, [dealsData, availableAddOns]);
 
+  // A/B test: comparison open vs collapsed on the annual screen. The arm is
+  // registered as a PostHog super property so every later event this session
+  // (payment_succeeded included) carries it, plus one exposure event per visit
+  // to the screen.
+  const compareArm = useMemo(
+    () => annualCompareArm(dealId, searchParams.get('compare')),
+    [dealId, searchParams],
+  );
+  const compareExposed = useRef(false);
+  useEffect(() => {
+    if (!posthog || !annualUpsell) return;
+    posthog.register({ [ANNUAL_COMPARE_TEST]: compareArm });
+    if (!express && currentStep === 'annual' && !compareExposed.current) {
+      compareExposed.current = true;
+      posthog.capture(CheckoutEvents.ANNUAL_COMPARE_EXPOSED, {
+        [CheckoutEventProperties.DEAL_ID]: dealId,
+        test: ANNUAL_COMPARE_TEST,
+        arm: compareArm,
+        from_price: annualUpsell.fromPrice,
+        to_price: annualUpsell.toPrice,
+        placement: annualUpsell.placementPhrase,
+        viewport_width: typeof window !== 'undefined' ? window.innerWidth : null,
+        viewport_height: typeof window !== 'undefined' ? window.innerHeight : null,
+        [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
+      });
+    }
+  }, [posthog, annualUpsell, compareArm, express, currentStep, dealId]);
+
   // If we land on the annual step but the deal isn't eligible (e.g. a shared
   // ?step=annual link on a non-eligible deal), fall through to the add-ons step.
   useEffect(() => {
@@ -998,6 +1027,16 @@ export default function RedesignedPaymentForm({
         fromPrice={annualUpsell.fromPrice}
         toPrice={annualUpsell.toPrice}
         placementPhrase={annualUpsell.placementPhrase}
+        compareOpen={compareArm === 'open'}
+        onCompareToggle={(open) => {
+          posthog?.capture(CheckoutEvents.ANNUAL_COMPARE_TOGGLED, {
+            [CheckoutEventProperties.DEAL_ID]: dealId,
+            test: ANNUAL_COMPARE_TEST,
+            arm: compareArm,
+            open,
+            [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
+          });
+        }}
         onUpgrade={() => {
           updateFormData('addOns', { [annualUpsell.addon.id]: true });
           handleStepChange('payment');

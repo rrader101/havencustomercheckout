@@ -229,6 +229,9 @@ const firstParagraph = (text: string, maxLength = 170) => {
 
 const classifyAddon = (addon: DealAddOn): EnrichedAddon['kind'] => {
   const text = `${addon.title || ''} ${addon.product_name || ''} ${addon.description || ''} ${addon.tags || ''}`.toLowerCase();
+  // A Subscription add-on is always the Annual Partnership, whatever size it is
+  // for — including the cover-wrap plan, whose text mentions "cover wrap".
+  if (addon.type === 'Subscription') return 'annual';
   if (text.includes('cover wrap') || text.includes('signature cover') || text.includes('cwo')) return 'cwo';
   if (text.includes('enhanced') || text.includes('digital exposure')) return 'enhanced';
   if (addon.type === 'Subscription' || text.includes('annual') || text.includes('partnership')) return 'annual';

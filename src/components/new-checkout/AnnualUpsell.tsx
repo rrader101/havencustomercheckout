@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Minus, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { Icon, fmt } from './shared';
+import { ANNUAL_PLACEMENT_COPY, type AnnualPlacement } from '@/lib/annualPlacement';
 import '@/components/checkout-redesign.css';
 
 /**
@@ -11,6 +12,9 @@ import '@/components/checkout-redesign.css';
  * Pricing is passed in, read straight off the deal:
  *   fromPrice = the one-time invoice amount        (e.g. 395 / 495)
  *   toPrice   = the annual add-on's monthly amount (e.g. 195 / 250)
+ *
+ * `placement` picks the size-specific wording (full page, two-page spread, half
+ * page, 1/6 page, cover wrap …) from lib/annualPlacement.ts.
  */
 
 export interface AnnualUpsellProps {
@@ -18,8 +22,8 @@ export interface AnnualUpsellProps {
   invoiceNum?: string;
   fromPrice: number;
   toPrice: number;
-  /** "full page" | "two-page spread" — drives the body copy. */
-  placementPhrase?: string;
+  /** Which placement the plan is for — drives the size wording and the comparison lists. */
+  placement?: AnnualPlacement;
   onUpgrade: () => void;
   onDecline: () => void;
   /** Personalized copy fades in when the deal data is ready (avoids a name-jump
@@ -38,36 +42,19 @@ const COVERS = [
   { src: '/checkout-redesign/assets/covers/mag-4.jpg', cls: 'd', delay: '240ms' },
 ];
 
-const ISSUES_PER_YEAR = 8;
-
-const SINGLE_ISSUE = [
-  'Your placement in this one issue',
-  'Print + digital for about six weeks',
-  'Seen while it’s the current issue',
-  'Rebook each issue to keep running',
-];
-
-const ANNUAL_INCLUDED = [
-  'Guaranteed page reservation, all 8 issues',
-  'Refresh your creative every issue',
-  'Print + digital, always on',
-  '120,000+ readers across the year',
-  'Priority placement + seller reports',
-  'Locked-in pricing all year',
-];
-
 export default function AnnualUpsell({
   firstName,
   invoiceNum,
   fromPrice,
   toPrice,
-  placementPhrase = 'full page',
+  placement = 'full',
   onUpgrade,
   onDecline,
   ready = true,
   compareOpen = false,
   onCompareToggle,
 }: AnnualUpsellProps) {
+  const copy = ANNUAL_PLACEMENT_COPY[placement] ?? ANNUAL_PLACEMENT_COPY.full;
   const [expanded, setExpanded] = useState(compareOpen);
   const [selected, setSelected] = useState<'annual' | 'single'>('annual');
 
@@ -96,9 +83,8 @@ export default function AnnualUpsell({
           <div className={`yr-lede ${ready ? 'is-in' : ''}`}>
             <p>
               {firstName ? `${firstName}, switch` : 'Switch'} your single placement to an annual
-              partnership and your invoice today drops from ${fmt(fromPrice)} to ${fmt(toPrice)}/mo.
-              Your {placementPhrase} runs in all {ISSUES_PER_YEAR} issues of HAVEN this year — refresh
-              your print ad each issue, and make digital updates every month.
+              partnership and your invoice today drops from ${fmt(fromPrice)} to ${fmt(toPrice)}/mo.{' '}
+              {copy.runsLine}
             </p>
             <p className="yr-lede-kicker">Your clients see HAVEN all year. Make sure they see you.</p>
           </div>
@@ -145,7 +131,7 @@ export default function AnnualUpsell({
                     </div>
                     <p className="yr-compare-sub">Just this issue</p>
                     <ul className="yr-compare-list">
-                      {SINGLE_ISSUE.map((item) => (
+                      {copy.single.map((item) => (
                         <li key={item}>
                           <Minus className="yr-compare-ic neutral" strokeWidth={2} />
                           <span>{item}</span>
@@ -177,7 +163,7 @@ export default function AnnualUpsell({
                     </div>
                     <p className="yr-compare-sub">Today’s charge is month one</p>
                     <ul className="yr-compare-list">
-                      {ANNUAL_INCLUDED.map((item) => (
+                      {copy.included.map((item) => (
                         <li key={item}>
                           <Check className="yr-compare-ic positive" strokeWidth={2.5} />
                           <span>{item}</span>

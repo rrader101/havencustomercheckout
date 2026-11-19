@@ -25,6 +25,10 @@ export interface AnnualUpsellProps {
   /** Personalized copy fades in when the deal data is ready (avoids a name-jump
    *  on the async standalone route). In-flow the data is already loaded → true. */
   ready?: boolean;
+  /** Show the comparison open on arrival, in the tighter layout (A/B test arm). */
+  compareOpen?: boolean;
+  /** Fired when the customer opens or closes the comparison. */
+  onCompareToggle?: (open: boolean) => void;
 }
 
 const COVERS = [
@@ -61,12 +65,14 @@ export default function AnnualUpsell({
   onUpgrade,
   onDecline,
   ready = true,
+  compareOpen = false,
+  onCompareToggle,
 }: AnnualUpsellProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(compareOpen);
   const [selected, setSelected] = useState<'annual' | 'single'>('annual');
 
   return (
-    <div className="hc-redesign yr" data-theme="modern">
+    <div className={`hc-redesign yr ${compareOpen ? 'yr--compare-open' : ''}`} data-theme="modern">
       <nav className="yr-nav">
         <img className="yr-wordmark" src="/logo-final.png" alt="Haven Lifestyles" />
         <div className="yr-nav-meta">
@@ -103,7 +109,11 @@ export default function AnnualUpsell({
             type="button"
             className="yr-compare-toggle"
             aria-expanded={expanded}
-            onClick={() => setExpanded((v) => !v)}
+            onClick={() => {
+              const next = !expanded;
+              setExpanded(next);
+              onCompareToggle?.(next);
+            }}
           >
             <span className="yr-compare-toggle-label">
               {expanded ? 'Hide the comparison' : "See everything that's included"}

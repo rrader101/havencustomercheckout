@@ -238,7 +238,9 @@
 .hc-section-title {
   font-family: var(--hc-serif);
   font-size: 32px;
-  line-height: 1.08;
+  /* 1.16 gives a wrapped headline ("<Name>, where should we send your copies?"
+     on phones) room between its lines; 1.08 read as crowded. */
+  line-height: 1.16;
   letter-spacing: -0.02em;
   color: var(--hc-ink);
   font-weight: 400;
@@ -246,19 +248,14 @@
 
 .hc-section-sub {
   color: var(--hc-ink-2);
-  margin-top: 10px;
   font-size: 14.5px;
   max-width: 56ch;
 }
 
-/* Address step: give the headline room. A long "<Name>, where should we send
-   your copies?" wraps to two lines and the default 1.08 leading crowds it. */
-.hc-details-step .hc-section-title {
-  line-height: 1.2;
-}
-
-.hc-details-step .hc-section-sub {
-  margin-top: 20px;
+/* Scoped under .hc-redesign so it beats the `.hc-redesign p { margin: 0 }` reset;
+   a bare .hc-section-sub margin never applied. Same gap on every step. */
+.hc-redesign .hc-section-sub {
+  margin-top: 15px;
 }
 
 .hc-fields {

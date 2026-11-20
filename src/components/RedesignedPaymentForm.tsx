@@ -19,6 +19,7 @@ import DetailsStep from './new-checkout/ShippingDetails';
 import AddonsStep from './new-checkout/AddOnsSection';
 import PaymentStep from './new-checkout/PaymentSection';
 import AnnualUpsell from './new-checkout/AnnualUpsell';
+import { ANNUAL_PLACEMENT_COPY, annualPlacementOf } from '@/lib/annualPlacement';
 import { ANNUAL_COMPARE_TEST, annualCompareArm } from '@/lib/annualCompareTest';
 import {
   AddonLayout,
@@ -790,24 +791,27 @@ export default function RedesignedPaymentForm({
     return [...subscriptions, ...others];
   }, [dealsData]);
 
-  // The "Year-Round" annual upsell interstitial. Shows only for one-time deals
-  // whose placement is a Full Page or Two-Page Spread and that carry an annual
-  // (Subscription) add-on. Pricing is read straight off the deal: `fromPrice`
-  // is the invoice amount, `toPrice` is the annual add-on's monthly amount
-  // (195 full page / 250 two-page / whatever Salesforce sets).
+  // The "Year-Round" annual upsell interstitial. Shows for every one-time deal
+  // that carries an Annual Partnership (Subscription) add-on, whatever the size:
+  // full page, two-page spread, half page, 1/6 page, cover wrap, … The pay
+  // backend decides which plan a deal is offered and what it costs; pricing is
+  // read straight off the deal: `fromPrice` is the invoice amount, `toPrice` is
+  // the add-on's monthly amount (the amount the backend charges). Only shown when
+  // the monthly amount really is lower than today's invoice.
   const annualUpsell = useMemo(() => {
     if (!dealsData || dealsData.type !== 'One Time') return null;
     const addon = availableAddOns.find((a) => a.subscription && a.kind === 'annual');
     if (!addon) return null;
-    const label = `${addon.title || ''} ${addon.source?.product_name || ''}`.toLowerCase();
-    const isTwoPage = /two[- ]?page/.test(label);
-    const isFullPage = /full[- ]?page/.test(label);
-    if (!isTwoPage && !isFullPage) return null; // exclude half-page / anything else
+    const fromPrice = parseNumber(dealsData.amount);
+    const toPrice = addon.price;
+    if (!(toPrice > 0) || !(fromPrice > toPrice)) return null;
+    const placement = annualPlacementOf(`${addon.title || ''} ${addon.source?.product_name || ''}`);
     return {
       addon,
-      placementPhrase: isTwoPage ? 'two-page spread' : 'full page',
-      fromPrice: parseNumber(dealsData.amount),
-      toPrice: addon.price,
+      placement,
+      placementPhrase: ANNUAL_PLACEMENT_COPY[placement].phrase,
+      fromPrice,
+      toPrice,
     };
   }, [dealsData, availableAddOns]);
 
@@ -969,7 +973,7 @@ export default function RedesignedPaymentForm({
         setSavingAddress(false);
       }
     }
-    // Eligible one-time full/two-page deals get the annual upsell interstitial
+    // Eligible one-time deals (any size with an annual plan) get the annual upsell interstitial
     // in the middle of the flow; everyone else goes straight to Customize.
     handleStepChange(annualUpsell ? 'annual' : 'addons');
   };
@@ -1026,7 +1030,7 @@ export default function RedesignedPaymentForm({
         invoiceNum={dealsData.invoices?.[0]?.invoice_num || ''}
         fromPrice={annualUpsell.fromPrice}
         toPrice={annualUpsell.toPrice}
-        placementPhrase={annualUpsell.placementPhrase}
+        placement={annualUpsell.placement}
         compareOpen={compareArm === 'open'}
         onCompareToggle={(open) => {
           posthog?.capture(CheckoutEvents.ANNUAL_COMPARE_TOGGLED, {

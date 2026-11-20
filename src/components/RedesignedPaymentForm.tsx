@@ -799,15 +799,22 @@ export default function RedesignedPaymentForm({
   // the add-on's monthly amount (the amount the backend charges). Only shown when
   // the monthly amount really is lower than today's invoice.
   const annualUpsell = useMemo(() => {
-    if (!dealsData || dealsData.type !== 'One Time') return null;
+    if (!dealsData) return null;
+    // One-time deals of any size, plus BOGO (two-issue) deals for full pages and
+    // two-page spreads only (Ryan, 2026-11-20). Contracts and subscriptions never.
+    const bogo = dealsData.type === 'BOGO';
+    if (dealsData.type !== 'One Time' && !bogo) return null;
+    if (bogo && dealsData.has_active_subscription) return null;
     const addon = availableAddOns.find((a) => a.subscription && a.kind === 'annual');
     if (!addon) return null;
     const fromPrice = parseNumber(dealsData.amount);
     const toPrice = addon.price;
     if (!(toPrice > 0) || !(fromPrice > toPrice)) return null;
     const placement = annualPlacementOf(`${addon.title || ''} ${addon.source?.product_name || ''}`);
+    if (bogo && placement !== 'full' && placement !== 'two') return null;
     return {
       addon,
+      bogo,
       placement,
       placementPhrase: ANNUAL_PLACEMENT_COPY[placement].phrase,
       fromPrice,
@@ -836,12 +843,13 @@ export default function RedesignedPaymentForm({
         from_price: annualUpsell.fromPrice,
         to_price: annualUpsell.toPrice,
         placement: annualUpsell.placementPhrase,
+        deal_type: dealsData?.type ?? null,
         viewport_width: typeof window !== 'undefined' ? window.innerWidth : null,
         viewport_height: typeof window !== 'undefined' ? window.innerHeight : null,
         [CheckoutEventProperties.TIMESTAMP]: getTimestamp(),
       });
     }
-  }, [posthog, annualUpsell, compareArm, express, currentStep, dealId]);
+  }, [posthog, annualUpsell, compareArm, express, currentStep, dealId, dealsData?.type]);
 
   // If we land on the annual step but the deal isn't eligible (e.g. a shared
   // ?step=annual link on a non-eligible deal), fall through to the add-ons step.
@@ -1031,6 +1039,7 @@ export default function RedesignedPaymentForm({
         fromPrice={annualUpsell.fromPrice}
         toPrice={annualUpsell.toPrice}
         placement={annualUpsell.placement}
+        bogo={annualUpsell.bogo}
         compareOpen={compareArm === 'open'}
         onCompareToggle={(open) => {
           posthog?.capture(CheckoutEvents.ANNUAL_COMPARE_TOGGLED, {

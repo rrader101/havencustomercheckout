@@ -251,6 +251,16 @@
   max-width: 56ch;
 }
 
+/* Address step: give the headline room. A long "<Name>, where should we send
+   your copies?" wraps to two lines and the default 1.08 leading crowds it. */
+.hc-details-step .hc-section-title {
+  line-height: 1.2;
+}
+
+.hc-details-step .hc-section-sub {
+  margin-top: 20px;
+}
+
 .hc-fields {
   display: flex;
   flex-direction: column;

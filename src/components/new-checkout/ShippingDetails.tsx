@@ -183,7 +183,7 @@ export default function DetailsStep({
       <div className="hc-step-footer">
         <div className="hc-footer-note">
           <Icon.Lock />
-          <span>Encrypted. We use these details only to mail your issue.</span>
+          <span>Encrypted. We use these details only to mail your copies.</span>
         </div>
         <button type="submit" className="hc-btn lg" disabled={loading}>
           {loading ? 'Saving...' : 'Looks good'}

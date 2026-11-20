@@ -24,6 +24,9 @@ export interface AnnualUpsellProps {
   toPrice: number;
   /** Which placement the plan is for — drives the size wording and the comparison lists. */
   placement?: AnnualPlacement;
+  /** BOGO deal: today's invoice already covers two issues, so the "pay the
+   *  invoice" side talks about two issues, not one. */
+  bogo?: boolean;
   onUpgrade: () => void;
   onDecline: () => void;
   /** Personalized copy fades in when the deal data is ready (avoids a name-jump
@@ -34,6 +37,13 @@ export interface AnnualUpsellProps {
   /** Fired when the customer opens or closes the comparison. */
   onCompareToggle?: (open: boolean) => void;
 }
+
+const BOGO_SINGLE = [
+  'Your placement in these two issues',
+  'Print + digital for about twelve weeks',
+  'Seen while each is the current issue',
+  'Rebook after the second issue',
+];
 
 const COVERS = [
   { src: '/checkout-redesign/assets/covers/mag-1.jpg', cls: 'a', delay: '0ms' },
@@ -48,6 +58,7 @@ export default function AnnualUpsell({
   fromPrice,
   toPrice,
   placement = 'full',
+  bogo = false,
   onUpgrade,
   onDecline,
   ready = true,
@@ -55,6 +66,7 @@ export default function AnnualUpsell({
   onCompareToggle,
 }: AnnualUpsellProps) {
   const copy = ANNUAL_PLACEMENT_COPY[placement] ?? ANNUAL_PLACEMENT_COPY.full;
+  const singleList = bogo ? BOGO_SINGLE : copy.single;
   const [expanded, setExpanded] = useState(compareOpen);
   const [selected, setSelected] = useState<'annual' | 'single'>('annual');
 
@@ -82,7 +94,7 @@ export default function AnnualUpsell({
           </h1>
           <div className={`yr-lede ${ready ? 'is-in' : ''}`}>
             <p>
-              {firstName ? `${firstName}, switch` : 'Switch'} your single placement to an annual
+              {firstName ? `${firstName}, switch` : 'Switch'} your {bogo ? 'two-issue placement' : 'single placement'} to an annual
               partnership and your invoice today drops from ${fmt(fromPrice)} to ${fmt(toPrice)}/mo.{' '}
               {copy.runsLine}
             </p>
@@ -129,9 +141,9 @@ export default function AnnualUpsell({
                       <span className="yr-compare-amt">${fmt(fromPrice)}</span>
                       <span className="yr-compare-per">once</span>
                     </div>
-                    <p className="yr-compare-sub">Just this issue</p>
+                    <p className="yr-compare-sub">{bogo ? 'Just these two issues' : 'Just this issue'}</p>
                     <ul className="yr-compare-list">
-                      {copy.single.map((item) => (
+                      {singleList.map((item) => (
                         <li key={item}>
                           <Minus className="yr-compare-ic neutral" strokeWidth={2} />
                           <span>{item}</span>
@@ -196,7 +208,7 @@ export default function AnnualUpsell({
           </p>
           <div className="yr-footer-cta">
             <button type="button" className="yr-btn ghost" onClick={onDecline}>
-              Continue with single issue
+              {bogo ? 'Continue with two issues' : 'Continue with single issue'}
               <span className="yr-btn-sub">
                 <Icon.Lock /> ${fmt(fromPrice)} once
               </span>
